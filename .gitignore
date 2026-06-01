@@ -25,6 +25,9 @@
 # editor
 .vscode/
 
+# vercel
+.vercel
+
 # debug
 npm-debug.log*
 yarn-debug.log*
