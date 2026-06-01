@@ -46,3 +46,7 @@ pnpm-debug.log*
 next-env.d.ts
 
 context-practice-files/
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
