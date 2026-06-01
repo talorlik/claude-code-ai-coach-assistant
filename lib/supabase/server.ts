@@ -1,15 +1,21 @@
-import { createServerClient } from "@supabase/ssr";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
+
+import {
+  REMEMBER_FLAG,
+  SESSION_ONLY,
+  isAuthCookie,
+  stripPersistence,
+} from "@/lib/supabase/cookie-persistence"
 
 /**
- * Server-side Supabase client bound to the request cookies.
- * Uses the publishable key, so Row Level Security policies still apply and
- * the client acts on behalf of the signed-in user. Use this for normal
- * server-side data access in Server Components, Route Handlers, and Actions.
+ * Request-scoped Supabase client using the publishable key. RLS applies and the
+ * client acts on behalf of the signed-in user. When the user opted out of
+ * persistent login (the remember-me flag is session-only), auth cookies are
+ * forced to session scope on every write so they vanish on browser close.
  */
 export async function createClient() {
-  const cookieStore = await cookies();
+  const cookieStore = await cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,39 +23,51 @@ export async function createClient() {
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll();
+          return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
           try {
+            const sessionOnly =
+              cookieStore.get(REMEMBER_FLAG)?.value === SESSION_ONLY
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            );
+              cookieStore.set(
+                name,
+                value,
+                sessionOnly && isAuthCookie(name)
+                  ? stripPersistence(options)
+                  : options
+              )
+            )
           } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // Called from a Server Component - middleware handles refresh.
           }
         },
       },
-    },
-  );
+    }
+  )
 }
 
 /**
- * Privileged server-side Supabase client using the secret key.
- * This BYPASSES Row Level Security and has full admin access to the database.
- * Use only in trusted server-side code (never in the browser) and only when
- * you genuinely need elevated access. It is not bound to any user session.
+ * Privileged server-side client using the secret key. Bypasses RLS. It must NOT
+ * read request cookies: @supabase/ssr would parse the user's auth-token cookie
+ * and attach it as the Authorization bearer, and PostgREST honors that JWT's
+ * role over the secret apikey - silently RLS-scoping the "admin" client to the
+ * user. Returning no cookies leaves the secret key as the sole credential, so
+ * the role resolves to service_role and RLS is bypassed as intended.
  */
-export function createAdminClient() {
-  return createSupabaseClient(
+export async function createAdminClient() {
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SECRET_KEY!,
     {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
+      cookies: {
+        getAll() {
+          return []
+        },
+        setAll() {
+          // Admin client does not persist sessions.
+        },
       },
-    },
-  );
+    }
+  )
 }
