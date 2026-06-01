@@ -31,17 +31,21 @@ structure not styling, and alter existing files only where absolutely required.
 - Logout that clears the session and the remember-me flag.
 - Forgot-password and password-reset flows via email recovery links.
 - Cloudflare Turnstile captcha on signup, login, and forgot-password.
-- A full customer profile system (contact details, address, email change,
-  password change).
+- A customer profile system: contact details (name, phone), email change, and
+  password change. No address fields (those existed only for delivery orders,
+  which this project does not have).
 - Admin vs. non-admin distinction: role stored in `user_roles`, a server-side
   `requireAdmin()` guard, and a minimal guarded `/admin` landing page.
-- Role-based post-login redirect: admins to `/admin`, everyone else to `/chat`.
+- Role-based post-login redirect: admins to `/admin`, everyone else to
+  `/profile`.
 
 ### Non-Goals
 
 - Internationalization (this project has no locale routing; the reference's
   `next-intl` layer is dropped and all strings become plain English).
 - The bakery back-office (products, orders, customers, analytics).
+- Any order-related functionality or resources, including the profile's
+  delivery-address fields and address validation.
 - Branded logo artwork (the reference `Logo` needs image assets this project
   does not have; auth pages use a plain text/icon header instead).
 
@@ -53,9 +57,10 @@ structure not styling, and alter existing files only where absolutely required.
 | Middleware file | `middleware.ts` (implied) | `proxy.ts` (Next.js 16 convention, already present) |
 | Strings | `getTranslations`/`useTranslations` | Inlined English from reference `en.json` |
 | Error/notice codes | `auth.*` translation keys resolved via `resolveAuthMessage` | Plain English mapped from a small code-to-message lookup |
-| Validation source | `lib/orders/order-validation` | New `lib/auth/validation.ts` (extracted subset) |
+| Validation source | `lib/orders/order-validation` | New `lib/auth/validation.ts` (`isValidEmail`, `normalizePhone` only) |
 | Admin client | `supabase-js` plain client | `@supabase/ssr` `createServerClient` with empty cookies (avoids RLS-bearer pitfall) |
-| Post-login default | `/profile` (or `/admin` for admins) | `/chat` (or `/admin` for admins) |
+| Post-login default | `/profile` (or `/admin` for admins) | `/profile` (or `/admin` for admins) |
+| Profile fields | name, phone, delivery address | name, phone only (no orders, so no address) |
 
 The reference resolves error/notice codes through `resolveAuthMessage`, which
 exists only to localize them. Without i18n, that indirection is unnecessary.
@@ -110,8 +115,7 @@ Contents:
 - `user_roles` table: `(user_id uuid references auth.users on delete cascade,
   role app_role, created_at)`, PK `(user_id, role)`, index on `role`.
 - `profiles` table: `user_id` PK referencing `auth.users`, `full_name`, `phone`,
-  `address_line1`, `address_line2`, `city`, `postal_code`, `created_at`,
-  `updated_at`.
+  `created_at`, `updated_at`. No address columns (order-only in the reference).
 - `set_updated_at()` trigger function and a `profiles_set_updated_at` trigger.
 - `is_admin(uuid)`: `SECURITY DEFINER`, `STABLE`, `set search_path = public`.
   EXECUTE revoked from `public`, `anon`, `authenticated`; granted to
@@ -173,19 +177,19 @@ Target admin: `talorlik@gmail.com`.
   `redirect` (no i18n); guests to `/login`, non-admins to `/`.
 - `lib/auth/resolve-auth-message.ts` -- small code-to-English lookup (replaces
   the i18n-coupled reference version) for the stable auth codes.
-- `lib/auth/validation.ts` -- `isValidEmail`, `normalizePhone`,
-  `validateAddress` extracted from the reference orders module (the only
-  validators auth/profile need).
+- `lib/auth/validation.ts` -- `isValidEmail`, `normalizePhone` extracted from
+  the reference orders module (the only validators auth/profile need). No
+  `validateAddress` (address dropped with orders).
 - `lib/types/action-result.ts` -- verbatim (`ActionResult`, `ok`, `fail`).
-- `lib/profile/profile-types.ts` -- `Profile`, `ProfileInput`, and
-  `DeliveryAddressInput` (moved here; no orders module to import from). `Profile`
-  is a hand-declared interface matching the `profiles` columns (no
-  `database.types.ts` is generated; the table is small and declaring it inline
-  avoids a codegen step and a generated-file dependency).
+- `lib/profile/profile-types.ts` -- `Profile` and `ProfileInput` only.
+  `Profile` is a hand-declared interface matching the `profiles` columns
+  (`user_id`, `full_name`, `phone`, `created_at`, `updated_at`); no
+  `database.types.ts` is generated, avoiding a codegen step and a generated-file
+  dependency. No `DeliveryAddressInput` (order-only).
 - `lib/profile/profile-validation.ts` -- `validateProfile`, repointed to
   `lib/auth/validation.ts`.
 - `lib/profile/profile-actions.ts` -- `ensureProfile`, `updateProfile`,
-  `updateAddress`, `updateEmail`, `updatePassword`, repointed imports.
+  `updateEmail`, `updatePassword`, repointed imports. No `updateAddress`.
 
 ### app
 
@@ -197,8 +201,8 @@ Target admin: `talorlik@gmail.com`.
 - `app/auth/confirm/route.ts` -- token exchange + `ensureProfile`.
 - `app/auth/signout/route.ts` -- POST/GET signout (no `?locale=`), clears
   remember-me, redirects to `/login`.
-- `app/profile/page.tsx`, `app/profile/account-forms.tsx` -- full account page
-  (contact, address, email, password); no order-history link.
+- `app/profile/page.tsx`, `app/profile/account-forms.tsx` -- account page
+  (contact details, email, password); no address form, no order-history link.
 - `app/admin/layout.tsx` -- `requireAdmin()` guard.
 - `app/admin/page.tsx` -- minimal "you are an admin" landing.
 
@@ -248,7 +252,7 @@ Supabase verifies. Site key: `0x4AAAAAADc5fn-KT7rJaxo3`.
 remember-me flag (delete it for "remember", or set `SESSION_ONLY` to opt out)
 -> `signInWithPassword({ captchaToken })` -> on success `ensureProfile` +
 `isAdmin` -> `revalidatePath("/", "layout")` -> redirect to a safe `?redirect=`
-target, else `/admin` (admin) or `/chat`.
+target, else `/admin` (admin) or `/profile`.
 
 ### Signup
 
@@ -283,8 +287,10 @@ remember-me cookie -> redirect to `/login`.
   (set to the provided site key). `NEXT_PUBLIC_SITE_URL` optional (falls back to
   request host, downgrading localhost to http for clickable dev links).
 - Supabase email templates updated to point confirmation/recovery links at
-  `/auth/confirm` (the committed template files document the exact markup;
-  applying them to the hosted project is a dashboard step).
+  `/auth/confirm`. The committed template files hold the exact markup;
+  applying them to the hosted project (Auth -> Email Templates: Confirm signup
+  and Reset password) is handled during implementation via the Supabase
+  MCP/dashboard, not left as a manual user step.
 
 ## Verification Plan
 
