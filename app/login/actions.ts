@@ -74,6 +74,8 @@ export async function login(formData: FormData) {
       path: "/",
       httpOnly: true,
       sameSite: "lax",
+      // Never transmit the preference flag over plaintext in production.
+      secure: process.env.NODE_ENV === "production",
     })
   }
 

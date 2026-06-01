@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; notice?: string }>
 }) {
   const sp = await searchParams
   const errorMessage = resolveAuthMessage(sp.error)

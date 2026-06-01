@@ -89,6 +89,10 @@ export async function updatePassword(
       password: "Too short.",
     })
   }
+  // Upper bound so a pathological input cannot tie up the password hasher.
+  if (password.length > 1000) {
+    return fail("Password is too long.", { password: "Too long." })
+  }
 
   const supabase = await createClient()
   const { error } = await supabase.auth.updateUser({ password })

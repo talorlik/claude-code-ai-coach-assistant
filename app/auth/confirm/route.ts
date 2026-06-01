@@ -16,7 +16,14 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const token_hash = searchParams.get("token_hash")
   const type = searchParams.get("type") as EmailOtpType | null
-  const next = searchParams.get("next") ?? "/profile"
+
+  // `next` is externally controllable (anyone with a valid token can craft it).
+  // Assigning it to `redirectTo.pathname` already keeps it same-host, but an
+  // allowlist removes the open-ended landing surface entirely. Only the two
+  // post-confirm destinations the email templates use are permitted.
+  const ALLOWED_NEXT = ["/profile", "/reset-password"]
+  const requestedNext = searchParams.get("next") ?? "/profile"
+  const next = ALLOWED_NEXT.includes(requestedNext) ? requestedNext : "/profile"
 
   const redirectTo = request.nextUrl.clone()
   redirectTo.pathname = next
