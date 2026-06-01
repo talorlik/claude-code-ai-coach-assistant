@@ -19,6 +19,7 @@
     "@ai-sdk/gateway": "^3.0.121",
     "@ai-sdk/react": "^3.0.195",
     "@base-ui/react": "^1.4.0",
+    "@marsidev/react-turnstile": "^1.5.2",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
     "ai": "^6.0.193",
