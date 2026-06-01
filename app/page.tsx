@@ -3,19 +3,10 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ModeToggle } from "@/components/mode-toggle";
 
 export default function Page() {
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="flex items-center justify-between border-b px-6 py-4">
-        <div className="flex items-center gap-2 font-semibold">
-          <Sparkles className="h-5 w-5 text-primary" />
-          AI Coach Assistant
-        </div>
-        <ModeToggle />
-      </header>
-
       <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
         <div className="flex max-w-2xl flex-col items-center gap-6">
           <Badge variant="secondary" className="gap-1">

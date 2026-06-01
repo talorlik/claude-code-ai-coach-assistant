@@ -3,7 +3,6 @@ import { redirect } from "next/navigation"
 
 import { createClient } from "@/lib/supabase/server"
 import { ensureProfile } from "@/lib/profile/profile-actions"
-import { Button } from "@/components/ui/button"
 import { AccountForms } from "./account-forms"
 
 export const metadata: Metadata = {
@@ -36,16 +35,9 @@ export default async function ProfilePage() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-12">
-      <header className="flex items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-medium">My Account</h1>
-          <p className="text-sm text-muted-foreground">{user.email}</p>
-        </div>
-        <form action="/auth/signout" method="post">
-          <Button type="submit" variant="outline" size="sm">
-            Sign out
-          </Button>
-        </form>
+      <header className="flex flex-col gap-1">
+        <h1 className="text-3xl font-medium">My Account</h1>
+        <p className="text-sm text-muted-foreground">{user.email}</p>
       </header>
 
       <AccountForms
