@@ -51,6 +51,33 @@ export async function listLogsForWorkouts(
 }
 
 /**
+ * Loads every completion log a client recorded at or after `since`, newest
+ * first. Used by the trainer dashboard to feed the weekly/monthly progress
+ * charts, which need the client's full recent history across all plans (not just
+ * the active one). RLS scopes the read to the owning client or the trainer
+ * admin. Throws a descriptive error on a database failure.
+ *
+ * @param clientId - The owning client's auth user id.
+ * @param since - Inclusive lower bound on `completed_at`.
+ * @returns The client's completion logs from `since` onward, newest first.
+ */
+export async function listClientLogsSince(
+  clientId: string,
+  since: Date
+): Promise<WorkoutLogRow[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("workout_logs")
+    .select("*")
+    .eq("client_id", clientId)
+    .gte("completed_at", since.toISOString())
+    .order("completed_at", { ascending: false })
+
+  if (error) throw new Error(`Failed to load client logs: ${error.message}`)
+  return (data as WorkoutLogRow[]) ?? []
+}
+
+/**
  * Inserts a workout completion log and returns the new row. The database's
  * unique constraint rejects an exact duplicate (same client, workout, planned
  * date); callers should pre-check with {@link isDuplicateCompletion} for a

@@ -310,5 +310,85 @@
       "title": "Couldn't load clients",
       "description": "Something went wrong loading your clients. Please refresh to try again."
     }
+  },
+  "TrainerDashboard": {
+    "back": "Back to clients",
+    "unnamed": "Unnamed client",
+    "metaTitle": "Client dashboard",
+    "notFound": {
+      "title": "Client not found",
+      "description": "This client hasn't finished onboarding, or doesn't exist."
+    },
+    "error": {
+      "title": "Couldn't load this client",
+      "description": "Something went wrong loading the dashboard. Please refresh to try again."
+    },
+    "profile": {
+      "title": "Profile",
+      "goal": "Goal",
+      "fitnessLevel": "Fitness level",
+      "age": "Age",
+      "availableDays": "Available days",
+      "location": "Preferred location",
+      "equipment": "Equipment",
+      "limitations": "Limitations",
+      "joined": "Joined",
+      "none": "Not provided",
+      "phone": "Phone"
+    },
+    "plan": {
+      "title": "Current plan",
+      "completion": "Completion",
+      "percent": "{value}%",
+      "completed": "Completed",
+      "none": "This client has no active plan yet.",
+      "workoutCount": "{count, plural, =0 {No workouts} one {# workout} other {# workouts}}"
+    },
+    "charts": {
+      "weeklyTitle": "Weekly activity",
+      "weeklySubtitle": "Completed workouts per week (last 12 weeks).",
+      "monthlyTitle": "Monthly activity",
+      "monthlySubtitle": "Completed workouts per month (last 6 months).",
+      "completions": "Completions",
+      "empty": "No completed workouts to chart yet."
+    },
+    "log": {
+      "title": "Workout log",
+      "empty": "No completed workouts logged yet.",
+      "workout": "Workout",
+      "date": "Date",
+      "difficulty": "Difficulty",
+      "energy": "Energy",
+      "notes": "Notes",
+      "untitledWorkout": "Workout"
+    },
+    "chat": {
+      "title": "AI trainer chat",
+      "empty": "This client hasn't chatted with the AI trainer yet.",
+      "client": "Client",
+      "assistant": "AI trainer"
+    },
+    "whatsapp": {
+      "contact": "Message on WhatsApp",
+      "prefill": "Hi {name}, it's your trainer from Studio Itai."
+    },
+    "notes": {
+      "title": "Private notes",
+      "subtitle": "Only you can see these.",
+      "placeholder": "Add a private note about this client…",
+      "add": "Add note",
+      "save": "Save",
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "delete": "Delete",
+      "saving": "Saving…",
+      "empty": "No notes yet.",
+      "updatedAt": "Updated {date}",
+      "errors": {
+        "required": "A note can't be empty.",
+        "tooLong": "Keep notes under 2000 characters.",
+        "generic": "Something went wrong. Please try again."
+      }
+    }
   }
 }

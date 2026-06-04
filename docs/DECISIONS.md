@@ -542,3 +542,43 @@ unit-testable without a DOM and let RTL/theme styling stay in the component.
 injectable `reference` Date for deterministic tests. e2e specs for trainer
 surfaces need a seeded admin (`E2E_ADMIN_EMAIL`/`_PASSWORD`); without it those
 tests skip, matching every other auth-gated spec.
+
+### 2026-06-05 - Batch 12 - Trainer Client Dashboard, Notes, WhatsApp
+
+Built `/[locale]/trainer/clients/[clientId]` (profile, current plan + completion,
+weekly/monthly Recharts, workout log, AI chat transcript, WhatsApp button,
+private notes CRUD). New pure helpers: `lib/trainer/phone.ts` (digits-only
+`wa.me` number + validity + deep link), `lib/trainer/aggregation.ts`
+(`weeklyCompletions`/`monthlyCompletions` - fixed-length, gap-filled, zero-filled
+series with injectable `reference`), `lib/trainer/notes-validation.ts`. Data:
+`lib/db/trainer-notes.ts` (CRUD), `lib/db/trainer-client-detail.ts` (aggregate
+loader), and `listClientLogsSince` added to `lib/db/workout-logs.ts`. Server
+actions in `lib/trainer/notes-actions.ts` re-guard with `requireTrainerAdmin` and
+`revalidatePath` both locales. New `TrainerDashboard` i18n namespace (en/he, key
+parity verified).
+
+**Why:** completion % is computed over the **active plan's** distinct workouts
+(`getActivePlanDetail` logs), but the progress **charts** pull **cross-plan**
+recent logs via `listClientLogsSince` (last 180 days) so the trend reflects all
+training, including archived plans, not just the current cycle. Workout titles in
+the log table resolve only from the active plan's workouts; a log against an
+archived-plan workout (not loaded) falls back to a generic localized "Workout"
+label - acceptable because the log row still shows date/difficulty/energy/notes,
+and loading every historical plan's workouts just to title old logs is not worth
+the query cost. WhatsApp validity is purely length-based (7-15 digits, E.164
+cap); no country code is inferred, so a number stored without one is used as-is
+rather than guessing a locale and producing a wrong link. The button is hidden
+(null href) when no valid number exists, per the prompt.
+
+**Deviation (corrected):** the prompt's Task 1 route is
+`/[locale]/trainer/clients/[clientId]`, but batch 11's client list linked to
+`/trainer/[clientId]` (no `/clients/`). Built the prompt's route and updated the
+batch-11 link (both table and mobile card) plus its TSDoc to
+`/trainer/clients/[clientId]` so the list actually reaches the dashboard. Batch
+11's DECISIONS note that predicted `/trainer/[clientId]` is now superseded.
+
+**Gotcha (recurring):** the e2e gate again required copying `.env.local` into the
+worktree before `npx playwright test` (the dev server crashes in `proxy.ts`
+without Supabase env). The new admin "add a note" e2e needs both a seeded admin
+and a seeded client id (`E2E_CLIENT_ID`); without them it skips, like the other
+auth-gated specs. Guest redirect tests run unconditionally and pass.

@@ -53,7 +53,7 @@ const DOT_CLASS: Record<ActivityColor, string> = {
  * Interactive trainer client list. Renders a table on wide viewports and a
  * stacked card layout on narrow ones (the table is hidden below `md`, the cards
  * above it), so the same data reads well on a phone or a desktop. Each client
- * links to their detailed dashboard at `/trainer/[clientId]`. All copy is
+ * links to their detailed dashboard at `/trainer/clients/[clientId]`. All copy is
  * localized through the `TrainerClients` namespace; the activity indicator's
  * colour is decided server-side and only mapped to a class here.
  *
@@ -87,7 +87,7 @@ export function TrainerClients({ rows }: { rows: TrainerClientRow[] }) {
               <TableRow key={row.userId} className="cursor-pointer">
                 <TableCell className="font-medium">
                   <Link
-                    href={`/trainer/${row.userId}`}
+                    href={`/trainer/clients/${row.userId}`}
                     className="hover:underline"
                   >
                     {row.fullName ?? t("unnamed")}
@@ -128,7 +128,7 @@ export function TrainerClients({ rows }: { rows: TrainerClientRow[] }) {
         {rows.map((row) => (
           <li key={row.userId}>
             <Link
-              href={`/trainer/${row.userId}`}
+              href={`/trainer/clients/${row.userId}`}
               className="block rounded-lg border bg-card p-4 text-card-foreground transition-colors hover:bg-muted/50"
             >
               <div className="flex items-start justify-between gap-2">
