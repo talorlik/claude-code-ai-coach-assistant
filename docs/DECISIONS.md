@@ -213,3 +213,54 @@ rediscover them. The build gate passed WITHOUT copying `.env.local` into the
 worktree (unlike the batch-00 warning) because these routes are dynamic and the
 Supabase env is only dereferenced at runtime; the env copy was needed only to
 run the e2e smoke locally (copied, used, removed - it is gitignored).
+
+### 2026-06-04 - Batch 03 - Shell Pre-Existed; Batch Closed Two Gaps (Unmounted Toaster, Untranslated Toggle)
+
+The theme/shell foundation was already built by the template + batch 02:
+`next-themes` configured in `components/theme-provider.tsx` (`attribute="class"`,
+`defaultTheme="system"`, `enableSystem`, plus a `d`-key hotkey), `SiteHeader`
+with nav + `LanguageSwitcher` + `ModeToggle` + responsive sticky header, and the
+full `components/ui/*` shadcn/Base UI set (including `sonner.tsx`), all wired into
+`app/[locale]/layout.tsx`. Batch 03 therefore did not rebuild any of it
+(constraint 15) and closed only the two real gaps:
+
+1. **Sonner Toaster was never mounted.** `components/ui/sonner.tsx` existed but
+   `<Toaster />` was rendered nowhere. Mounted it inside `ThemeProvider` in the
+   localized layout (after `{children}`), because the Toaster calls
+   `useTheme()` and must sit under the next-themes provider to pick up
+   light/dark.
+2. **`ModeToggle` shipped hardcoded English strings** ("Light", "Dark",
+   "System", "Toggle theme"), violating the translate-all-copy constraint.
+   Localized them via a new `ThemeToggle` message namespace
+   (`label`/`light`/`dark`/`system`) in both catalogs, switching the component to
+   `useTranslations("ThemeToggle")`. Also normalized its semicolon style to the
+   repo's no-semi convention. Did NOT create a separate `ThemeToggle` component
+   (prompt Task 3 wording): the existing `ModeToggle` already IS that control;
+   adding a duplicate would be dead code.
+
+Tests: `__tests__/unit/mode-toggle.test.tsx` (renders inside a real
+`NextIntlClientProvider`, mocks `next-themes` `useTheme` to capture `setTheme`;
+asserts localized trigger label, the three localized modes, each mode fires
+`setTheme`, and the Hebrew catalog resolves). `e2e/theme.spec.ts`
+(switch->reload persistence via the `html.dark` class round trip, and the
+localized toggle in the `/he` RTL shell).
+
+Two non-obvious test traps recorded for future component/e2e batches that use
+Base UI menus/dialogs:
+
+1. **`NextIntlClientProvider` `locale` prop is strictly typed to the URL prefix**
+   (`"en" | "he"`, via the batch-02 `global.ts` augmentation), NOT the full tag.
+   Passing `"en-US"` fails typecheck. Pass the prefix; the catalog object is what
+   drives translation in tests.
+2. **Base UI keeps a transient `pointer-events: none` overlay during the
+   menu open/close transition, and jsdom never clears it** (no real animation
+   frames). userEvent's pointer-events guard then throws on the next click. Fix:
+   `userEvent.setup({ pointerEventsCheck: 0 })` for tests that reopen a Base UI
+   menu. The Playwright e2e (real browser) does not need this.
+
+**Why:** the unmounted-Toaster and untranslated-toggle gaps are the kind a
+"shell already exists" batch silently passes over; recorded so the global
+toaster mount and the i18n of every control are treated as done. The two test
+traps (strict `locale` prop, Base UI pointer-events guard) will recur in every
+later batch that component-tests a Base UI menu/dialog or e2e-drives one, so they
+go to auto-memory too.

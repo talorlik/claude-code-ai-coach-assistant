@@ -7,6 +7,12 @@
     "en": "English",
     "he": "Hebrew"
   },
+  "ThemeToggle": {
+    "label": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
   "Nav": {
     "home": "Home",
     "chat": "Chat",

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation"
 
 import { ThemeProvider } from "@/components/theme-provider"
 import { SiteHeader } from "@/components/site-header"
+import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 import {
   localeDirection,
@@ -66,6 +67,7 @@ export default async function LocaleLayout({
           <ThemeProvider>
             <SiteHeader />
             {children}
+            <Toaster />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>
