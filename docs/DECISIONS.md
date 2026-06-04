@@ -400,3 +400,57 @@ errored step). The server action remains the single validation source of truth;
 client-side step checks are UX-only. Runtime-composed translation keys
 (`errors.<field>.<code>`, `steps.<n>.title`) are cast to the translator's key
 type via a local `MessageKey` alias because next-intl types keys statically.
+
+### 2026-06-05 - Batch 08 - AI Generation Uses generateObject + Zod Through The Gateway
+
+Plan generation calls the AI SDK `generateObject` with a zod
+(`workoutPlanSchema`) schema, routed through the Vercel AI Gateway by passing
+the `provider/model` string `anthropic/claude-sonnet-4-6` (same convention as
+`app/api/chat/route.ts`). The model call is wrapped behind an injectable
+`ObjectGenerator` seam in `lib/ai/generate-plan.ts`.
+
+**Why:** no direct Anthropic key is needed - `AI_GATEWAY_API_KEY` is present
+locally and the Gateway is the default provider, so batch task 2 (ask owner for
+a key) did not trigger. zod 4.3.6 was already a dependency, so no new package.
+The generator seam lets every test run with a fake generator: no network, no
+Gateway, fully deterministic, and AI calls are mocked as required.
+
+### 2026-06-05 - Batch 08 - Limitations-Driven Safety Rule Lives In The Validator, Not The Schema
+
+`validateGeneratedPlan(candidate, hasLimitations)` enforces non-empty
+per-exercise `safety_notes` only when the client reported limitations; the base
+`workoutPlanSchema` leaves `safety_notes` nullable.
+
+**Why:** the rule is context-dependent (applies only to clients with
+limitations/injuries), so encoding it in the static schema would wrongly reject
+valid plans for clients without limitations. Keeping it in the validator keeps
+the schema reusable and makes the "safety notes required when limitations exist"
+unit test target one pure function.
+
+### 2026-06-05 - Batch 08 - Partial-Plan Rollback By Plan-Row Delete (No DB Transaction)
+
+`saveGeneratedPlan` inserts plan -> workouts -> exercises in order; on any child
+failure it deletes the plan row, relying on `on delete cascade` to remove
+children, then rethrows. Onboarding passes `archivePrevious: false`; archiving
+the prior active plan is gated to the regeneration path (batch 14).
+
+**Why:** Supabase JS has no client-side multi-statement transaction, so the
+"never save a partial plan" contract is met by compensating delete instead. The
+cascade FKs (already in `0002_app_schema.sql`) make a single delete sufficient.
+Generation failure in `saveOnboarding` is non-fatal: the profile stays saved, a
+`failed` `plan_generation_events` row is recorded, and the UI shows a localized
+"try again later" state.
+
+### 2026-06-05 - Batch 08 - saveOnboarding Now Takes A Locale And Triggers Generation
+
+`saveOnboarding(input, locale?)` gained a second arg; the form passes
+`useLocale()`. The success screen branches on `planGenerated`: a "View my plan"
+CTA to `/my-plan` when true, a "try again later" message to `/profile` when
+false. Updated `onboarding-actions.test.ts` to mock `generateWorkoutPlan` and
+the persistence helpers so it stays focused on profile-save behavior.
+
+**Why:** the plan must be generated in the client's language, which only the
+request locale supplies. The pre-existing onboarding test broke because the
+action now calls the real AI/persistence modules; mocking them is the correct
+update for changed behavior. Follow-up: the `/my-plan` route does not exist
+until batch 09, so the success "View my plan" button 404s until then.

@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { useTranslations } from "next-intl"
-import { CheckCircle2 } from "lucide-react"
+import { useLocale, useTranslations } from "next-intl"
+import { CheckCircle2, TriangleAlert } from "lucide-react"
 
 import { useRouter } from "@/i18n/navigation"
 import { saveOnboarding } from "@/lib/onboarding/onboarding-actions"
@@ -91,12 +91,14 @@ export function OnboardingForm({
   defaults: OnboardingDefaults
 }) {
   const t = useTranslations("Onboarding")
+  const locale = useLocale()
   const router = useRouter()
 
   const [step, setStep] = React.useState(0)
   const [values, setValues] = React.useState<OnboardingDefaults>(defaults)
   const [pending, setPending] = React.useState(false)
   const [done, setDone] = React.useState(false)
+  const [planGenerated, setPlanGenerated] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = React.useState<
     Record<string, string>
@@ -126,19 +128,23 @@ export function OnboardingForm({
     setError(null)
     setFieldErrors({})
 
-    const result = await saveOnboarding({
-      fullName: values.fullName,
-      phone: values.phone,
-      age: values.age,
-      ageRange: values.ageRange,
-      goal: values.goal,
-      fitnessLevel: values.fitnessLevel,
-      limitations: values.limitations,
-      availableDays: values.availableDays,
-      preferredLocation: values.preferredLocation,
-      equipment: values.equipment,
-      notes: values.notes,
-    })
+    const result = await saveOnboarding(
+      {
+        fullName: values.fullName,
+        phone: values.phone,
+        age: values.age,
+        ageRange: values.ageRange,
+        goal: values.goal,
+        fitnessLevel: values.fitnessLevel,
+        limitations: values.limitations,
+        availableDays: values.availableDays,
+        preferredLocation: values.preferredLocation,
+        equipment: values.equipment,
+        notes: values.notes,
+      },
+      // Locale tells the server which language to generate the plan in.
+      locale
+    )
 
     setPending(false)
 
@@ -157,23 +163,47 @@ export function OnboardingForm({
       return
     }
 
+    setPlanGenerated(result.data.planGenerated)
     setDone(true)
   }
 
   if (done) {
+    // The profile is always saved here; the variant depends on whether the AI
+    // plan was generated. Both states are localized and reassure the client.
     return (
       <div
         className="flex flex-col items-center gap-4 rounded-lg border bg-card p-8 text-center"
         role="status"
       >
-        <CheckCircle2 className="size-10 text-primary" aria-hidden="true" />
-        <h2 className="text-xl font-semibold">{t("success.title")}</h2>
-        <p className="max-w-md text-sm text-muted-foreground">
-          {t("success.body")}
-        </p>
-        <Button onClick={() => router.push("/profile")}>
-          {t("success.cta")}
-        </Button>
+        {planGenerated ? (
+          <>
+            <CheckCircle2
+              className="size-10 text-primary"
+              aria-hidden="true"
+            />
+            <h2 className="text-xl font-semibold">{t("success.title")}</h2>
+            <p className="max-w-md text-sm text-muted-foreground">
+              {t("success.planReady")}
+            </p>
+            <Button onClick={() => router.push("/my-plan")}>
+              {t("success.viewPlan")}
+            </Button>
+          </>
+        ) : (
+          <>
+            <TriangleAlert
+              className="size-10 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <h2 className="text-xl font-semibold">{t("success.title")}</h2>
+            <p className="max-w-md text-sm text-muted-foreground">
+              {t("success.planPending")}
+            </p>
+            <Button onClick={() => router.push("/profile")}>
+              {t("success.cta")}
+            </Button>
+          </>
+        )}
       </div>
     )
   }
@@ -235,7 +265,7 @@ export function OnboardingForm({
 
         {isLastStep ? (
           <Button type="submit" disabled={pending}>
-            {pending ? t("nav.saving") : t("submit")}
+            {pending ? t("nav.generating") : t("submit")}
           </Button>
         ) : (
           <Button

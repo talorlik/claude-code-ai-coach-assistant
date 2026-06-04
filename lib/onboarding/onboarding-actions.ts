@@ -5,6 +5,12 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { upsertClient } from "@/lib/db/clients"
 import type { Client } from "@/lib/db/mappers"
+import { LOCALE_TAGS, type Locale, type LocaleTag } from "@/i18n/routing"
+import { generateWorkoutPlan } from "@/lib/ai/generate-plan"
+import {
+  saveGeneratedPlan,
+  recordGenerationEvent,
+} from "@/lib/db/plan-persistence"
 import type { ActionResult } from "@/lib/types/action-result"
 import { fail, ok } from "@/lib/types/action-result"
 import {
@@ -17,11 +23,19 @@ export interface OnboardingSaveResult {
   /** The persisted client profile. */
   client: Client
   /**
-   * Whether a workout plan was generated as part of this save. Batch 08 wires
-   * real generation; until then this is always `false` and the UI shows the
-   * "Create my workout plan" affordance without a plan yet existing.
+   * Whether a workout plan was generated and saved as part of this onboarding.
+   * `false` means the profile was saved but plan generation failed (the AI call
+   * errored or returned invalid output); the UI confirms the saved profile and
+   * surfaces a "try again later" message rather than blocking the client.
    */
   planGenerated: boolean
+}
+
+/** Resolves a raw URL locale prefix to its full tag, defaulting to en-US. */
+function resolveLocaleTag(locale: string | undefined): LocaleTag {
+  return locale && locale in LOCALE_TAGS
+    ? LOCALE_TAGS[locale as Locale]
+    : LOCALE_TAGS.en
 }
 
 /**
@@ -38,11 +52,20 @@ export interface OnboardingSaveResult {
  * normally prevents reaching this state, but the action re-checks because a
  * server action is an independently callable entry point.
  *
+ * After the profile is saved, the action generates a workout plan via the
+ * server-side AI flow and persists it. Generation failure is non-fatal: the
+ * saved profile is kept and `planGenerated: false` is returned so the client is
+ * not blocked. The profile save and the plan generation are independent, so a
+ * persistence helper that throws on plan save does NOT undo the profile.
+ *
  * @param input - The raw onboarding payload from the form.
+ * @param locale - The active URL locale prefix (`"en"`/`"he"`); sets the plan's
+ *   output language. Defaults to English when absent or unknown.
  * @returns The saved client and a plan-generation flag, or a field-keyed error.
  */
 export async function saveOnboarding(
-  input: OnboardingInput
+  input: OnboardingInput,
+  locale?: string
 ): Promise<ActionResult<OnboardingSaveResult>> {
   const validation = validateOnboarding(input)
   if (!validation.ok) return validation
@@ -84,7 +107,50 @@ export async function saveOnboarding(
   // so a returning client sees their saved answers.
   revalidatePath("/[locale]/join", "page")
 
-  // Batch 08 replaces this with real, validated AI plan generation. Until then
-  // we persist onboarding and report that no plan was generated yet.
-  return ok({ client, planGenerated: false })
+  // Generate and persist a workout plan in the client's language. Any failure
+  // is recorded as a `failed` generation event and reported as
+  // planGenerated: false; the profile stays saved either way.
+  const localeTag = resolveLocaleTag(locale)
+  const generation = await generateWorkoutPlan(client, localeTag)
+
+  if (!generation.ok) {
+    await recordGenerationEvent({
+      clientId: user.id,
+      triggeredBy: user.id,
+      source: "onboarding",
+      status: "failed",
+    })
+    return ok({ client, planGenerated: false })
+  }
+
+  try {
+    const saved = await saveGeneratedPlan({
+      clientId: user.id,
+      plan: generation.plan,
+      localeTag,
+      // First plan at onboarding: there is no prior active plan to archive.
+      // Archiving is the regeneration path's concern (batch 14).
+      archivePrevious: false,
+    })
+    await recordGenerationEvent({
+      clientId: user.id,
+      triggeredBy: user.id,
+      source: "onboarding",
+      status: "succeeded",
+      planId: saved.plan.id,
+    })
+    // Surface the new plan on the plan view's cached render.
+    revalidatePath("/[locale]/my-plan", "page")
+    return ok({ client, planGenerated: true })
+  } catch {
+    // saveGeneratedPlan rolls back any partial plan before throwing; nothing
+    // half-written is visible. Record the failure and keep the profile.
+    await recordGenerationEvent({
+      clientId: user.id,
+      triggeredBy: user.id,
+      source: "onboarding",
+      status: "failed",
+    })
+    return ok({ client, planGenerated: false })
+  }
 }

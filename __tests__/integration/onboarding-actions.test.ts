@@ -3,11 +3,17 @@ import { describe, expect, it, vi, beforeEach } from "vitest"
 import type { OnboardingInput } from "@/lib/validation/onboarding"
 
 /**
- * Integration test for the onboarding server action. The Supabase client is
- * faked so the action's real validation, auth check, and upsert mapping run
- * without a live database. `next/cache` is stubbed because revalidatePath needs
- * a request context. The fake `from().upsert()` records the row written so the
- * test can assert the snake_case payload the data layer produced.
+ * Integration test for the onboarding server action's profile-save behavior.
+ * The Supabase client is faked so the action's real validation, auth check, and
+ * upsert mapping run without a live database. `next/cache` is stubbed because
+ * revalidatePath needs a request context. The fake `from().upsert()` records
+ * the row written so the test can assert the snake_case payload the data layer
+ * produced.
+ *
+ * Since batch 08, saveOnboarding also triggers AI plan generation; that flow is
+ * mocked here (generation succeeds with a no-op persistence) so these tests stay
+ * focused on the profile save. The generation/persistence wiring is covered by
+ * `onboarding-plan-generation.test.ts`.
  */
 
 let currentUser: { id: string; email: string } | null = null
@@ -16,6 +22,45 @@ let upsertError: { message: string } | null = null
 
 vi.mock("next/cache", () => ({
   revalidatePath: () => {},
+}))
+
+vi.mock("@/lib/ai/generate-plan", () => ({
+  generateWorkoutPlan: async () => ({
+    ok: true,
+    plan: {
+      title: "Plan",
+      summary: null,
+      safety_notes: "Not medical advice.",
+      workouts: [
+        {
+          day_of_week: "monday",
+          title: "Day 1",
+          focus: null,
+          notes: null,
+          exercises: [
+            {
+              name: "Squat",
+              sets: 3,
+              reps: "10",
+              duration: null,
+              rest: "60s",
+              instructions: null,
+              safety_notes: null,
+            },
+          ],
+        },
+      ],
+    },
+  }),
+}))
+
+vi.mock("@/lib/db/plan-persistence", () => ({
+  saveGeneratedPlan: async () => ({
+    plan: { id: "plan-1" },
+    workoutCount: 1,
+    exerciseCount: 1,
+  }),
+  recordGenerationEvent: async () => {},
 }))
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -78,7 +123,8 @@ describe("saveOnboarding", () => {
     const result = await saveOnboarding(valid())
     expect(result.ok).toBe(true)
     if (result.ok) {
-      expect(result.data.planGenerated).toBe(false)
+      // Generation is mocked to succeed, so a plan is reported generated.
+      expect(result.data.planGenerated).toBe(true)
       expect(result.data.client.userId).toBe("user-1")
       expect(result.data.client.goal).toBe("build_muscle")
     }

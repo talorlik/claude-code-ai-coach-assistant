@@ -49,7 +49,8 @@
     "nav": {
       "back": "Back",
       "next": "Next",
-      "saving": "Saving…"
+      "saving": "Saving…",
+      "generating": "Building your plan…"
     },
     "fields": {
       "fullName": "Full name",
@@ -161,7 +162,10 @@
     "success": {
       "title": "You're all set!",
       "body": "Your details are saved. Your personalized workout plan is on the way.",
-      "cta": "Go to my account"
+      "cta": "Go to my account",
+      "planReady": "Your personalized workout plan is ready. This plan is general guidance, not medical advice - stop and consult a professional if you feel pain.",
+      "viewPlan": "View my plan",
+      "planPending": "Your details are saved, but we couldn't build your plan just now. Please try again in a little while from your account."
     }
   },
   "Metadata": {
