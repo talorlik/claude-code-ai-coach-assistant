@@ -88,3 +88,30 @@ Three findings the build must carry:
 **Why:** the env-in-primary-checkout fact is the most likely future-batch trap:
 a worktree build silently fails without it, and it is invisible in `git status`
 because it is ignored. Recorded so every later batch copies env before building.
+
+### 2026-06-04 - Batch 01 - Planning Docs Pre-Existed; Batch Was A Verification Pass
+
+The batch 01 deliverables (`docs/planning/PRD.md`,
+`docs/planning/TECHNICAL_REQUIREMENTS.md`, `docs/planning/TASK_BREAKDOWN.md`, all
+20 `docs/prompts/NN_*.md`, and `docs/prompts/PROMPT_INDEX.md`) already existed on
+`main`, committed ad-hoc as `77453f3 "Added planning and prompt documents."`
+before the formal batch system was introduced. Batch 01 therefore created no new
+planning docs; it ran the prompt's verification tasks (hierarchy present, naming,
+no secrets) and produced the prescribed `Add planning documentation` squash
+commit carrying this log entry.
+
+Verification results: all three planning docs and 21 prompt files present and
+correctly placed. Naming conforms to UPPERCASE_WITH_UNDERSCORES.md for every doc
+under `docs/planning` and `docs/prompts`. The only non-conforming `.md` files are
+`docs/superpowers/plans/2026-06-01-auth-port.md` and
+`docs/superpowers/specs/2026-06-01-AUTH_PORT_DESIGN.md`, which are
+superpowers-skill artifacts using that tool's date-prefixed convention and are
+out of scope for this batch. Secret scan over planning + prompt docs found only
+empty env-var-name placeholders (`SUPABASE_SECRET_KEY=`, `AI_GATEWAY_API_KEY=`)
+in the `TECHNICAL_REQUIREMENTS.md` env template - documentation, not leaked
+values.
+
+**Why:** recorded so a future audit does not mistake the missing
+`Add planning documentation` content-commit for skipped work - the content landed
+earlier under a different message, and batch 01's squash commit is the
+verification-and-log entry, not a re-creation of files that already exist.
