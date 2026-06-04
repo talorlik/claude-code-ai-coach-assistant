@@ -4,7 +4,9 @@ import {
   activityPeriod,
   completedWorkoutIds,
   completionPercentage,
+  currentMonthPeriod,
   isDuplicateCompletion,
+  logsInPeriod,
   toDateKey,
 } from "@/lib/progress/progress"
 
@@ -136,5 +138,61 @@ describe("activityPeriod", () => {
       start: "2026-02-24",
       end: "2026-03-02",
     })
+  })
+})
+
+describe("currentMonthPeriod", () => {
+  it("spans the first to the last day of the reference month", () => {
+    expect(currentMonthPeriod(new Date("2026-06-15T12:00:00.000Z"))).toEqual({
+      start: "2026-06-01",
+      end: "2026-06-30",
+    })
+  })
+
+  it("handles February in a non-leap year", () => {
+    expect(currentMonthPeriod(new Date("2026-02-10T00:00:00.000Z"))).toEqual({
+      start: "2026-02-01",
+      end: "2026-02-28",
+    })
+  })
+
+  it("handles February in a leap year", () => {
+    expect(currentMonthPeriod(new Date("2024-02-10T00:00:00.000Z"))).toEqual({
+      start: "2024-02-01",
+      end: "2024-02-29",
+    })
+  })
+
+  it("handles December (year rollover for the end bound)", () => {
+    expect(currentMonthPeriod(new Date("2026-12-25T00:00:00.000Z"))).toEqual({
+      start: "2026-12-01",
+      end: "2026-12-31",
+    })
+  })
+})
+
+describe("logsInPeriod", () => {
+  const period = { start: "2026-06-01", end: "2026-06-30" }
+
+  it("keeps logs completed within the inclusive window", () => {
+    const logs = [
+      { completed_at: "2026-06-01T00:00:00.000Z" },
+      { completed_at: "2026-06-30T23:00:00.000Z" },
+      { completed_at: "2026-06-15T10:00:00.000Z" },
+    ]
+    expect(logsInPeriod(logs, period)).toHaveLength(3)
+  })
+
+  it("drops logs outside the window on either side", () => {
+    const logs = [
+      { completed_at: "2026-05-31T23:00:00.000Z" },
+      { completed_at: "2026-07-01T00:00:00.000Z" },
+    ]
+    expect(logsInPeriod(logs, period)).toEqual([])
+  })
+
+  it("excludes logs with no timestamp", () => {
+    const logs = [{ completed_at: "" }, { completed_at: "2026-06-10T00:00:00Z" }]
+    expect(logsInPeriod(logs, period)).toHaveLength(1)
   })
 })

@@ -127,3 +127,46 @@ export function activityPeriod(reference: Date, days: number): ActivityPeriod {
   startDate.setUTCDate(startDate.getUTCDate() - (span - 1))
   return { start: toDateKey(startDate), end }
 }
+
+/**
+ * Computes the inclusive calendar-month window containing `reference`, as
+ * `YYYY-MM-DD` date keys in UTC. Used by the trainer client list to scope
+ * completion to "this month" so a client's recent engagement, not their
+ * all-time history, drives the activity indicator.
+ *
+ * @param reference - Any instant within the target month (typically "now").
+ * @returns The inclusive `{ start, end }` boundaries of that calendar month.
+ */
+export function currentMonthPeriod(reference: Date): ActivityPeriod {
+  const year = reference.getUTCFullYear()
+  const month = reference.getUTCMonth()
+  const start = new Date(Date.UTC(year, month, 1))
+  // Day 0 of the next month is the last day of this month.
+  const end = new Date(Date.UTC(year, month + 1, 0))
+  return { start: toDateKey(start), end: toDateKey(end) }
+}
+
+/**
+ * Filters completion logs to those completed within an inclusive month window.
+ * A log with no parseable timestamp is excluded. The comparison is on the log's
+ * `completed_at` UTC date key, so a completion at any time on the final day of
+ * the window still counts.
+ *
+ * Completion is scoped by *when the workout was completed* (`completed_at`), not
+ * the `planned_date`, so logging a missed earlier session today still counts
+ * toward this month's engagement.
+ *
+ * @param logs - Completion logs to filter.
+ * @param period - The inclusive month window from {@link currentMonthPeriod}.
+ * @returns The subset of logs completed within the window.
+ */
+export function logsInPeriod<T extends Pick<WorkoutLogRow, "completed_at">>(
+  logs: readonly T[],
+  period: ActivityPeriod
+): T[] {
+  return logs.filter((log) => {
+    if (!log.completed_at) return false
+    const key = toDateKey(new Date(log.completed_at))
+    return key >= period.start && key <= period.end
+  })
+}

@@ -17,6 +17,7 @@
     "home": "Home",
     "chat": "Chat",
     "account": "My Account",
+    "clients": "Clients",
     "admin": "Admin",
     "signIn": "Sign in",
     "signOut": "Sign out"
@@ -277,5 +278,37 @@
     "error": "Something went wrong. Please try sending your message again.",
     "placeholder": "Type a message…",
     "send": "Send"
+  },
+  "TrainerClients": {
+    "title": "Clients",
+    "subtitle": "Your clients, their active plan, and how they're tracking this month.",
+    "unnamed": "Unnamed client",
+    "noGoal": "No goal set",
+    "percent": "{value}%",
+    "columns": {
+      "name": "Client",
+      "goal": "Goal",
+      "joinDate": "Joined",
+      "plan": "Plan",
+      "completion": "This month",
+      "activity": "Activity"
+    },
+    "plan": {
+      "active": "Active plan",
+      "none": "No active plan"
+    },
+    "activity": {
+      "active": "On track",
+      "atRisk": "At risk",
+      "inactive": "Inactive"
+    },
+    "empty": {
+      "title": "No clients yet",
+      "description": "When clients finish onboarding they'll appear here."
+    },
+    "error": {
+      "title": "Couldn't load clients",
+      "description": "Something went wrong loading your clients. Please refresh to try again."
+    }
   }
 }

@@ -12,7 +12,8 @@ import { Button, buttonVariants } from "@/components/ui/button"
  * Global top navigation, server-rendered so it reflects the current auth and
  * admin state on every page. Signed-out visitors see a Sign in link; signed-in
  * users see links to their chat and account plus a sign-out control; admins also
- * see an Admin link. The brand always links home. All nav links use the
+ * see Clients (the trainer console) and Admin links. The brand always links
+ * home. All nav links use the
  * locale-aware {@link Link} so they preserve the active language, and labels
  * come from the `Nav` message namespace.
  *
@@ -47,6 +48,11 @@ export async function SiteHeader() {
           {user ? (
             <Link href="/profile" className="hover:underline">
               {t("account")}
+            </Link>
+          ) : null}
+          {admin ? (
+            <Link href="/trainer" className="hover:underline">
+              {t("clients")}
             </Link>
           ) : null}
           {admin ? (

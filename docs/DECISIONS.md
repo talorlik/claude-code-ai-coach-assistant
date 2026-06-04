@@ -506,3 +506,39 @@ posture (not a doctor, defer pain/injury to a professional) lives in the prompt
 builder, not the UI, so it cannot be bypassed by calling the route directly. The
 `chat_messages` table and its client-owned RLS already existed from batch 04; this
 batch only added the data-access module, context builder, route logic, and UI.
+
+### 2026-06-05 - Batch 11 - Trainer Client List Reuses requireTrainerAdmin And Set-Based Reads; Activity = Current-Month Completion
+
+The trainer landing page lives at `/[locale]/trainer` (not `/admin`, which stays
+the generic admin stub). It guards with the existing `requireTrainerAdmin` from
+`lib/auth/require-user.ts` (no new guard was written - the prompt's
+"`requireTrainerAdmin`" already existed). The activity indicator is a centralized
+pure helper `lib/trainer/activity.ts`: `activityLevel(pct)` maps current-month
+completion to active/atRisk/inactive at thresholds 50/20 (inclusive lower bound),
+and `activityColor` maps those to green/yellow/red tokens (not CSS) so copy and
+styling layers stay decoupled and the thresholds have one tested definition.
+"Completion this month" reuses the existing pure progress maths: two new helpers
+were added to `lib/progress/progress.ts` - `currentMonthPeriod(ref)` (UTC
+first-to-last-of-month) and `logsInPeriod(logs, period)` (filters by
+`completed_at`, not `planned_date`). The data layer `lib/db/trainer-clients.ts`
+issues set-based reads (clients, then active plans, workouts, this-month logs by
+`.in(...)`) rather than per-client queries, to avoid an N+1 as the client list
+grows; completion is then computed in memory. Each query stays under its own RLS
+policy. The page renders a responsive table (>= md) / card (< md) layout, with
+empty and error states, and a route-level `loading.tsx`. Each row links to
+`/trainer/[clientId]` - the dashboard route batch 12 builds. A "Clients" nav link
+(admin-only) was added to the shared `SiteHeader`.
+
+**Why:** computing activity from the *current calendar month* rather than all-time
+completion means the indicator reflects whether a client is engaged *now*, which
+is what a trainer triages on. Scoping by `completed_at` (when the workout was
+logged) rather than `planned_date` credits a client who catches up on a missed
+session today. Set-based reads matter because the trainer admin sees every client;
+one-query-per-client would not scale. Colour tokens (not classes) keep the helper
+unit-testable without a DOM and let RTL/theme styling stay in the component.
+
+**For batch 12:** the per-client dashboard route is `/[locale]/trainer/[clientId]`
+(the link target already exists). `listClientsWithActivity(reference?)` takes an
+injectable `reference` Date for deterministic tests. e2e specs for trainer
+surfaces need a seeded admin (`E2E_ADMIN_EMAIL`/`_PASSWORD`); without it those
+tests skip, matching every other auth-gated spec.
