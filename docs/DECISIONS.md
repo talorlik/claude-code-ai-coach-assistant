@@ -326,3 +326,35 @@ copy now lives in `messages/{en-US,he-IL}.json` under `AuthMessages`.
 server action that redirects with a `?error=`/`?notice=` code must use a code
 present in `AUTH_MESSAGE_CODES` AND add the matching key to both message files,
 or the message will silently not render.
+
+### 2026-06-04 - Batch 06 - Localized Metadata Helper And `Metadata` Namespace
+
+SEO metadata is built by `buildLocaleMetadata(locale, key, path)` in
+`lib/seo/metadata.ts`. It reads a `Metadata.<key>` namespace from the message
+catalogs (added a `Metadata.home` entry to both files) and returns a Next.js
+`Metadata` with title, description, Open Graph (type/siteName/title/description/
+url, plus the `en_US`/`he_IL` OG locale form), and `alternates` (canonical +
+hreflang `languages` map keyed by BCP 47 tag). `metadataBase` comes from
+`NEXT_PUBLIC_APP_URL` with a `http://localhost:3000` fallback so `next build`
+never throws when the env is unset. The `key` arg is typed as
+`keyof Messages["Metadata"]`, required because next-intl is strictly typed via
+`global.ts` - a plain `string` namespace fails typecheck.
+
+**Why:** every future page batch (07-16) that needs SEO should call
+`buildLocaleMetadata` from a `generateMetadata` export and add a `Metadata.<page>`
+key to both `messages/{en-US,he-IL}.json`, rather than hand-rolling metadata.
+
+### 2026-06-04 - Batch 06 - Homepage Is Now A Dynamic Server Component
+
+`app/[locale]/page.tsx` was converted from a sync component using
+`use(params)` + `useTranslations` to an `async` server component using
+`await params` + `getTranslations`, so it can also export `generateMetadata`.
+Consequence: `/[locale]` is now server-rendered on demand (`ƒ`) in the build
+output rather than prerendered static (`○`). The new-client CTA links to
+`/register`, which is the existing thin redirect to `/login?tab=signup` (added in
+batch 02), preserving locale - there is no standalone register page yet.
+
+**Why:** `generateMetadata` is an async server-only export; mixing it with the
+client `useTranslations` hook on the same page is awkward, and going fully
+server keeps both the page body and its metadata reading from one
+`getTranslations` source of truth.
