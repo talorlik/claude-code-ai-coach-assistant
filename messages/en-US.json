@@ -42,9 +42,15 @@
     "progress": "Step {current} of {total}",
     "submit": "Create my workout plan",
     "steps": {
-      "0": { "title": "About you" },
-      "1": { "title": "Your training" },
-      "2": { "title": "Schedule & equipment" }
+      "0": {
+        "title": "About you"
+      },
+      "1": {
+        "title": "Your training"
+      },
+      "2": {
+        "title": "Schedule & equipment"
+      }
     },
     "nav": {
       "back": "Back",
@@ -263,5 +269,13 @@
       "notesTooLong": "Those notes are too long.",
       "saveFailed": "Could not save your workout. Please try again."
     }
+  },
+  "Chat": {
+    "title": "AI Coach",
+    "empty": "Ask your coach anything about your plan, training, or progress.",
+    "thinking": "Coach is thinking…",
+    "error": "Something went wrong. Please try sending your message again.",
+    "placeholder": "Type a message…",
+    "send": "Send"
   }
 }

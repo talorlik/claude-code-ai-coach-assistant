@@ -481,3 +481,28 @@ test`. The file stays gitignored in the worktree, so it never lands in a commit.
 **Why:** this bites every batch that runs the e2e gate from a worktree (09
 onward). Copy the env file as a standard pre-e2e step; it is local-only and
 never committed.
+
+### 2026-06-05 - Batch 10 - Chat Persists Server-Side; Stored History Is The Model's Source Of Truth
+
+The AI virtual-trainer chat does not trust the client-posted message list as the
+conversation. The `/api/chat` route: (1) authenticates, (2) saves the incoming
+user message to `chat_messages` BEFORE calling the model, (3) re-reads the stored
+history and replays THAT as the model conversation (not `body.messages`), and
+(4) saves the assistant answer in `toUIMessageStreamResponse`'s `onFinish`,
+guarded so a blank/partial answer is never stored. `result.consumeStream()` (no
+await) ensures `onFinish` fires even if the client disconnects mid-stream. The
+client context (goal, level, limitations, active plan, recent logs) is folded
+into the system prompt by the pure `lib/ai/chat-context.ts` builder; prior turns
+go to the model as conversation messages, not duplicated into the system prompt.
+The page seeds `useChat({ messages })` from persisted history so reloads keep the
+transcript; the active locale rides each turn via `sendMessage(_, {body:{locale}})`
+so answers stay in the client's language.
+
+**Why:** persisting user-before/assistant-after makes a turn durable even if
+generation fails, and replaying stored history (rather than the client's posted
+array) makes the server the single source of truth - a tampered or stale client
+payload cannot rewrite the transcript the model sees. The mandatory medical-safety
+posture (not a doctor, defer pain/injury to a professional) lives in the prompt
+builder, not the UI, so it cannot be bypassed by calling the route directly. The
+`chat_messages` table and its client-owned RLS already existed from batch 04; this
+batch only added the data-access module, context builder, route logic, and UI.

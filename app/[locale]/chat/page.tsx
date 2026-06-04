@@ -1,87 +1,65 @@
-"use client";
+import type { Metadata } from "next"
+import { getTranslations, setRequestLocale } from "next-intl/server"
 
-import { useState } from "react";
-import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
-import { Send, Sparkles } from "lucide-react";
+import { requireClient } from "@/lib/auth/require-user"
+import { listChatMessages } from "@/lib/db/chat-messages"
+import type { Locale } from "@/i18n/routing"
+import { ChatClient, type ChatInitialMessage } from "./chat-client"
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+/**
+ * The chat is a private, per-user surface; keep it out of search indexes. The
+ * visible title is localized via the `Chat` namespace; this metadata title is a
+ * stable, non-indexed fallback.
+ */
+export const metadata: Metadata = {
+  title: "AI Coach",
+  robots: { index: false, follow: false },
+}
 
-export default function ChatPage() {
-  const [input, setInput] = useState("");
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
-  });
+/**
+ * Localized AI virtual-trainer chat page at `/[locale]/chat`. `requireClient()`
+ * is the authoritative guard (the `/chat` layout also guards the subtree);
+ * signed-out visitors are redirected to the localized login page before any
+ * content renders. The client's persisted chat history is loaded server-side and
+ * handed to the interactive {@link ChatClient} as the initial transcript, so the
+ * conversation survives reloads. The active locale is passed through so the chat
+ * route can answer in the client's language.
+ *
+ * @param params - The dynamic route params carrying the active locale.
+ */
+export default async function ChatPage({
+  params,
+}: {
+  params: Promise<{ locale: Locale }>
+}) {
+  const { locale } = await params
+  // Opt into static rendering for this locale before any next-intl hook runs.
+  setRequestLocale(locale)
 
-  const isStreaming = status === "streaming" || status === "submitted";
+  // Authoritative auth guard; redirects (locale-preserving) when signed out.
+  const userId = await requireClient()
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    const text = input.trim();
-    if (!text || isStreaming) return;
-    sendMessage({ text });
-    setInput("");
-  };
+  const history = await listChatMessages(userId)
+  const t = await getTranslations("Chat")
+
+  const initialMessages: ChatInitialMessage[] = history.map((row) => ({
+    id: row.id,
+    role: row.role,
+    content: row.content,
+  }))
 
   return (
-    <div className="mx-auto flex h-svh max-w-2xl flex-col gap-4 p-4">
-      <header className="flex items-center gap-2 font-semibold">
-        <Sparkles className="h-5 w-5 text-primary" />
-        AI Coach
-      </header>
-
-      <ScrollArea className="flex-1 rounded-lg border p-4">
-        <div className="flex flex-col gap-4">
-          {messages.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground">
-              Tell your coach what you want to work on today.
-            </p>
-          ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={
-                  message.role === "user" ? "flex justify-end" : "flex justify-start"
-                }
-              >
-                <Card
-                  size="sm"
-                  className={
-                    message.role === "user"
-                      ? "max-w-[80%] bg-primary text-primary-foreground"
-                      : "max-w-[80%]"
-                  }
-                >
-                  <CardContent className="whitespace-pre-wrap">
-                    {message.parts
-                      .map((part) => (part.type === "text" ? part.text : ""))
-                      .join("")}
-                  </CardContent>
-                </Card>
-              </div>
-            ))
-          )}
-          {isStreaming && (
-            <p className="text-sm text-muted-foreground">Coach is thinking…</p>
-          )}
-        </div>
-      </ScrollArea>
-
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message…"
-          disabled={isStreaming}
-        />
-        <Button type="submit" disabled={isStreaming || !input.trim()}>
-          <Send className="h-4 w-4" />
-          <span className="sr-only">Send</span>
-        </Button>
-      </form>
-    </div>
-  );
+    <ChatClient
+      locale={locale}
+      initialMessages={initialMessages}
+      labels={{
+        title: t("title"),
+        empty: t("empty"),
+        thinking: t("thinking"),
+        error: t("error"),
+        placeholder: t("placeholder"),
+        send: t("send"),
+      }}
+    />
+  )
 }
