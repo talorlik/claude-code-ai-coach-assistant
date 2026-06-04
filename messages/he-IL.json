@@ -1,0 +1,26 @@
+{
+  "Common": {
+    "appName": "מאמן AI"
+  },
+  "LanguageSwitcher": {
+    "label": "שפה",
+    "en": "אנגלית",
+    "he": "עברית"
+  },
+  "Nav": {
+    "home": "בית",
+    "chat": "צ'אט",
+    "account": "החשבון שלי",
+    "admin": "ניהול",
+    "signIn": "התחברות",
+    "signOut": "התנתקות"
+  },
+  "Home": {
+    "badge": "מופעל באמצעות Supabase",
+    "title": "מלווה האימון האישי שלך מבוסס AI",
+    "description": "מאמן AI עוזר לך להגדיר מטרות, לעקוב אחר התקדמות ולקבל הכוונה מותאמת אישית. התחבר כדי להתחיל שיחה עם המאמן שלך.",
+    "getStarted": "בואו נתחיל",
+    "signIn": "התחברות",
+    "footer": "נבנה עם Next.js, Supabase ו-shadcn/ui."
+  }
+}

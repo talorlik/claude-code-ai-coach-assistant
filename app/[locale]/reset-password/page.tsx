@@ -1,22 +1,26 @@
 import type { Metadata } from "next"
-import { redirect } from "next/navigation"
 
+import { redirect } from "@/i18n/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { resolveAuthMessage } from "@/lib/auth/resolve-auth-message"
 import { setNewPassword } from "./actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import type { Locale } from "@/i18n/routing"
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
 export default async function ResetPasswordPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: Locale }>
   searchParams: Promise<{ error?: string; notice?: string }>
 }) {
+  const { locale } = await params
   const sp = await searchParams
   const errorMessage = resolveAuthMessage(sp.error)
 
@@ -28,7 +32,7 @@ export default async function ResetPasswordPage({
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    redirect(`/forgot-password?error=resetLinkInvalid`)
+    return redirect({ href: `/forgot-password?error=resetLinkInvalid`, locale })
   }
 
   return (

@@ -1,9 +1,10 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 import { headers, cookies } from "next/headers"
+import { getLocale } from "next-intl/server"
 
+import { redirect } from "@/i18n/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { isValidEmail } from "@/lib/auth/validation"
 import { isAdmin } from "@/lib/auth/roles"
@@ -57,9 +58,10 @@ function readCredentials(formData: FormData): Credentials | string {
  * else to /profile (or a safe ?redirect= target). Ensures a profile row exists.
  */
 export async function login(formData: FormData) {
+  const locale = await getLocale()
   const creds = readCredentials(formData)
   if (typeof creds === "string") {
-    redirect(`/login?error=${creds}`)
+    return redirect({ href: `/login?error=${creds}`, locale })
   }
 
   // Record the remember-me choice BEFORE signing in so the cookie write
@@ -89,7 +91,7 @@ export async function login(formData: FormData) {
 
   if (error || !data.user) {
     // Generic message: do not reveal whether the email exists.
-    redirect(`/login?error=invalidCredentials`)
+    return redirect({ href: `/login?error=invalidCredentials`, locale })
   }
 
   await ensureProfile(data.user.id)
@@ -97,7 +99,7 @@ export async function login(formData: FormData) {
 
   revalidatePath("/", "layout")
   const target = safeRedirect(formData)
-  redirect(target ?? (admin ? "/admin" : "/profile"))
+  return redirect({ href: target ?? (admin ? "/admin" : "/profile"), locale })
 }
 
 /**
@@ -106,9 +108,10 @@ export async function login(formData: FormData) {
  * confirmation time (see /auth/confirm).
  */
 export async function signup(formData: FormData) {
+  const locale = await getLocale()
   const creds = readCredentials(formData)
   if (typeof creds === "string") {
-    redirect(`/login?tab=signup&error=${creds}`)
+    return redirect({ href: `/login?tab=signup&error=${creds}`, locale })
   }
 
   const h = await headers()
@@ -131,7 +134,7 @@ export async function signup(formData: FormData) {
   })
 
   if (error) {
-    redirect(`/login?tab=signup&error=signupFailed`)
+    return redirect({ href: `/login?tab=signup&error=signupFailed`, locale })
   }
 
   // With email confirmation + anti-enumeration on, an already-registered email
@@ -143,5 +146,5 @@ export async function signup(formData: FormData) {
     ? "accountMaybeExists"
     : "checkEmailToConfirm"
 
-  redirect(`/login?notice=${notice}`)
+  return redirect({ href: `/login?notice=${notice}`, locale })
 }

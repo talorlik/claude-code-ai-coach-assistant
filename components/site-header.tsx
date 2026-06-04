@@ -1,19 +1,23 @@
-import Link from "next/link"
 import { Sparkles } from "lucide-react"
+import { getTranslations } from "next-intl/server"
 
+import { Link } from "@/i18n/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { isAdmin } from "@/lib/auth/roles"
 import { ModeToggle } from "@/components/mode-toggle"
+import { LanguageSwitcher } from "@/components/language-switcher"
 import { Button, buttonVariants } from "@/components/ui/button"
 
 /**
  * Global top navigation, server-rendered so it reflects the current auth and
  * admin state on every page. Signed-out visitors see a Sign in link; signed-in
  * users see links to their chat and account plus a sign-out control; admins also
- * see an Admin link. The brand always links home.
+ * see an Admin link. The brand always links home. All nav links use the
+ * locale-aware {@link Link} so they preserve the active language, and labels
+ * come from the `Nav` message namespace.
  *
- * Sign-out posts to the /auth/signout route (POST so it cannot be triggered by a
- * cross-site navigation or prefetch).
+ * Sign-out posts to the non-localized /auth/signout route (POST so it cannot be
+ * triggered by a cross-site navigation or prefetch).
  */
 export async function SiteHeader() {
   const supabase = await createClient()
@@ -21,6 +25,8 @@ export async function SiteHeader() {
     data: { user },
   } = await supabase.auth.getUser()
   const admin = user ? await isAdmin(user.id) : false
+  const t = await getTranslations("Nav")
+  const common = await getTranslations("Common")
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
@@ -31,31 +37,32 @@ export async function SiteHeader() {
             className="flex shrink-0 items-center gap-2 font-semibold"
           >
             <Sparkles className="h-5 w-5 text-primary" />
-            AI Coach
+            {common("appName")}
           </Link>
           {user ? (
             <Link href="/chat" className="hover:underline">
-              Chat
+              {t("chat")}
             </Link>
           ) : null}
           {user ? (
             <Link href="/profile" className="hover:underline">
-              My Account
+              {t("account")}
             </Link>
           ) : null}
           {admin ? (
             <Link href="/admin" className="hover:underline">
-              Admin
+              {t("admin")}
             </Link>
           ) : null}
         </nav>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <ModeToggle />
           {user ? (
             <form action="/auth/signout" method="post">
               <Button type="submit" variant="outline" size="sm">
-                Sign out
+                {t("signOut")}
               </Button>
             </form>
           ) : (
@@ -63,7 +70,7 @@ export async function SiteHeader() {
               href="/login"
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >
-              Sign in
+              {t("signIn")}
             </Link>
           )}
         </div>

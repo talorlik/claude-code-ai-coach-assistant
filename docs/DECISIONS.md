@@ -143,3 +143,73 @@ place.
 point (batch 02), and the whole ecosystem's docs still say `middleware.ts`.
 Relying on the model re-reading a CLAUDE.md line each batch is probabilistic;
 a hook plus a gate guard make it deterministic and survive `/clear`.
+
+### 2026-06-04 - Batch 02 - Locale Foundation: Compose Order, Strict Locale Type, Locale-Aware Redirects
+
+next-intl 4.13.0 added with `/en`->en-US, `/he`->he-IL, `localePrefix: "always"`.
+Config lives in `i18n/routing.ts` (locales, tag map, RTL set, helpers),
+`i18n/request.ts` (per-request config, loads `messages/<tag>.json`),
+`i18n/navigation.ts` (locale-aware `Link`/`redirect`/`usePathname`). The flat
+routes moved under `app/[locale]`; `app/api` and `app/auth/*` stay at root
+(not localized). The root `app/layout.tsx` is now a bare pass-through returning
+`children`; `app/[locale]/layout.tsx` owns `<html lang dir>` + providers and
+calls `notFound()` on an unsupported locale. A root `app/not-found.tsx` renders
+its own `<html>` since the root layout no longer does.
+
+Key decisions:
+
+1. **proxy.ts compose order.** Run next-intl middleware FIRST; if it returns a
+   3xx (e.g. `/` -> `/en`), return that immediately (no session refresh on a
+   throwaway request). Otherwise pass its 200 response as the base into
+   `updateSession(request, response)`, which now writes Supabase auth cookies
+   onto that SAME response so locale rewrite headers and refreshed cookies
+   travel together. `updateSession`'s second arg is optional, so its old
+   single-arg contract still holds. `/api` and `/auth` bypass locale routing
+   but still get a session refresh.
+2. **Strict locale typing via `global.ts`.** Without augmenting next-intl's
+   `AppConfig.Locale`, `getLocale()` returns the broad `string`-based `Locale`,
+   which is NOT assignable to the navigation helpers' `locale: "en"|"he"` param,
+   so `redirect({locale})` calls fail to type-check. `global.ts` sets
+   `Locale = (typeof routing.locales)[number]` and `Messages = typeof en-US`.
+3. **`return redirect(...)` everywhere.** next-intl's `redirect` is typed
+   `=> never`, but TS control-flow did NOT narrow `creds`/`user`/`userId` after
+   a bare `redirect(...)` call in this codebase (unlike `next/navigation`'s).
+   Prefixing every call with `return` makes control flow terminate explicitly
+   and narrows cleanly. Applied in login/forgot/reset actions, profile + reset
+   pages, and `require-admin.ts`.
+4. **Server-action redirects need an explicit locale.** next-intl's `redirect`
+   always requires `{href, locale}`. Actions read it via `getLocale()`; pages
+   read it from `params`. This preserves the user's language on the bounce
+   (a `/he` visitor lands on `/he/login`, not the default).
+5. **`/register` is a thin alias** redirecting to `/login?tab=signup` (the
+   template merges sign-in/up under `/login`), added only to satisfy the
+   reachability requirement for `/en/register` and `/he/register`.
+6. **Unsupported locale = 404, not silent rewrite.** With `localePrefix:
+   "always"`, `/fr` hits the `[locale]` layout's `notFound()`. The prompt's
+   "redirect unsupported locales to default" is honored at the entry point: the
+   bare root `/` redirects to `/en`. A hard 404 for an unknown prefix is
+   next-intl's documented behavior and safer than guessing intent.
+7. **Auth copy stays English for now.** Only homepage, nav, and the language
+   switcher are translated this batch (scope = "localization foundation").
+   Login/forgot/reset body copy is localized in a later batch.
+
+Test/behavior changes: `__tests__/integration/login-actions.test.ts` updated to
+import from `@/app/[locale]/login/actions`, mock `@/i18n/navigation`'s `redirect`
+(object `{href}` form) and `next-intl/server`'s `getLocale`. New
+`__tests__/unit/i18n-routing.test.ts` (parsing/mapping/direction/fallback),
+`__tests__/integration/i18n-request-config.test.ts` (resolution + catalog load;
+invoking `getRequestConfig` directly is not possible under jsdom, so the
+resolution rule and catalog wiring are tested directly), and
+`e2e/localization.spec.ts` (`/en`,`/he`,`/en/login`,`/he/login` load; `/he` is
+RTL; `/fr` 404; switcher preserves route). `lib/profile/profile-actions.ts`
+revalidates `"/[locale]/profile"` (was `"/profile"`).
+
+**Why:** the compose order and the single-shared-response merge are what keep
+both concerns working at once - the most likely place a naive integration would
+silently drop auth cookies or locale headers. The strict-locale-type and
+`return redirect` points are the two non-obvious traps that block the typecheck
+gate; recorded so a future batch adding locale-aware redirects does not
+rediscover them. The build gate passed WITHOUT copying `.env.local` into the
+worktree (unlike the batch-00 warning) because these routes are dynamic and the
+Supabase env is only dereferenced at runtime; the env copy was needed only to
+run the e2e smoke locally (copied, used, removed - it is gitignored).

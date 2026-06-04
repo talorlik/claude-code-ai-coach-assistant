@@ -1,34 +1,15 @@
-import { Geist_Mono, Inter } from "next/font/google"
-
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { SiteHeader } from "@/components/site-header"
-import { cn } from "@/lib/utils";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'})
-
-const fontMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-})
-
+/**
+ * Root layout. The `<html>` and `<body>` elements live in the localized layout
+ * (`app/[locale]/layout.tsx`) so the `lang` and `dir` attributes can reflect the
+ * active locale. This root simply forwards children; Next.js still requires a
+ * root layout to exist even when a nested layout provides the document shell.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", inter.variable)}
-    >
-      <body>
-        <ThemeProvider>
-          <SiteHeader />
-          {children}
-        </ThemeProvider>
-      </body>
-    </html>
-  )
+  return children
 }

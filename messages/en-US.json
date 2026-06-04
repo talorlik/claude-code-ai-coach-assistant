@@ -1,0 +1,26 @@
+{
+  "Common": {
+    "appName": "AI Coach"
+  },
+  "LanguageSwitcher": {
+    "label": "Language",
+    "en": "English",
+    "he": "Hebrew"
+  },
+  "Nav": {
+    "home": "Home",
+    "chat": "Chat",
+    "account": "My Account",
+    "admin": "Admin",
+    "signIn": "Sign in",
+    "signOut": "Sign out"
+  },
+  "Home": {
+    "badge": "Powered by Supabase",
+    "title": "Your personal AI coaching companion",
+    "description": "AI Coach Assistant helps you set goals, track progress, and get tailored guidance. Sign in to start a conversation with your coach.",
+    "getStarted": "Get Started",
+    "signIn": "Sign In",
+    "footer": "Built with Next.js, Supabase, and shadcn/ui."
+  }
+}

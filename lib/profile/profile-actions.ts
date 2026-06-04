@@ -56,7 +56,9 @@ export async function updateProfile(
 
   if (error || !data) return fail("Could not save your details.")
 
-  revalidatePath("/profile")
+  // The profile page is locale-prefixed (`/[locale]/profile`); revalidate the
+  // dynamic route pattern so every locale's cached render is refreshed.
+  revalidatePath("/[locale]/profile", "page")
   return ok(data as Profile)
 }
 

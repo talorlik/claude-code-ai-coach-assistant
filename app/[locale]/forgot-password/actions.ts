@@ -1,8 +1,9 @@
 "use server"
 
-import { redirect } from "next/navigation"
 import { headers } from "next/headers"
+import { getLocale } from "next-intl/server"
 
+import { redirect } from "@/i18n/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { isValidEmail } from "@/lib/auth/validation"
 
@@ -13,12 +14,13 @@ import { isValidEmail } from "@/lib/auth/validation"
  * regardless of whether the email belongs to an account (no enumeration).
  */
 export async function requestPasswordReset(formData: FormData) {
+  const locale = await getLocale()
   const email = String(formData.get("email") ?? "")
     .trim()
     .toLowerCase()
 
   if (!isValidEmail(email)) {
-    redirect(`/forgot-password?error=invalidEmail`)
+    return redirect({ href: `/forgot-password?error=invalidEmail`, locale })
   }
 
   const captchaToken =
@@ -40,5 +42,5 @@ export async function requestPasswordReset(formData: FormData) {
     captchaToken,
   })
 
-  redirect(`/forgot-password?notice=resetLinkSent`)
+  return redirect({ href: `/forgot-password?notice=resetLinkSent`, locale })
 }

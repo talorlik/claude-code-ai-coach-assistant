@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
-import { redirect } from "next/navigation"
 
+import { redirect } from "@/i18n/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { ensureProfile } from "@/lib/profile/profile-actions"
 import { AccountForms } from "./account-forms"
+import type { Locale } from "@/i18n/routing"
 
 export const metadata: Metadata = {
   title: "My Account",
@@ -12,16 +13,21 @@ export const metadata: Metadata = {
 
 /**
  * Customer account page: editable account settings. Redirects unauthenticated
- * visitors to login.
+ * visitors to login, preserving the active locale.
  */
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  params,
+}: {
+  params: Promise<{ locale: Locale }>
+}) {
+  const { locale } = await params
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect("/login")
+    return redirect({ href: "/login", locale })
   }
 
   // Guarantee a profile row exists for users created before this flow.

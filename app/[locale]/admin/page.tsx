@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { Link } from "@/i18n/navigation"
 
 /**
  * Admin landing page. The /admin layout already guarded access, so reaching

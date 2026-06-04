@@ -1,8 +1,9 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
+import { getLocale } from "next-intl/server"
 
+import { redirect } from "@/i18n/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { updatePassword } from "@/lib/profile/profile-actions"
 
@@ -13,11 +14,12 @@ import { updatePassword } from "@/lib/profile/profile-actions"
  * authoritative; errors are stable codes resolved on the page.
  */
 export async function setNewPassword(formData: FormData) {
+  const locale = await getLocale()
   const password = String(formData.get("password") ?? "")
   const confirmPassword = String(formData.get("confirmPassword") ?? "")
 
   if (password !== confirmPassword) {
-    redirect(`/reset-password?error=passwordsDoNotMatch`)
+    return redirect({ href: `/reset-password?error=passwordsDoNotMatch`, locale })
   }
 
   const result = await updatePassword(password)
@@ -25,12 +27,12 @@ export async function setNewPassword(formData: FormData) {
     const code = result.fieldErrors?.password
       ? "passwordTooShort"
       : "updateFailed"
-    redirect(`/reset-password?error=${code}`)
+    return redirect({ href: `/reset-password?error=${code}`, locale })
   }
 
   const supabase = await createClient()
   await supabase.auth.signOut()
   revalidatePath("/", "layout")
 
-  redirect(`/login?notice=passwordUpdated`)
+  return redirect({ href: `/login?notice=passwordUpdated`, locale })
 }

@@ -17,6 +17,9 @@ class RedirectError extends Error {
   }
 }
 
+/** The locale the mocked `getLocale` reports; assertions ignore the prefix. */
+const TEST_LOCALE = "en"
+
 let signInResult: { data: { user: { id: string } | null }; error: unknown }
 let signUpResult: {
   data: { user: { identities?: unknown[] } | null }
@@ -29,10 +32,18 @@ const cookieStore = {
   get: vi.fn(),
 }
 
-vi.mock("next/navigation", () => ({
-  redirect: (target: string) => {
-    throw new RedirectError(target)
+// The actions now redirect through the locale-aware navigation helper, which
+// takes `{href, locale}`. Capture the href so existing assertions on the
+// unprefixed target still hold; the locale prefix is applied by next-intl in
+// the real app and is asserted separately in the e2e and unit suites.
+vi.mock("@/i18n/navigation", () => ({
+  redirect: ({ href }: { href: string; locale: string }) => {
+    throw new RedirectError(href)
   },
+}))
+
+vi.mock("next-intl/server", () => ({
+  getLocale: async () => TEST_LOCALE,
 }))
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }))
@@ -59,7 +70,7 @@ vi.mock("@/lib/profile/profile-actions", () => ({
   ensureProfile: async () => {},
 }))
 
-import { login, signup } from "@/app/login/actions"
+import { login, signup } from "@/app/[locale]/login/actions"
 
 function form(fields: Record<string, string>): FormData {
   const fd = new FormData()

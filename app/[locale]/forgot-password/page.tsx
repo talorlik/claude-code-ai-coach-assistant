@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 
+import { Link } from "@/i18n/navigation"
 import { resolveAuthMessage } from "@/lib/auth/resolve-auth-message"
 import { requestPasswordReset } from "./actions"
 import { CaptchaField } from "@/components/captcha-field"
