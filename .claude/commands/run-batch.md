@@ -114,10 +114,38 @@ API key, ambiguous requirement the prompt does not resolve):
 1. Commit work-in-progress on the feature branch with message
    `WIP(NN): <one-line reason for stop>`.
 2. Leave the worktree INTACT. Do NOT squash-merge. `main` must stay clean.
-3. Go to Step 6 and clearly mark status as STOPPED, with the failing gate output
-   and what a human needs to decide or fix.
+3. Go to Step 6, then Step 7 with status STOPPED.
 
-## Step 6 - Report
+## Step 6 - Capture decisions and insights (BEFORE the user clears context)
+
+The user runs each batch in its own session and `/clear`s between batches, so any
+ad-hoc decision or insight not written to a durable store is LOST. Capture before
+reporting - this is part of the batch contract, not optional. Capture on BOTH the
+success and failure paths; insights from a STOPPED batch are especially valuable.
+
+For this batch, decide whether anything non-obvious occurred: a design decision
+made mid-batch, a deviation from the prompt and why, a gotcha or constraint
+discovered, a workaround, or a follow-up the next batch must know. If genuinely
+nothing non-obvious happened, state "no new decisions to capture" and skip. Do
+not invent entries to fill the log.
+
+When there is something to capture:
+
+1. **Repo-durable log:** append a dated entry to `docs/DECISIONS.md` following the
+   format in that file's header (date, batch, decision/insight, why). This is
+   committed and travels with the repo. On the SUCCESS path, include this append
+   in the batch's squash-merge commit so it lands on `main` atomically with the
+   work. On the FAILURE path, commit it on the WIP branch.
+2. **Auto-memory (only for cross-batch gotchas the next session must load):** if
+   the insight changes how a FUTURE batch should behave (a constraint, a trap, a
+   reusable decision), also write it to auto-memory: create or update a fact file
+   under the project memory dir and add a one-line pointer to `MEMORY.md`. Prefer
+   updating an existing related file (e.g. [[ai-coach-build-plan]],
+   [[ai-coach-project-state]]) over creating duplicates. Skip this for purely
+   historical notes that only matter as a record - those belong in DECISIONS.md
+   only.
+
+## Step 7 - Report
 
 Produce the prompt's required output:
 
@@ -128,6 +156,9 @@ Produce the prompt's required output:
 5. Tests added or updated.
 6. Commands run and their observed results (gate output, evidence not assertion).
 7. Remaining risk or follow-up; for STOPPED, exactly what the human must do next.
+8. What was captured to `docs/DECISIONS.md` and auto-memory (or "no new
+   decisions to capture").
 
 Keep the report concise. If COMPLETED, end by stating the next batch to run
-(`/run-batch <NN+1>`).
+(`/run-batch <NN+1>`). The user can now safely `/clear` - everything durable is
+already written.

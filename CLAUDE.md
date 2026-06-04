@@ -74,6 +74,12 @@ Authoritative runbook:
 `/Users/talo/.claude/plans/review-the-project-s-sleepy-castle.md`. Current batch
 = count of squash commits on `main` (one per completed batch).
 
+Ad-hoc decisions and insights are recorded in `docs/DECISIONS.md` (repo-durable,
+dated, append-only) and, when they affect a future batch, in auto-memory.
+`/run-batch` captures these before the session ends, since the user `/clear`s
+between batches. When you make a non-obvious decision outside a batch run, append
+it to `docs/DECISIONS.md` too.
+
 ## Non-negotiable constraints (every batch)
 
 - Root `proxy.ts` for request handling; NEVER create root `middleware.ts`.
