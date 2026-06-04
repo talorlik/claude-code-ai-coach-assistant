@@ -57,3 +57,34 @@ next-intl locale routing INTO it, not replace it, and must never add a root
 **Why:** highest-risk integration point in the build. Replacing the proxy would
 break Supabase session cookie refresh; a separate `middleware.ts` conflicts with
 the Next.js 16 proxy convention the template uses.
+
+### 2026-06-04 - Batch 00 - Baseline Verified; Env Lives Only In Primary Checkout
+
+Baseline audit passed: stack versions match (Next 16.1.7, React 19.2.4, TS
+5.9.3, ai ^6, @ai-sdk/gateway, Supabase ssr/js); `proxy.ts` runs `updateSession`
+and no root `middleware.ts` exists; lint/typecheck/build green; 38 tests (7
+files) pass. Supabase has `user_roles` + `profiles` with RLS on, migration
+`0001_auth_schema` (20260601172533) applied. GitHub remote
+`talorlik/claude-code-ai-coach-assistant` (public) and Vercel project
+`claude-code-ai-coach-assistant` both linked. next-intl, `messages/`, and
+`app/[locale]` are absent as expected (batch 02 builds them).
+
+Three findings the build must carry:
+
+1. `.env.local` exists ONLY in the primary checkout, not in per-batch worktrees,
+   and is gitignored. Every batch whose gate runs `npm run build` must copy it
+   into the worktree first, or the build fails on missing Supabase/AI env.
+2. Required env names all present (`NEXT_PUBLIC_SUPABASE_URL`,
+   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`,
+   `NEXT_PUBLIC_APP_URL`, `AI_GATEWAY_API_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`)
+   plus `EMAIL_ENABLED` and `UPSTASH_REDIS_REST_*`. VAPID push keys are NOT set;
+   batch 15 must add them. No `.env.example` file exists.
+3. Supabase security advisor flags one WARN: leaked-password protection
+   disabled (HaveIBeenPwned check). Auth-config toggle, not a code fix;
+   non-blocking. Live browser smoke of login/signup/logout was deferred -
+   covered transitively by passing build + 38 auth tests, not by a manual
+   session.
+
+**Why:** the env-in-primary-checkout fact is the most likely future-batch trap:
+a worktree build silently fails without it, and it is invisible in `git status`
+because it is ignored. Recorded so every later batch copies env before building.
