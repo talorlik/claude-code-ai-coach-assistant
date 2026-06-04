@@ -115,3 +115,31 @@ values.
 `Add planning documentation` content-commit for skipped work - the content landed
 earlier under a different message, and batch 01's squash commit is the
 verification-and-log entry, not a re-creation of files that already exist.
+
+### 2026-06-04 - Out-Of-Batch - Mechanical Guards Enforce The proxy.ts Rule
+
+The "never create a root `middleware.ts`" rule is now enforced by tooling, not
+just by instruction (commit `0d933f6`, on `main` outside the batch sequence):
+
+1. PreToolUse hook `scripts/hook-block-middleware.mjs` (registered in
+   `.claude/settings.json`, matcher `Write|Edit|MultiEdit|NotebookEdit`) blocks
+   creating a root or `src/` `middleware.ts` with exit code 2. It arms at
+   session start, so it is active from the next `/clear` onward - i.e. for every
+   batch from 02 up. Fails open on malformed stdin.
+2. Guard script `scripts/guard-no-middleware.mjs` runs as `prebuild`,
+   `pretypecheck`, and `predev`, failing the gate if a root `middleware.ts`
+   exists from any source the hook cannot see (a dependency codemod, a
+   next-intl/Supabase `init`, a merge). Because Vercel runs `next build`, the
+   `prebuild` guard also fires on deploys. Manual check: `npm run guard:proxy`.
+
+Implications for future batches: do NOT hand-create `middleware.ts` even if
+next-intl or Supabase docs say to - translate that snippet into `proxy.ts` with
+a `proxy` export. If a gate suddenly fails with "BLOCKED: forbidden middleware
+file(s)", a tool scaffolded one; delete it and compose its logic into
+`proxy.ts`. The guard scripts and the hook are not test fixtures - leave them in
+place.
+
+**Why:** the proxy-vs-middleware trap is the build's highest-risk integration
+point (batch 02), and the whole ecosystem's docs still say `middleware.ts`.
+Relying on the model re-reading a CLAUDE.md line each batch is probabilistic;
+a hook plus a gate guard make it deterministic and survive `/clear`.
