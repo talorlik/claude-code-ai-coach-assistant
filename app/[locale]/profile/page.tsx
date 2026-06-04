@@ -1,10 +1,9 @@
 import type { Metadata } from "next"
 
-import { redirect } from "@/i18n/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { ensureProfile } from "@/lib/profile/profile-actions"
+import { requireClient } from "@/lib/auth/require-user"
 import { AccountForms } from "./account-forms"
-import type { Locale } from "@/i18n/routing"
 
 export const metadata: Metadata = {
   title: "My Account",
@@ -12,23 +11,21 @@ export const metadata: Metadata = {
 }
 
 /**
- * Customer account page: editable account settings. Redirects unauthenticated
- * visitors to login, preserving the active locale.
+ * Customer account page: editable account settings. `requireClient()` redirects
+ * unauthenticated visitors to the localized login page, so reaching the body
+ * proves a signed-in session.
  */
-export default async function ProfilePage({
-  params,
-}: {
-  params: Promise<{ locale: Locale }>
-}) {
-  const { locale } = await params
+export default async function ProfilePage() {
+  // Authoritative auth guard; redirects (locale-preserving) when signed out.
+  await requireClient()
+
   const supabase = await createClient()
+  // getUser() is request-cached by @supabase/ssr, so this does not re-hit the
+  // network after the guard. We need the row again here for the email and id.
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  if (!user) {
-    return redirect({ href: "/login", locale })
-  }
+  if (!user) return null
 
   // Guarantee a profile row exists for users created before this flow.
   await ensureProfile(user.id)

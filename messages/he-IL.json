@@ -28,5 +28,20 @@
     "getStarted": "בואו נתחיל",
     "signIn": "התחברות",
     "footer": "נבנה עם Next.js, Supabase ו-shadcn/ui."
+  },
+  "AuthMessages": {
+    "credentialsRequired": "יש להזין אימייל וסיסמה.",
+    "invalidEmail": "יש להזין כתובת אימייל תקינה.",
+    "passwordTooShort": "הסיסמה חייבת להכיל לפחות 8 תווים.",
+    "invalidCredentials": "אימייל או סיסמה שגויים.",
+    "signupFailed": "לא הצלחנו ליצור את החשבון שלך. נסה שוב.",
+    "checkEmailToConfirm": "בדוק את האימייל שלך כדי לאשר את החשבון.",
+    "accountMaybeExists": "אם זה חשבון חדש, בדוק את האימייל שלך כדי לאשר אותו. אם כבר יש לך חשבון, התחבר או אפס את הסיסמה.",
+    "signInToContinue": "יש להתחבר כדי להמשיך.",
+    "resetLinkSent": "אם קיים חשבון עבור כתובת זו, שלחנו קישור לאיפוס.",
+    "resetLinkInvalid": "קישור האיפוס אינו תקין או שפג תוקפו.",
+    "passwordsDoNotMatch": "הסיסמאות אינן תואמות.",
+    "updateFailed": "לא הצלחנו לעדכן את הסיסמה שלך. נסה שוב.",
+    "passwordUpdated": "הסיסמה עודכנה, יש להתחבר."
   }
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { redirect } from "@/i18n/navigation"
 import { createClient } from "@/lib/supabase/server"
@@ -22,7 +23,8 @@ export default async function ResetPasswordPage({
 }) {
   const { locale } = await params
   const sp = await searchParams
-  const errorMessage = resolveAuthMessage(sp.error)
+  const t = await getTranslations("AuthMessages")
+  const errorMessage = resolveAuthMessage(t, sp.error)
 
   // The recovery link routes through /auth/confirm, which establishes a session
   // before redirecting here. Without one the link was invalid, expired, or

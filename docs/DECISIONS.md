@@ -296,3 +296,33 @@ existing convention in `lib/auth/roles.ts` and `lib/profile/*`, which also omit
 `server-only`. The migration-smoke test resolves the SQL file via
 `process.cwd()` (vitest cwd = project root), not `import.meta.url`, which is not
 a `file:` URL under vitest.
+
+### 2026-06-04 - Batch 05 - `client`/`trainer_admin` Map Onto The `admin|customer` Enum
+
+The product roles "client" and "trainer admin" are not new enum values. The
+`public.app_role` enum is `admin | customer` (set in batch 01/04). `requireClient`
+requires only an authenticated session (every signed-in user is a client, and an
+admin may also view client surfaces); `requireTrainerAdmin` requires the `admin`
+role, matching the `is_trainer_admin()` SQL predicate. `requireClient` is a named
+alias of `requireUser`, kept distinct so future role gating can tighten in one
+place. The canonical guard is `requireTrainerAdmin` in `lib/auth/require-user.ts`;
+`requireAdmin` is retained as a thin back-compat alias.
+
+**Why:** future feature batches (07-16) gating client vs trainer surfaces must
+call these helpers and must not assume a literal `client` role exists in the DB.
+A signed-out visitor is redirected to `/login?notice=signInToContinue`; a
+signed-in non-admin hitting a trainer route goes to `/` - both locale-preserving.
+
+### 2026-06-04 - Batch 05 - `resolveAuthMessage` Now Takes A Translator
+
+`resolveAuthMessage` changed from `(code) => string | null` (fixed English) to
+`(translate, code) => string | null`, where `translate` is a next-intl
+translator bound to the `AuthMessages` namespace. The stable-code allowlist
+(`AUTH_MESSAGE_CODES`) and the anti-injection guarantee are preserved: an
+unknown/forged code returns `null` without ever calling the translator. Auth
+copy now lives in `messages/{en-US,he-IL}.json` under `AuthMessages`.
+
+**Why:** auth errors must be localized like the rest of the app. Any future auth
+server action that redirects with a `?error=`/`?notice=` code must use a code
+present in `AUTH_MESSAGE_CODES` AND add the matching key to both message files,
+or the message will silently not render.

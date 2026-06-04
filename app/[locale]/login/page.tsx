@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { Link } from "@/i18n/navigation"
 import { resolveAuthMessage } from "@/lib/auth/resolve-auth-message"
@@ -19,6 +20,7 @@ export default async function LoginPage({
   }>
 }) {
   const sp = await searchParams
+  const t = await getTranslations("AuthMessages")
 
   const defaultTab = sp.tab === "signup" ? "signup" : "signin"
   const redirectTo =
@@ -38,8 +40,8 @@ export default async function LoginPage({
 
         <div className="mt-6">
           <LoginTabs
-            error={resolveAuthMessage(sp.error) ?? undefined}
-            notice={resolveAuthMessage(sp.notice) ?? undefined}
+            error={resolveAuthMessage(t, sp.error) ?? undefined}
+            notice={resolveAuthMessage(t, sp.notice) ?? undefined}
             defaultTab={defaultTab}
             redirectTo={redirectTo}
           />

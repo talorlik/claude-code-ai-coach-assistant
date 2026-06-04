@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { Link } from "@/i18n/navigation"
 import { resolveAuthMessage } from "@/lib/auth/resolve-auth-message"
@@ -18,8 +19,9 @@ export default async function ForgotPasswordPage({
   searchParams: Promise<{ error?: string; notice?: string }>
 }) {
   const sp = await searchParams
-  const errorMessage = resolveAuthMessage(sp.error)
-  const noticeMessage = resolveAuthMessage(sp.notice)
+  const t = await getTranslations("AuthMessages")
+  const errorMessage = resolveAuthMessage(t, sp.error)
+  const noticeMessage = resolveAuthMessage(t, sp.notice)
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-background px-4 py-12 text-foreground">
