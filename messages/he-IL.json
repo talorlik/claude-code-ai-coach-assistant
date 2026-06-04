@@ -189,5 +189,79 @@
     "passwordsDoNotMatch": "הסיסמאות אינן תואמות.",
     "updateFailed": "לא הצלחנו לעדכן את הסיסמה שלך. נסה שוב.",
     "passwordUpdated": "הסיסמה עודכנה, יש להתחבר."
+  },
+  "MyPlan": {
+    "title": "התוכנית שלי",
+    "subtitle": "תוכנית האימונים הפעילה שלך. פתח אימון כדי לראות את הפרטים ולסמן אותו כשתסיים.",
+    "untitledWorkout": "אימון",
+    "empty": {
+      "title": "אין עדיין תוכנית פעילה",
+      "description": "השלם את ההצטרפות ונבנה לך תוכנית אימונים מותאמת אישית.",
+      "cta": "התחל הצטרפות"
+    },
+    "views": {
+      "calendar": "לוח שבועי",
+      "list": "רשימה"
+    },
+    "calendar": {
+      "rest": "יום מנוחה",
+      "unscheduled": "בכל זמן"
+    },
+    "weekday": {
+      "monday": "יום שני",
+      "tuesday": "יום שלישי",
+      "wednesday": "יום רביעי",
+      "thursday": "יום חמישי",
+      "friday": "יום שישי",
+      "saturday": "יום שבת",
+      "sunday": "יום ראשון"
+    },
+    "progress": {
+      "label": "התקדמות",
+      "summary": "{done}/{total} אימונים ({percent}%)"
+    },
+    "status": {
+      "completed": "הושלם",
+      "alreadyCompleted": "כבר תיעדת את האימון הזה."
+    },
+    "actions": {
+      "view": "צפה באימון"
+    },
+    "exercise": {
+      "sets": "סטים",
+      "reps": "חזרות",
+      "duration": "משך",
+      "rest": "מנוחה",
+      "safety": "בטיחות"
+    },
+    "completion": {
+      "title": "תיעוד האימון",
+      "difficulty": "כמה זה היה קשה?",
+      "energy": "רמת אנרגיה",
+      "notes": "הערות",
+      "unselected": "בחר...",
+      "submit": "סמן כהושלם",
+      "saving": "שומר..."
+    },
+    "difficulty": {
+      "easy": "קל",
+      "ok": "בדיוק נכון",
+      "hard": "קשה"
+    },
+    "energy": {
+      "low": "נמוכה",
+      "medium": "בינונית",
+      "high": "גבוהה"
+    },
+    "errors": {
+      "signedOut": "יש להתחבר כדי להמשיך.",
+      "duplicate": "כבר תיעדת את האימון הזה להיום.",
+      "invalidWorkout": "לא הצלחנו למצוא את האימון הזה.",
+      "invalidDate": "התאריך אינו תקין.",
+      "invalidDifficulty": "בחר רמת קושי תקינה.",
+      "invalidEnergy": "בחר רמת אנרגיה תקינה.",
+      "notesTooLong": "ההערות ארוכות מדי.",
+      "saveFailed": "לא הצלחנו לשמור את האימון. נסה שוב."
+    }
   }
 }

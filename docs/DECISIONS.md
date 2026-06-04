@@ -454,3 +454,30 @@ request locale supplies. The pre-existing onboarding test broke because the
 action now calls the real AI/persistence modules; mocking them is the correct
 update for changed behavior. Follow-up: the `/my-plan` route does not exist
 until batch 09, so the success "View my plan" button 404s until then.
+
+### 2026-06-05 - Batch 09 - my-plan Active-Plan Read Uses Several Scoped Queries, Not One Deep Join
+
+`getActivePlanDetail()` in `lib/db/workouts.ts` loads the plan, then workouts,
+then exercises (`.in(workout_id, ...)`), then logs as separate queries and
+stitches them in memory, rather than one nested PostgREST select.
+
+**Why:** each table has its own RLS policy (exercises resolve ownership through
+workout -> plan); separate scoped reads keep every row under its own policy and
+map cleanly onto the typed `*Row` shapes. The completion action also calls
+`clientOwnsWorkout()` before insert so a foreign workout id returns a friendly
+`invalidWorkout` instead of an RLS write failure; the DB unique constraint
+(`client_id, workout_id, planned_date`) remains the duplicate backstop, and a
+unique-violation on insert is mapped back to the `duplicate` code.
+
+### 2026-06-05 - Batch 09 - e2e Gate Needs .env.local Copied Into The Per-Batch Worktree
+
+The Playwright `webServer` runs `npm run dev`, which boots the real Supabase
+proxy and crashes without `NEXT_PUBLIC_SUPABASE_URL` / key. `.env.local` is
+gitignored and lives only in the primary checkout, so a fresh worktree has none
+and every flow times out at "Timed out waiting 120000ms from config.webServer".
+Fix: `cp <primary>/.env.local <worktree>/.env.local` before `npx playwright
+test`. The file stays gitignored in the worktree, so it never lands in a commit.
+
+**Why:** this bites every batch that runs the e2e gate from a worktree (09
+onward). Copy the env file as a standard pre-e2e step; it is local-only and
+never committed.

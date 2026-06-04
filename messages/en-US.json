@@ -189,5 +189,79 @@
     "passwordsDoNotMatch": "Passwords do not match.",
     "updateFailed": "Could not update your password. Please try again.",
     "passwordUpdated": "Password updated, please sign in."
+  },
+  "MyPlan": {
+    "title": "My Plan",
+    "subtitle": "Your active workout plan. Open a session to see the details and log it when you're done.",
+    "untitledWorkout": "Workout",
+    "empty": {
+      "title": "No active plan yet",
+      "description": "Finish onboarding and we'll build a personalized workout plan for you.",
+      "cta": "Start onboarding"
+    },
+    "views": {
+      "calendar": "Calendar",
+      "list": "List"
+    },
+    "calendar": {
+      "rest": "Rest day",
+      "unscheduled": "Anytime"
+    },
+    "weekday": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "progress": {
+      "label": "Progress",
+      "summary": "{done}/{total} workouts ({percent}%)"
+    },
+    "status": {
+      "completed": "Done",
+      "alreadyCompleted": "You've already logged this workout."
+    },
+    "actions": {
+      "view": "View workout"
+    },
+    "exercise": {
+      "sets": "Sets",
+      "reps": "Reps",
+      "duration": "Duration",
+      "rest": "Rest",
+      "safety": "Safety"
+    },
+    "completion": {
+      "title": "Log this workout",
+      "difficulty": "How hard was it?",
+      "energy": "Energy level",
+      "notes": "Notes",
+      "unselected": "Select...",
+      "submit": "Mark complete",
+      "saving": "Saving..."
+    },
+    "difficulty": {
+      "easy": "Easy",
+      "ok": "Just right",
+      "hard": "Hard"
+    },
+    "energy": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "errors": {
+      "signedOut": "Please sign in to continue.",
+      "duplicate": "You've already logged this workout for today.",
+      "invalidWorkout": "We couldn't find that workout.",
+      "invalidDate": "That date is invalid.",
+      "invalidDifficulty": "Please choose a valid difficulty.",
+      "invalidEnergy": "Please choose a valid energy level.",
+      "notesTooLong": "Those notes are too long.",
+      "saveFailed": "Could not save your workout. Please try again."
+    }
   }
 }
