@@ -1,4 +1,18 @@
 {
   "enabledPlugins": {
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hook-block-middleware.mjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
   }
 }
