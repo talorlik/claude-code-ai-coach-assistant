@@ -264,3 +264,35 @@ toaster mount and the i18n of every control are treated as done. The two test
 traps (strict `locale` prop, Base UI pointer-events guard) will recur in every
 later batch that component-tests a Base UI menu/dialog or e2e-drives one, so they
 go to auto-memory too.
+
+### 2026-06-04 - Batch 04 - Policy-Callable `is_trainer_admin()` Vs `is_admin(uuid)`
+
+Batch 04 added `public.is_trainer_admin()` (no-arg, security definer, granted to
+`authenticated`) for the new feature-table RLS policies, instead of reusing
+`is_admin(uuid)` from 0001. `is_admin(uuid)` had EXECUTE revoked from
+`authenticated` to keep it off the PostgREST RPC surface, so it cannot be called
+from a policy expression that evaluates as the `authenticated` role.
+
+**Why:** RLS policy expressions run as the querying role, so any function a
+policy calls must be EXECUTE-able by that role. The no-arg `is_trainer_admin()`
+hard-codes `auth.uid()` (no argument an attacker can vary over REST) and only
+reveals the caller's own admin status, so exposing it on the RPC surface is
+benign. The Supabase security advisor still WARNs
+(`authenticated_security_definer_function_executable`); this warning is accepted
+and expected for this pattern, not a defect. Trainer-only tables
+(`plan_templates`, `trainer_notes`) use `is_trainer_admin()` as the sole
+predicate; client-owned tables OR it with `auth.uid() = <owner>`. Nested
+ownership (`workouts`, `exercises`) resolves through the parent plan via EXISTS.
+
+### 2026-06-04 - Batch 04 - No `server-only` Import In `lib/db`
+
+The `lib/db/*` data modules do not import `server-only`. The package does not
+resolve under Vitest/Node (it is a Next bundler shim), and importing it would
+break the integration tests that import these modules directly.
+
+**Why:** server-scoping is already guaranteed transitively - the modules import
+`lib/supabase/server.ts`, which imports `next/headers`. This matches the
+existing convention in `lib/auth/roles.ts` and `lib/profile/*`, which also omit
+`server-only`. The migration-smoke test resolves the SQL file via
+`process.cwd()` (vitest cwd = project root), not `import.meta.url`, which is not
+a `file:` URL under vitest.
