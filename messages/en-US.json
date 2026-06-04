@@ -390,5 +390,72 @@
         "generic": "Something went wrong. Please try again."
       }
     }
+  },
+  "TrainerPlans": {
+    "title": "Plan templates",
+    "subtitle": "Build reusable workout plans, then assign them to clients.",
+    "unnamedClient": "Unnamed client",
+    "library": {
+      "title": "Template library",
+      "empty": "No templates yet. Create your first reusable plan.",
+      "localeLabel": "Language: {locale}",
+      "localeUnset": "No language set"
+    },
+    "actions": {
+      "create": "New template",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "assign": "Assign"
+    },
+    "form": {
+      "createTitle": "New template",
+      "editTitle": "Edit template",
+      "description": "Give the template a name and a structured plan body.",
+      "fields": {
+        "title": "Title",
+        "description": "Description",
+        "locale": "Language",
+        "payload": "Plan body (JSON)"
+      },
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving..."
+    },
+    "assign": {
+      "title": "Assign template",
+      "description": "Assign \"{title}\" to a client as their active plan.",
+      "client": "Client",
+      "choose": "Choose a client",
+      "confirm": "Assign",
+      "assigning": "Assigning...",
+      "success": "Template assigned as the client's active plan."
+    },
+    "error": {
+      "title": "Couldn't load templates",
+      "description": "Something went wrong loading your templates. Please refresh to try again."
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "title": {
+        "required": "A title is required.",
+        "tooLong": "Keep the title under 160 characters.",
+        "invalid": "That title is not valid."
+      },
+      "description": {
+        "required": "A description is required.",
+        "tooLong": "Keep the description under 2000 characters.",
+        "invalid": "That description is not valid."
+      },
+      "locale": {
+        "required": "A language is required.",
+        "tooLong": "That language value is too long.",
+        "invalid": "Choose a supported language."
+      },
+      "payload": {
+        "required": "A plan body is required.",
+        "tooLong": "That plan body is too long.",
+        "invalid": "The plan body is not valid. Check the JSON and required fields."
+      }
+    }
   }
 }

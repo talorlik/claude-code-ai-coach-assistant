@@ -582,3 +582,47 @@ worktree before `npx playwright test` (the dev server crashes in `proxy.ts`
 without Supabase env). The new admin "add a note" e2e needs both a seeded admin
 and a seeded client id (`E2E_CLIENT_ID`); without them it skips, like the other
 auth-gated specs. Guest redirect tests run unconditionally and pass.
+
+### 2026-06-05 - Batch 13 - Plan Templates And Management
+
+Template payload IS the `GeneratedPlan` shape (`lib/ai/schemas.ts`), not a
+separate template schema. `plan_templates` stores `{ title, description, locale,
+payload jsonb }` per the applied migration `0002` (simpler than the
+TECHNICAL_REQUIREMENTS draft, which listed `goal/fitness_level/equipment/
+template_payload` columns; the migration is the source of truth). Assigning a
+template reuses `saveGeneratedPlan({ source: "template", archivePrevious: true })`
+- the same never-save-a-partial-plan write path as AI generation and onboarding -
+so no new persistence code, and history is preserved by archiving the prior
+active plan. A `plan_generation_events` row with `source: "template"` is recorded
+on both success and failure.
+
+**Why:** making the template body identical to the generated-plan contract means
+a template round-trips through one validator (`validateGeneratedPlan`) and one
+writer with zero shape translation. The structured payload is edited in the UI as
+a JSON textarea rather than a full nested workout/exercise editor: in-scope for
+"save structured template payload" and the batch gate, and a rich editor is a
+later polish concern. Client-side `JSON.parse` is only for fast feedback; the
+server action re-validates authoritatively.
+
+**Per-client safety re-validation at assignment:** templates validate with
+`hasLimitations=false` (a template is generic, so per-exercise `safety_notes` are
+not required). But `assignTemplateAction` re-runs `validateGeneratedPlan` against
+the TARGET client's `limitations`: if that client declared an injury, a template
+lacking per-exercise safety notes is rejected for them rather than silently
+assigned. This keeps the same safety guarantee AI generation enforces.
+
+**AI-assisted template creation** reuses `generateWorkoutPlan` with a synthetic
+client context built from the trainer's goal/level/equipment inputs (no real
+onboarded client needed), behind the same mockable `generate` seam, so the AI
+stays server-side and tests never hit the network.
+
+**Nav not wired:** the site header links to `/trainer` only; `/trainer/plans` is
+reachable by URL and e2e navigates directly. Left nav untouched to keep the diff
+minimal (adding a templates nav link is a trivial follow-up if desired).
+
+**Gotcha (recurring, again):** e2e required copying `.env.local` into the
+worktree before `npx playwright test` - the dev server crashes in `proxy.ts`
+(`updateSession`) without Supabase env. Worktrees do not inherit the gitignored
+env file. The admin/customer plan-management specs skip without seeded
+`E2E_ADMIN_*` / `E2E_CUSTOMER_*` creds, like every other auth-gated spec; guest
+redirect tests pass unconditionally.
