@@ -36,6 +36,134 @@
     "feature3Body": "Log every workout, watch your progress, and ask your AI trainer anything, anytime.",
     "footer": "Studio Itai AI Coach Assistant"
   },
+  "Onboarding": {
+    "title": "Let's build your plan",
+    "subtitle": "Answer a few questions so your coach and the AI trainer can tailor your workouts.",
+    "progress": "Step {current} of {total}",
+    "submit": "Create my workout plan",
+    "steps": {
+      "0": { "title": "About you" },
+      "1": { "title": "Your training" },
+      "2": { "title": "Schedule & equipment" }
+    },
+    "nav": {
+      "back": "Back",
+      "next": "Next",
+      "saving": "Saving…"
+    },
+    "fields": {
+      "fullName": "Full name",
+      "phone": "Phone (optional)",
+      "age": "Age",
+      "ageRange": "Or pick an age range",
+      "goal": "Main goal",
+      "fitnessLevel": "Fitness level",
+      "preferredLocation": "Where will you train?",
+      "availableDays": "Which days can you train?",
+      "equipment": "What equipment do you have?",
+      "limitations": "Injuries or limitations (optional)",
+      "notes": "Anything else your coach should know? (optional)"
+    },
+    "hints": {
+      "phone": "Used by your coach to reach you on WhatsApp.",
+      "age": "Enter your age, or choose a range below.",
+      "days": "Pick at least one day.",
+      "equipment": "Choose all that apply, or leave blank.",
+      "limitations": "Tell us about any injuries we should plan around.",
+      "notes": "Preferences, dislikes, or goals beyond the basics."
+    },
+    "options": {
+      "unselected": "Select…",
+      "goal": {
+        "lose_weight": "Lose weight",
+        "build_muscle": "Build muscle",
+        "general_fitness": "General fitness",
+        "improve_endurance": "Improve endurance",
+        "increase_strength": "Increase strength"
+      },
+      "fitnessLevel": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced"
+      },
+      "ageRange": {
+        "under_18": "Under 18",
+        "18_29": "18-29",
+        "30_39": "30-39",
+        "40_49": "40-49",
+        "50_59": "50-59",
+        "60_plus": "60+"
+      },
+      "location": {
+        "home": "At home",
+        "gym": "At a gym",
+        "outdoor": "Outdoors",
+        "hybrid": "A mix"
+      },
+      "day": {
+        "monday": "Mon",
+        "tuesday": "Tue",
+        "wednesday": "Wed",
+        "thursday": "Thu",
+        "friday": "Fri",
+        "saturday": "Sat",
+        "sunday": "Sun"
+      },
+      "equipment": {
+        "none": "None / bodyweight",
+        "dumbbells": "Dumbbells",
+        "barbell": "Barbell",
+        "kettlebell": "Kettlebell",
+        "resistance_bands": "Resistance bands",
+        "pull_up_bar": "Pull-up bar",
+        "bench": "Bench",
+        "cardio_machine": "Cardio machine",
+        "full_gym": "Full gym"
+      }
+    },
+    "errors": {
+      "summary": "Please review the highlighted fields.",
+      "signedOut": "Please sign in to continue.",
+      "saveFailed": "We couldn't save your details. Please try again.",
+      "fullName": {
+        "invalid": "Enter your name (2-120 characters)."
+      },
+      "phone": {
+        "invalid": "Enter a valid phone number or leave it blank."
+      },
+      "age": {
+        "required": "Enter your age or choose an age range.",
+        "invalid": "Enter an age between 13 and 100."
+      },
+      "ageRange": {
+        "invalid": "Choose a valid age range."
+      },
+      "goal": {
+        "required": "Choose your main goal.",
+        "invalid": "Choose a valid goal."
+      },
+      "fitnessLevel": {
+        "required": "Choose your fitness level.",
+        "invalid": "Choose a valid fitness level."
+      },
+      "preferredLocation": {
+        "required": "Choose where you'll train.",
+        "invalid": "Choose a valid location."
+      },
+      "availableDays": {
+        "required": "Pick at least one training day.",
+        "invalid": "Choose valid training days."
+      },
+      "equipment": {
+        "invalid": "Choose valid equipment."
+      }
+    },
+    "success": {
+      "title": "You're all set!",
+      "body": "Your details are saved. Your personalized workout plan is on the way.",
+      "cta": "Go to my account"
+    }
+  },
   "Metadata": {
     "home": {
       "siteName": "Studio Itai",

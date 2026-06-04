@@ -358,3 +358,45 @@ batch 02), preserving locale - there is no standalone register page yet.
 client `useTranslations` hook on the same page is awkward, and going fully
 server keeps both the page body and its metadata reading from one
 `getTranslations` source of truth.
+
+### 2026-06-04 - Batch 07 - Onboarding Field Vocabulary Is Closed Enums With Message-Key Values
+
+`lib/validation/onboarding.ts` defines goal, fitness level, age range, location,
+day, and equipment as closed const tuples whose member strings are stable,
+locale-independent keys (e.g. `build_muscle`, `30_39`). The validator checks
+membership against these tuples; the UI and the catalog key their labels off the
+same strings (`Onboarding.options.<group>.<value>`). The raw key strings are
+persisted verbatim into `clients`.
+
+**Why:** keeps the validator, the form, and the translations from drifting (one
+source of vocabulary), gives the batch-08 AI generation structured enum inputs
+to branch on instead of free text, and keeps stored values language-neutral so a
+client who switches locale still has valid data.
+
+### 2026-06-04 - Batch 07 - Onboarding Lives At /join, Reached After Auth; Homepage CTA Unchanged
+
+The onboarding flow is at `/[locale]/join`, guarded by `requireClient()`
+(redirects signed-out users to localized login). The homepage primary CTA still
+points at `/register` (-> `/login?tab=signup`), NOT `/join`, so the batch-06
+homepage e2e contract (CTA href ends `/register`) is preserved. New users
+register and sign in first, then onboard.
+
+**Why:** onboarding writes the authenticated user's own `clients` row under RLS,
+so a session must already exist; pointing the public CTA straight at `/join`
+would just bounce guests to login. Follow-up for a later batch: after sign-in,
+route a client with no `onboarded_at` to `/join` (post-auth redirect), and
+optionally add an authenticated "complete onboarding" entry point.
+
+### 2026-06-04 - Batch 07 - Onboarding Form Holds State In React, Not FormData
+
+`app/[locale]/join/onboarding-form.tsx` is a controlled client component that
+collects answers in React state and calls the `saveOnboarding` server action
+with a plain object, rather than using a `<form action>` + `FormData`.
+
+**Why:** the multi-select controls use the Base UI `Checkbox` primitive, which
+is not a native input and so does not serialize into `FormData`. Controlled
+state also drives the multi-step wizard (step gating, returning to the first
+errored step). The server action remains the single validation source of truth;
+client-side step checks are UX-only. Runtime-composed translation keys
+(`errors.<field>.<code>`, `steps.<n>.title`) are cast to the translator's key
+type via a local `MessageKey` alias because next-intl types keys statically.
