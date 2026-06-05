@@ -1,6 +1,12 @@
 {
   "Common": {
-    "appName": "AI Coach"
+    "appName": "AI Coach",
+    "loading": "Loading...",
+    "error": {
+      "title": "Something went wrong",
+      "description": "We could not load this page. Please try again.",
+      "retry": "Try again"
+    }
   },
   "LanguageSwitcher": {
     "label": "Language",

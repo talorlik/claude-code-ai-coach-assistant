@@ -781,3 +781,25 @@ double-reversed the words; (3) the only real defect was embedded numeric runs
 (reps `8-10`, dates `2026-06-05`) painting reversed inside the RTL run, fixed by
 pre-reversing maximal numeric runs (`lib/pdf/bidi.ts#fixRtlNumerals`) so the
 renderer's own reversal cancels out. Verified by rendering both locales to PNG.
+
+### 2026-06-05 - Batch 17 - Polish Was Additive, Not Corrective
+
+The audit found the app already responsive, RTL-correct, fully translated (333
+keys, en/he parity, no untranslated values beyond numeric formats), with inline
+empty/error states and `robots: noindex` on every private page. Batches 02-16
+had done the per-surface responsive/a11y work. So batch 17 added the missing
+*global* states rather than fixing broken layouts: a localized client-component
+`app/[locale]/error.tsx` boundary (inside the locale `NextIntlClientProvider`,
+so it translates and flips RTL), and route-level `loading.tsx` skeletons for the
+four async data pages that lacked one (`my-plan`, `chat`,
+`trainer/clients/[clientId]`, `trainer/plans`; `trainer` already had one). Each
+skeleton carries a visually hidden `role=status aria-live=polite` localized
+announcement since skeletons are otherwise silent to assistive tech. Four new
+`Common.{loading,error.*}` keys back these.
+
+**Why:** the prompt's "fix broken layouts" had little to fix; the real gap was
+loading/error coverage. The viewport gate is satisfied by `e2e/responsive.spec.ts`
+asserting zero horizontal overflow (`documentElement.scrollWidth - clientWidth
+<= 1`) at 390/768/1280 on the guest-reachable shell (home + login) plus Hebrew
+RTL at every width - guest pages keep the spec deterministic without seeded
+accounts, matching how the other e2e flows skip when `E2E_*` creds are unset.

@@ -1,6 +1,12 @@
 {
   "Common": {
-    "appName": "מאמן AI"
+    "appName": "מאמן AI",
+    "loading": "טוען...",
+    "error": {
+      "title": "משהו השתבש",
+      "description": "לא הצלחנו לטעון את הדף הזה. נסו שוב.",
+      "retry": "נסו שוב"
+    }
   },
   "LanguageSwitcher": {
     "label": "שפה",
