@@ -183,3 +183,45 @@ Final technical check:
    Production will not reflect the latest work until the user explicitly pushes
    `main`, which triggers a Production deploy. Re-run this smoke after that push
    and after batch 20 merges.
+
+## Post-Batch-20 Re-run (2026-06-05)
+
+Batch 20 (installable PWA) is merged and `main` was pushed to the remote, so
+open item 5 above is now resolved: remote `main` is at `bf1b66e`
+(`Add installable PWA support`) and Production reflects batches 16-20. This
+re-run is the build-plan-mandated smoke after the PWA feature shipped.
+
+Local gates (primary checkout, `main` at `bf1b66e`):
+
+| Gate | Command | Result |
+| --- | --- | --- |
+| Lint | `npm run lint` | Pass, no errors |
+| Typecheck | `npm run typecheck` | Pass (incl. `guard-no-middleware`) |
+| Build | `npm run build` | Pass, 37 routes |
+| Unit + integration | `npm run test` | 465 passed, 65 files |
+| E2E | `npx playwright test` | 52 passed, 14 skipped, 0 failed |
+
+Remote pipeline: the push triggered a Production deploy (`● Ready`, ~1m build),
+aliased to `https://claude-code-ai-coach-assistant.vercel.app`.
+
+Production runtime smoke (live HTTP against the Production alias):
+
+- `GET /` -> 307 -> `/en` (locale routing through `proxy.ts`).
+- `GET /en` -> 200; `GET /he` -> 200 with `dir="rtl"` `lang="he-IL"` (Hebrew RTL).
+- `GET /manifest.webmanifest` -> 200 `application/manifest+json`, body
+  `display=standalone`, `start_url=/en`, 3 icons, `theme_color=#ffffff`. This
+  confirms the batch-20 proxy-matcher fix in production: the manifest is served
+  directly, NOT locale-redirected to a 404.
+- `GET /sw.js` -> 200 `application/javascript`: the single service worker is
+  reachable at the root scope, so both push (batch 15) and the PWA offline shell
+  register. `GET /icons/icon-192.png` -> 200 `image/png`.
+- `/en` `<head>` carries the `rel="manifest"` link, a `theme-color` meta, and an
+  `apple-touch-icon` link.
+- `POST /api/chat` (unauth) -> 401 `{"error":"unauthorized"}` from the app's own
+  guard (no `_vercel_sso_nonce` cookie). AI stays server-side and auth-gated.
+
+Note: Production was directly reachable over anonymous HTTP for this run (real
+200 HTML on `/en`, `/he`), i.e. the Vercel SSO interstitial that blocked the
+batch-19 anonymous smoke was not in effect, so the runtime checks above are
+direct rather than substituted. Open items 1-4 are unchanged and remain
+non-blocking dashboard follow-ups.
