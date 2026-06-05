@@ -803,3 +803,32 @@ asserting zero horizontal overflow (`documentElement.scrollWidth - clientWidth
 <= 1`) at 390/768/1280 on the guest-reachable shell (home + login) plus Hebrew
 RTL at every width - guest pages keep the spec deterministic without seeded
 accounts, matching how the other e2e flows skip when `E2E_*` creds are unset.
+
+### 2026-06-05 - Batch 18 - Hardening Was An Audit, Coverage Already Broad
+
+Batches 02-17 each shipped tests with their feature, so the baseline was already
+green and broad: 55 vitest files / 416 tests and 60 Playwright tests (46 run, 14
+skip). Batch 18 added no new behavior; it closed real coverage gaps found by
+diffing `lib/**/*.ts` against modules any test imports. Four pure helpers were
+untested and got unit tests: `getPdfLabels` (locale -> PDF label set + fallback),
+push env guards (`requireVapidConfig`/`isPushConfigured`), remember-me cookie
+helpers (`isAuthCookie`/`stripPersistence`), and the VAPID base64url decoder
+(`urlBase64ToUint8Array`). New total: 59 files / 440 tests. The remaining
+untested lib modules (`require-admin`, `trainer-client-detail`, `notes-actions`,
+`supabase/{client,middleware}`, `utils.cn`, `action-result.ok/fail`) were left
+untested deliberately: they are thin Supabase/Next glue or one-line re-exports
+already exercised through integration and e2e, where a unit test would only
+re-assert the mock.
+
+Codified the e2e split in a new `docs/TESTING.md`: an always-on CI-safe subset
+(guest gating, locale/RTL, theme, responsive, unsupported-push) plus a
+credential-gated subset (authenticated client/trainer journeys) that `test.skip`s
+when `E2E_ADMIN_*`/`E2E_CUSTOMER_*`/`E2E_CLIENT_ID` are unset.
+
+**Why:** the prompt framed 18 as "add missing tests," but with per-feature TDD
+across the prior batches there was little missing - padding the suite with tests
+of mocked glue would add maintenance cost and no signal. The honest hardening
+work was the gap audit plus documenting the deliberately-skipped subset (Task 9),
+so batch 19's deployment smoke knows the 14 skips are a credentials-gated CI-safe
+choice, not a regression. The e2e dev server needs `.env.local` to boot; copy it
+into the worktree (gitignored, never committed) before `npx playwright test`.
