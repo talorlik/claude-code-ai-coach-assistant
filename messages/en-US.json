@@ -476,5 +476,23 @@
       "saveError": "Could not save the new plan. Your current plan was kept. Please try again.",
       "generic": "Something went wrong. Your current plan was kept. Please try again."
     }
+  },
+  "Reminders": {
+    "title": "Workout reminders",
+    "description": "Get a browser notification when it's time for your next session. Reminders work on this device only and never include any health details.",
+    "toggle": {
+      "label": "Enable workout reminders"
+    },
+    "status": {
+      "enabled": "Reminders are on for this device.",
+      "deniedTitle": "Notifications are blocked",
+      "deniedDescription": "Your browser is blocking notifications. Allow notifications for this site in your browser settings, then try again.",
+      "errorTitle": "Couldn't update reminders",
+      "errorDescription": "Something went wrong setting up reminders. Please try again."
+    },
+    "unsupported": {
+      "title": "Reminders aren't available here",
+      "description": "This browser doesn't support push notifications. Open the app in a supported browser to turn on workout reminders."
+    }
   }
 }

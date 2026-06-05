@@ -12,9 +12,11 @@ import {
 import { Link } from "@/i18n/navigation"
 import { requireClient } from "@/lib/auth/require-user"
 import { getActivePlanDetail } from "@/lib/db/workouts"
+import { VAPID_PUBLIC_KEY } from "@/lib/push/env"
 import type { Locale } from "@/i18n/routing"
 import { PlanView, type PlanViewData } from "./plan-view"
 import { RegenerateMyPlan } from "./regenerate-my-plan"
+import { ReminderSettings } from "./reminder-settings"
 
 /**
  * The plan view is a private, per-user surface; keep it out of search indexes.
@@ -110,6 +112,10 @@ export default async function MyPlanPage({
       </header>
 
       <PlanView data={data} />
+
+      {/* Browser workout reminders. Renders a graceful unsupported state when
+          the browser lacks push support or the deployment has no VAPID key. */}
+      <ReminderSettings vapidPublicKey={VAPID_PUBLIC_KEY} />
     </main>
   )
 }

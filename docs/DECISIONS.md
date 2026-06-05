@@ -675,3 +675,49 @@ unconditionally; the admin test skips without `E2E_ADMIN_*` + `E2E_CLIENT_ID`.
 **Gotcha (recurring):** copied `.env.local` into the worktree before
 `npx playwright test`; also `npm ci` is required in a fresh worktree (no shared
 `node_modules`) before any gate runs.
+
+### 2026-06-05 - Batch 15 - Push Notifications
+
+Implemented browser Web Push reminders on top of the existing
+`push_subscriptions` table (created in batch 04). Used the `web-push` library for
+server-side VAPID signing; subscription opt-in lives on the My Plan page.
+
+**`push_subscriptions` already existed:** batch 04 created the table, index,
+`updated_at` trigger, and the "Clients manage own push subscriptions" RLS policy
+(`auth.uid() = client_id or is_trainer_admin()`). Batch 15 only added the
+application layer (data access, routes, UI), no migration.
+
+**VAPID env naming:** browser-safe public key is `NEXT_PUBLIC_VAPID_PUBLIC_KEY`;
+the private key is server-only `VAPID_PRIVATE_KEY`; optional `VAPID_SUBJECT`
+(defaults to the admin mailto). Generate with `npx web-push generate-vapid-keys`.
+These are NOT yet set in `.env.local`/Vercel - push degrades to the graceful
+unsupported state until they are. Created `.env.example` (first one in the repo)
+documenting all env vars by name.
+
+**Reminder trigger auth (dual-path):** the `/api/push/reminders` route accepts
+EITHER a `Bearer ${CRON_SECRET}` header (Vercel Cron) OR a trainer-admin session
+(manual test). Vercel Cron invokes via GET, so the route exposes both GET and
+POST delegating to one handler. Added `vercel.json` with a daily cron
+(`0 16 * * *`).
+
+**No medical detail in push body:** the reminder payload is generic localized
+copy only (title + body + deep link), never injury/medical data, because a push
+payload can surface on a lock screen. Enforced by building the payload from
+static strings in the route, not from client rows.
+
+**React lint gotcha (`react-hooks/set-state-in-effect`):** the new ESLint config
+forbids synchronous `setState` in a `useEffect` body. Push support can only be
+detected client-side, so the settings component uses a tri-state
+`supported: boolean | null` (null = not-yet-detected, renders nothing) and does
+ALL state updates inside an async function the effect merely schedules. This
+also avoids an SSR hydration mismatch.
+
+**TS 5.9 `Uint8Array` gotcha:** the Push API `applicationServerKey` wants
+`BufferSource`; a plain `new Uint8Array(len)` types as
+`Uint8Array<ArrayBufferLike>` and fails. Allocate over an explicit
+`new ArrayBuffer(len)` so the type is `Uint8Array<ArrayBuffer>`.
+
+**Service worker is plain JS:** `public/sw.js` runs in the ServiceWorker global
+scope, not the app bundle, so it stays plain JavaScript and is excluded from the
+TS build (no TSDoc-on-exports rule applies; documented with a file header
+comment instead).
