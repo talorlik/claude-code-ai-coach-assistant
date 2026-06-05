@@ -234,6 +234,11 @@
     "actions": {
       "view": "צפה באימון"
     },
+    "export": {
+      "label": "ייצוא PDF",
+      "loading": "מכין PDF...",
+      "error": "לא הצלחנו להפיק את ה-PDF. נסו שוב."
+    },
     "exercise": {
       "sets": "סטים",
       "reps": "חזרות",

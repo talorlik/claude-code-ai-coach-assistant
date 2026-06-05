@@ -234,6 +234,11 @@
     "actions": {
       "view": "View workout"
     },
+    "export": {
+      "label": "Export PDF",
+      "loading": "Preparing PDF...",
+      "error": "Could not generate the PDF. Please try again."
+    },
     "exercise": {
       "sets": "Sets",
       "reps": "Reps",

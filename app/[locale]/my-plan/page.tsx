@@ -14,6 +14,7 @@ import { requireClient } from "@/lib/auth/require-user"
 import { getActivePlanDetail } from "@/lib/db/workouts"
 import { VAPID_PUBLIC_KEY } from "@/lib/push/env"
 import type { Locale } from "@/i18n/routing"
+import { ExportPlanButton } from "./export-plan-button"
 import { PlanView, type PlanViewData } from "./plan-view"
 import { RegenerateMyPlan } from "./regenerate-my-plan"
 import { ReminderSettings } from "./reminder-settings"
@@ -107,8 +108,12 @@ export default async function MyPlanPage({
           </h1>
           <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
-        {/* Regeneration replaces the active plan; only offer it when one exists. */}
-        <RegenerateMyPlan />
+        {/* Export and regeneration both act on the active plan; both are only
+            reachable here, where an active plan is guaranteed to exist. */}
+        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+          <ExportPlanButton />
+          <RegenerateMyPlan />
+        </div>
       </header>
 
       <PlanView data={data} />

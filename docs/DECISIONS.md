@@ -759,3 +759,25 @@ via `vercel env ls`. Push works in all deployed environments on the next deploy.
 
 **Why:** the CLI `git_branch_required` bug blocked setting the all-branches
 preview variant, so the dashboard was used instead of the REST API workaround.
+
+### 2026-06-05 - Batch 16 - PDF Export Stack And RTL Handling
+
+Workout-plan PDF export uses `pdf-lib` + `@pdf-lib/fontkit` with an embedded
+`NotoSansHebrew-Regular.ttf` (vendored at `lib/pdf/fonts/`, ~113KB, committed).
+Route: `GET /api/pdf/workout-plan?clientId=&locale=` (client exports own plan;
+trainer admin may pass another `clientId`). The font is added to
+`outputFileTracingIncludes` in `next.config.mjs` so the serverless bundle ships
+it.
+
+**Why:** `pdf-lib` is pure JS (no headless browser, no native bindings), so it
+runs in the Next serverless runtime; a Unicode font MUST be embedded because the
+standard PDF fonts only encode WinAnsi and would throw on Hebrew codepoints.
+Three non-obvious traps were hit and fixed: (1) `fs.readFile` returns a Node
+`Buffer` that fails pdf-lib's `instanceof Uint8Array` check under the jsdom test
+realm ("font type NaN") - copy into a fresh `Uint8Array` before `embedFont`;
+(2) pdf-lib/fontkit shape a pure Hebrew run correctly when given LOGICAL order
+and right-aligned, so NO full bidi reordering is needed - adding bidi-js
+double-reversed the words; (3) the only real defect was embedded numeric runs
+(reps `8-10`, dates `2026-06-05`) painting reversed inside the RTL run, fixed by
+pre-reversing maximal numeric runs (`lib/pdf/bidi.ts#fixRtlNumerals`) so the
+renderer's own reversal cancels out. Verified by rendering both locales to PNG.
