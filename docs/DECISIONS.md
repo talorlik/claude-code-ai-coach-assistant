@@ -832,3 +832,36 @@ work was the gap audit plus documenting the deliberately-skipped subset (Task 9)
 so batch 19's deployment smoke knows the 14 skips are a credentials-gated CI-safe
 choice, not a regression. The e2e dev server needs `.env.local` to boot; copy it
 into the worktree (gitignored, never committed) before `npx playwright test`.
+
+### 2026-06-05 - Batch 19 - Deployment Verification Is Bounded By Vercel SSO And The Local-Main Policy
+
+Batch 19 is verification-only; no app code changed. All local gates pass (lint,
+typecheck, build, 440 unit/integration tests, 46 e2e passed / 14 credential-gated
+skips). The deliverable is `docs/DEPLOYMENT_VERIFICATION.md`, the final
+submission checklist status. Two runtime facts bound what "verify the deployment"
+can mean here:
+
+1. Production is behind Vercel SSO deployment protection, so anonymous `curl` of
+   the live URL returns 401 from Vercel's gate (`_vercel_sso_nonce`,
+   `vercel.com/sso`), not the app. Anonymous HTTP smoke of prod/preview is
+   impossible without a bypass token or an authenticated browser session. The
+   `Ready` build status plus local smoke and the e2e suite (run against a real
+   server with live Supabase) are the substitute.
+2. Remote `main` (Vercel's Production source) lags local `main`: batches 16-18
+   are squash-merged locally only, because `main` is never auto-pushed. So
+   Production does not yet reflect the latest work; it will only after the user
+   explicitly pushes `main`. Re-run this smoke after that push and after batch 20.
+
+Non-blocking config gaps found (dashboard fixes, not code): `NEXT_PUBLIC_APP_URL`
+is unset on Vercel Preview (set on Prod/Dev); Supabase auth redirect-URL allowlist
+is not MCP-queryable and needs a manual dashboard confirm for the Vercel origins;
+two Supabase security advisor WARNs are expected (`is_trainer_admin()` is
+intentionally `SECURITY DEFINER` for RLS use; leaked-password protection is an
+optional toggle).
+
+**Why:** so the next session (and batch 20's re-run of the batch-19 smoke) knows
+the 401 on prod is Vercel SSO not an app break, knows Production is intentionally
+behind local `main` until an explicit push, and has the three managed-dashboard
+follow-ups in one place instead of re-discovering them. App-route redirects show
+as HTTP 200 RSC navigations under curl, not 30x - trust the e2e browser assertions
+for redirect behavior, not raw status codes.
