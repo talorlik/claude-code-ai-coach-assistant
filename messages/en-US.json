@@ -505,5 +505,21 @@
       "title": "Reminders aren't available here",
       "description": "This browser doesn't support push notifications. Open the app in a supported browser to turn on workout reminders."
     }
+  },
+  "Pwa": {
+    "install": {
+      "button": "Install app",
+      "dismiss": "Dismiss install prompt",
+      "iosTitle": "Install Studio Itai",
+      "iosIntro": "Add Studio Itai to your Home Screen for a full-screen, app-like experience.",
+      "iosStep1": "Tap the Share button in Safari's toolbar.",
+      "iosStep2": "Choose \"Add to Home Screen\".",
+      "iosStep3": "Tap \"Add\" to finish."
+    },
+    "offline": {
+      "title": "You're offline",
+      "description": "Studio Itai can't reach the network right now. Check your connection and try again - your saved plan is waiting once you're back online.",
+      "retry": "Try again"
+    }
   }
 }

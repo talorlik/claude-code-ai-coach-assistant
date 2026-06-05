@@ -1,3 +1,4 @@
+import type { Metadata, Viewport } from "next"
 import { Geist_Mono, Inter } from "next/font/google"
 import { hasLocale, NextIntlClientProvider } from "next-intl"
 import { setRequestLocale } from "next-intl/server"
@@ -5,14 +6,42 @@ import { notFound } from "next/navigation"
 
 import { ThemeProvider } from "@/components/theme-provider"
 import { SiteHeader } from "@/components/site-header"
+import { ServiceWorkerRegister } from "@/components/service-worker-register"
 import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
+import { THEME_COLOR } from "@/lib/pwa/manifest"
 import {
   localeDirection,
   localeTag,
   routing,
   type Locale,
 } from "@/i18n/routing"
+
+/**
+ * PWA document metadata: links the Web App Manifest (so the browser offers
+ * install) and declares the iOS standalone web-app behavior. `appleWebApp`
+ * supplies the Add-to-Home-Screen title and status-bar style and is paired with
+ * the `apple-touch-icon` Apple reads instead of the manifest icons.
+ */
+export const metadata: Metadata = {
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Studio Itai",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon-180.png",
+  },
+}
+
+/**
+ * Viewport-level metadata: `themeColor` tints the browser/OS chrome around the
+ * app and is kept in sync with the manifest `theme_color`.
+ */
+export const viewport: Viewport = {
+  themeColor: THEME_COLOR,
+}
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
@@ -65,6 +94,7 @@ export default async function LocaleLayout({
       <body>
         <NextIntlClientProvider>
           <ThemeProvider>
+            <ServiceWorkerRegister />
             <SiteHeader />
             {children}
             <Toaster />

@@ -865,3 +865,52 @@ behind local `main` until an explicit push, and has the three managed-dashboard
 follow-ups in one place instead of re-discovering them. App-route redirects show
 as HTTP 200 RSC navigations under curl, not 30x - trust the e2e browser assertions
 for redirect behavior, not raw status codes.
+
+### 2026-06-05 - Batch 20 - The Proxy Matcher Must Exclude `/sw.js` And `/manifest.webmanifest`
+
+The root-scope PWA assets `/sw.js` and `/manifest.webmanifest` were caught by the
+next-intl middleware in `proxy.ts` and 307-redirected to `/en/sw.js` /
+`/en/manifest.webmanifest`, both of which 404. This silently broke TWO things:
+PWA installability (the manifest was unreachable) AND the existing batch-15 push
+worker (`navigator.serviceWorker.register('/sw.js')` followed the redirect to a
+404, so the worker never registered). Fix: added `sw\.js` and
+`manifest\.webmanifest` to the negative-lookahead in `proxy.ts`'s `config.matcher`
+so the proxy never runs on them and Next serves them directly at the root scope.
+Icons under `/icons/*.png` were unaffected because the matcher already excludes
+the `png` extension.
+
+**Why:** any root-scoped static asset that must NOT carry a locale prefix
+(service workers are scope-sensitive; the manifest URL is locale-independent by
+design) has to be excluded from the locale matcher, not just from the runtime
+`bypassesLocale()` check - the redirect happens inside the next-intl middleware
+before the proxy body's bypass logic runs. The e2e test that fetched
+`/manifest.webmanifest` over real HTTP (not via the rendered `<link>`, which
+transparently follows the redirect) is what surfaced this; a DOM-only assertion
+would have passed over a production-broken manifest.
+
+### 2026-06-05 - Batch 20 - One Service Worker Serves Both Push And PWA Offline
+
+`public/sw.js` (batch 15's push worker) was EXTENDED, not replaced: it now also
+holds the `install` (precache the `/en` + `/he` offline docs, manifest, icons),
+`activate` (delete stale caches by `CACHE_VERSION`, then `clients.claim()`), and
+`fetch` (network-first, falling back to the locale-matched cached `/offline`
+document ONLY for failed navigations) lifecycle, alongside the untouched `push`
+and `notificationclick` handlers. The `fetch` handler bypasses everything that is
+not a same-origin GET navigation and explicitly never touches `/api/*`, so no
+authenticated/Supabase/AI response is ever cached. A Vitest guard
+(`__tests__/unit/single-service-worker.test.ts`) asserts exactly one SW file
+exists and that it still contains the batch-15 handlers, so future work cannot
+regress push or add a second competing worker. SW registration moved from
+push-opt-in-only to every page load via `<ServiceWorkerRegister/>` (mounted in
+the `[locale]` layout, reusing the injectable `lib/pwa/register.ts` helper).
+
+**Why:** two service workers racing for one scope is a classic PWA regression, so
+the single-worker constraint is enforced by a test, not just convention. Eager
+registration is what makes the offline shell and installability available to
+visitors who never enable reminders. Manifest colors are hard-coded hex
+(`#ffffff` theme / `#0f766e` background) in `lib/pwa/manifest.ts`, not read from
+the CSS `oklch` tokens, because the manifest spec requires hex/rgb. Icons are
+rsvg-generated placeholder dumbbells; the trainer should replace them with brand
+art (non-blocking follow-up). iOS web push still requires the user to install the
+app to the Home Screen first - the install affordance shows localized
+Add-to-Home-Screen steps on iOS Safari (no `beforeinstallprompt` there).

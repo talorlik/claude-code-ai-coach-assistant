@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server"
 import { isAdmin } from "@/lib/auth/roles"
 import { ModeToggle } from "@/components/mode-toggle"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { InstallPrompt } from "@/components/install-prompt"
 import { Button, buttonVariants } from "@/components/ui/button"
 
 /**
@@ -63,6 +64,7 @@ export async function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <InstallPrompt />
           <LanguageSwitcher />
           <ModeToggle />
           {user ? (

@@ -55,9 +55,13 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - sw.js (the PWA/push service worker; must be served at the root scope,
+     *   never locale-redirected, or registration would 307 -> /en/sw.js -> 404)
+     * - manifest.webmanifest (the Web App Manifest; same reason - a locale
+     *   redirect makes it unreachable and the app non-installable)
      * - image files
      * Feel free to modify this pattern to include more paths.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }
