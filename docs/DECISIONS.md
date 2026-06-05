@@ -721,3 +721,30 @@ also avoids an SSR hydration mismatch.
 scope, not the app bundle, so it stays plain JavaScript and is excluded from the
 TS build (no TSDoc-on-exports rule applies; documented with a file header
 comment instead).
+
+### 2026-06-05 - Post-Batch-15 - VAPID Keys Generated And Set (Preview Pending)
+
+Generated a VAPID key pair (`npx web-push generate-vapid-keys`) plus a 32-byte
+hex `CRON_SECRET`. Wrote all four push vars
+(`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`,
+`CRON_SECRET`) to `.env.local` and to a gitignored backup `.env.vapid.local`.
+Set them in Vercel for production and development via the CLI. Preview scope
+still NOT set: `vercel env add ... preview` fails with the known
+`git_branch_required` CLI bug; awaiting a token to use the REST API workaround
+or a manual dashboard entry.
+
+**Why:** push degrades to the unsupported state without VAPID keys, so the keys
+had to exist before push can work in any deployed environment. Production +
+development are live; only branch-preview deploys lack them.
+
+### 2026-06-05 - Planning - Added Batch 20 (PWA Installability)
+
+Extended the build from 00-19 to 00-20. Batch 20 makes the app an installable,
+locale/RTL-aware PWA. Prompt: `docs/prompts/20_PWA_INSTALLABILITY.md`; added to
+PROMPT_INDEX, TASK_BREAKDOWN (table + section + dependency list), and the
+runbook. Not executed yet.
+
+**Why:** PWA installability ships AFTER batch 19's deployment verification, so
+batch 20 must (a) extend the EXISTING `public/sw.js` from batch 15 rather than
+add a second service worker, and (b) trigger a re-run of the batch-19 smoke
+after it merges. Both constraints are written into the batch-20 prompt.
