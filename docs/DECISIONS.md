@@ -748,3 +748,14 @@ runbook. Not executed yet.
 batch 20 must (a) extend the EXISTING `public/sw.js` from batch 15 rather than
 add a second service worker, and (b) trigger a re-run of the batch-19 smoke
 after it merges. Both constraints are written into the batch-20 prompt.
+
+### 2026-06-05 - Post-Batch-15 - VAPID Preview Scope Resolved
+
+Preview-scope VAPID + CRON_SECRET vars set via the Vercel dashboard
+(Preview, all branches), completing the earlier "preview pending" item. All four
+push vars (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`,
+`CRON_SECRET`) are now present in Production, Preview, and Development; verified
+via `vercel env ls`. Push works in all deployed environments on the next deploy.
+
+**Why:** the CLI `git_branch_required` bug blocked setting the all-branches
+preview variant, so the dashboard was used instead of the REST API workaround.
