@@ -54,12 +54,15 @@ npm run build`. Add `npm run test` / `npm run test:e2e` for behavior changes.
 - `__tests__/unit/`, `__tests__/integration/` - Vitest. `playwright.config.ts`
   for e2e.
 - `docs/planning/` (PRD, TECHNICAL_REQUIREMENTS, TASK_BREAKDOWN),
-  `docs/prompts/` (00-19 + PROMPT_INDEX).
+  `docs/prompts/` (00-20 + PROMPT_INDEX).
 
 ## Building this project: the batch system
 
-The build runs as 20 sequential batches (00-19), one prompt file each under
-`docs/prompts/`, sequenced by `docs/planning/TASK_BREAKDOWN.md`.
+The build runs as 21 sequential batches (00-20), one prompt file each under
+`docs/prompts/`, sequenced by `docs/planning/TASK_BREAKDOWN.md`. Batch 20 (PWA
+installability) was added after the original 00-19 plan; it ships a user-facing
+feature after batch 19's deployment verification, so re-run the batch-19 smoke
+after 20 merges.
 
 **To run a batch, use the `/run-batch` command.** When the user says "run batch
 N", "do batch N", "execute batch N", or anything equivalent - including plain

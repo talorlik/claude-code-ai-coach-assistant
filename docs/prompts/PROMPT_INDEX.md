@@ -23,6 +23,7 @@ batch.
 - [17 - RESPONSIVE ACCESSIBILITY AND COPY POLISH](./17_RESPONSIVE_ACCESSIBILITY_AND_COPY_POLISH.md)
 - [18 - TEST HARDENING](./18_TEST_HARDENING.md)
 - [19 - DEPLOYMENT VERIFICATION](./19_DEPLOYMENT_VERIFICATION.md)
+- [20 - PWA INSTALLABILITY](./20_PWA_INSTALLABILITY.md)
 
 Do not skip the verification batch. The project already has template, Supabase,
 GitHub, Vercel, AI Gateway, and auth work completed, but those pieces must be

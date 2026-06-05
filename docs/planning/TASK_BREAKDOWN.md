@@ -59,6 +59,7 @@ If scripts are missing, add them in the relevant tooling batch.
   -> 17 Responsive, accessibility, localization polish
   -> 18 Test hardening
   -> 19 Deployment verification
+  -> 20 PWA installability
 ```
 
 ## 4. Batch Summary Table
@@ -85,6 +86,7 @@ If scripts are missing, add them in the relevant tooling batch.
 |    17 | `docs/prompts/17_RESPONSIVE_ACCESSIBILITY_AND_COPY_POLISH.md` | Mobile, RTL, contrast, empty/error/loading states      | Playwright visual behavior      | `Polish responsive and accessible UX`      |
 |    18 | `docs/prompts/18_TEST_HARDENING.md`                           | Complete unit/integration/e2e coverage                 | Full test suite                 | `Harden automated test coverage`           |
 |    19 | `docs/prompts/19_DEPLOYMENT_VERIFICATION.md`                  | Vercel/GitHub/Supabase final verification              | Production smoke                | `Verify deployment readiness`              |
+|    20 | `docs/prompts/20_PWA_INSTALLABILITY.md`                       | Installable PWA: manifest, icons, offline shell, SW    | Unit + integration + e2e        | `Add installable PWA support`              |
 
 ## 5. Detailed Batch Breakdown
 
@@ -617,6 +619,40 @@ Tests:
 3. Auth smoke.
 4. AI route smoke with safe test prompt.
 5. Admin route protection smoke.
+
+### Batch 20 - PWA Installability
+
+Prompt file: `docs/prompts/20_PWA_INSTALLABILITY.md`
+
+Goal: make the app an installable, locale- and RTL-aware PWA without breaking
+the batch-15 push service worker.
+
+Tasks:
+
+1. Add a Web App Manifest (`app/manifest.ts` or static `manifest.webmanifest`).
+2. Add maskable/any-purpose icons (192, 512) and an Apple touch icon (180).
+3. Wire manifest, theme-color, and `appleWebApp` metadata into the head.
+4. Extend the existing `public/sw.js` with an offline app-shell cache and a
+   navigation fallback; keep the push handlers; never cache `app/api/*`, auth,
+   Supabase, or AI responses.
+5. Register the service worker on normal app load for all visitors (idempotent).
+6. Add a localized `/offline` route / app-shell fragment.
+7. Add a dismissible install affordance (`beforeinstallprompt` on Chromium; iOS
+   Add-to-Home-Screen instructions otherwise), RTL-aware.
+8. iOS specifics and documentation (web push requires home-screen install).
+
+Tests:
+
+1. Manifest output (display standalone, icons, theme color).
+2. Service-worker registration helper (registers once; no-ops unsupported).
+3. Install-prompt component (iOS branch; hides when standalone).
+4. Manifest served and referenced icons exist.
+5. Playwright: manifest linked on `/en` + `/he`, `/he` is RTL, app shell loads.
+6. Single-service-worker guard: only `public/sw.js` exists and still holds the
+   batch-15 `push`/`notificationclick` handlers.
+
+Note: batch 20 ships a user-facing feature AFTER batch 19's deployment
+verification, so re-run the batch-19 production/preview smoke after merging 20.
 
 ## 6. Final Submission Checklist
 
