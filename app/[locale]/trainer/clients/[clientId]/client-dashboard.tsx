@@ -19,6 +19,7 @@ import {
   TrainerNotesPanel,
   type TrainerNoteItem,
 } from "./trainer-notes-panel"
+import { RegenerateClientPlan } from "./regenerate-client-plan"
 
 /** The label keys available under the `TrainerDashboard.profile` namespace. */
 export type ProfileFieldKey =
@@ -117,6 +118,7 @@ export function ClientDashboard({ data }: { data: ClientDashboardData }) {
       <ProfileSummary fields={data.profileFields} />
 
       <PlanSummary
+        clientId={data.clientId}
         title={data.planTitle}
         completionPercent={data.completionPercent}
       />
@@ -152,11 +154,13 @@ function ProfileSummary({ fields }: { fields: ProfileField[] }) {
   )
 }
 
-/** Current-plan card with title and a completion progress bar. */
+/** Current-plan card with title, a completion progress bar, and regeneration. */
 function PlanSummary({
+  clientId,
   title,
   completionPercent,
 }: {
+  clientId: string
   title: string | null
   completionPercent: number
 }) {
@@ -164,7 +168,12 @@ function PlanSummary({
   if (!title) {
     return (
       <section className="rounded-lg border bg-card p-4 text-card-foreground">
-        <h2 className="mb-2 text-lg font-medium">{t("title")}</h2>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-medium">{t("title")}</h2>
+          {/* The client may not have a plan yet; regeneration generates one from
+              their latest profile (it requires an onboarded client). */}
+          <RegenerateClientPlan clientId={clientId} />
+        </div>
         <p className="text-sm text-muted-foreground">{t("none")}</p>
       </section>
     )
@@ -173,7 +182,10 @@ function PlanSummary({
     <section className="rounded-lg border bg-card p-4 text-card-foreground">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-medium">{t("title")}</h2>
-        <Badge variant="secondary">{title}</Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">{title}</Badge>
+          <RegenerateClientPlan clientId={clientId} />
+        </div>
       </div>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between text-sm">

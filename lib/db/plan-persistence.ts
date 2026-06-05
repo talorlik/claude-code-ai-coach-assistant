@@ -3,6 +3,7 @@ import type { GeneratedPlan } from "@/lib/ai/schemas"
 import type {
   GenerationSource,
   GenerationStatus,
+  PlanSource,
   WorkoutPlanRow,
 } from "@/lib/db/types"
 
@@ -36,8 +37,8 @@ export interface SavePlanOptions {
    * task 8 of the batch.
    */
   archivePrevious?: boolean
-  /** Provenance of the plan; defaults to `ai`. */
-  source?: "ai" | "manual" | "template"
+  /** Provenance of the plan; defaults to `ai`. See {@link PlanSource}. */
+  source?: PlanSource
 }
 
 /** A persisted plan with its database id and the row metadata. */

@@ -14,6 +14,7 @@ import { requireClient } from "@/lib/auth/require-user"
 import { getActivePlanDetail } from "@/lib/db/workouts"
 import type { Locale } from "@/i18n/routing"
 import { PlanView, type PlanViewData } from "./plan-view"
+import { RegenerateMyPlan } from "./regenerate-my-plan"
 
 /**
  * The plan view is a private, per-user surface; keep it out of search indexes.
@@ -97,11 +98,15 @@ export default async function MyPlanPage({
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-12">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          {detail.plan.title ?? t("title")}
-        </h1>
-        <p className="text-muted-foreground">{t("subtitle")}</p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            {detail.plan.title ?? t("title")}
+          </h1>
+          <p className="text-muted-foreground">{t("subtitle")}</p>
+        </div>
+        {/* Regeneration replaces the active plan; only offer it when one exists. */}
+        <RegenerateMyPlan />
       </header>
 
       <PlanView data={data} />

@@ -626,3 +626,52 @@ worktree before `npx playwright test` - the dev server crashes in `proxy.ts`
 env file. The admin/customer plan-management specs skip without seeded
 `E2E_ADMIN_*` / `E2E_CUSTOMER_*` creds, like every other auth-gated spec; guest
 redirect tests pass unconditionally.
+
+### 2026-06-05 - Batch 14 - Plan Regeneration
+
+Regeneration is a thin orchestration over batch-08/13 building blocks, not new
+infrastructure. The shared core is `lib/ai/regenerate-plan.ts`
+(`regeneratePlanForClient`): load the latest profile (`getClient`) ->
+`generateWorkoutPlan` (mockable `generate` seam) -> only on a validated plan,
+`saveGeneratedPlan({ archivePrevious: true, source: "regeneration" })` -> record
+a `plan_generation_events` row (succeeded/failed, carrying the reason). Two
+`"use server"` actions in `lib/workouts/regeneration-actions.ts` wrap it:
+`regenerateMyPlanAction` (`requireClient`, own id) and
+`regenerateClientPlanAction` (`requireTrainerAdmin`, target client). One reusable
+client dialog `components/regenerate-plan-dialog.tsx` is bound by two thin
+wrappers (My Plan page, client dashboard). New `Regeneration` i18n namespace
+(en/he). New `lib/validation/regeneration.ts` (`validateRegenerationReason`,
+required/tooShort/tooLong, min 3 / max 500 chars).
+
+**Why archive-only-after-validate is the whole point:** `saveGeneratedPlan`
+archives the prior active plan only inside the success branch, so a failed AI
+call or invalid output leaves the current plan active and untouched (required
+test 3). Archiving flips `status`/`archived_at` rather than deleting, and
+`workout_logs` reference workouts under the archived plan, so old logs remain
+queryable (required test 4) - asserted structurally in
+`regeneration-history.test.ts` by driving the real orchestration over a fake
+Supabase client and proving NO delete is issued against
+`workout_plans`/`workouts`/`workout_logs`.
+
+**Type change:** added `"regeneration"` to `PlanSource` (`lib/db/types.ts`) and
+switched `SavePlanOptions.source` from a duplicated literal union to `PlanSource`.
+The `workout_plans.source` column is free `text`, so the new value is valid at
+the DB level; stamping the plan row `regeneration` (not `ai`) records true
+provenance, consistent with how `template` assignment already stamps its rows.
+
+**Base UI, not Radix:** `DialogTrigger`/`DialogClose` take a `render={<Button/>}`
+prop, NOT `asChild` + child (that fails typecheck). This matches the existing
+`components/ui/dialog.tsx` convention and is the same Base UI gotcha recorded in
+batch 03 for menus.
+
+**e2e mocked-AI approach:** regeneration runs through a server action, not an
+HTTP route, so the batch-10 `page.route("**/api/chat")` mock does not apply. The
+admin e2e instead exercises the required-reason guard (open dialog, submit
+whitespace, assert the validation alert) which short-circuits in the validator
+BEFORE any model call, plus a `page.route` abort over the Gateway host as a
+belt-and-suspenders "no AI call" assertion. Guest redirect tests run
+unconditionally; the admin test skips without `E2E_ADMIN_*` + `E2E_CLIENT_ID`.
+
+**Gotcha (recurring):** copied `.env.local` into the worktree before
+`npx playwright test`; also `npm ci` is required in a fresh worktree (no shared
+`node_modules`) before any gate runs.

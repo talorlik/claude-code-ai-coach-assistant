@@ -9,8 +9,12 @@
 /** Lifecycle status of a workout plan. Exactly one `active` plan per client. */
 export type PlanStatus = "active" | "archived"
 
-/** How a plan or template came to exist. */
-export type PlanSource = "ai" | "manual" | "template"
+/**
+ * How a plan or template came to exist. `regeneration` marks a plan produced by
+ * the regeneration flow (batch 14); it parallels `ai` but distinguishes a
+ * deliberate replacement of a prior plan from a first-time generation.
+ */
+export type PlanSource = "ai" | "manual" | "template" | "regeneration"
 
 /** Why a generation event fired. */
 export type GenerationSource = "onboarding" | "regeneration" | "template"

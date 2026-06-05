@@ -457,5 +457,24 @@
         "invalid": "The plan body is not valid. Check the JSON and required fields."
       }
     }
+  },
+  "Regeneration": {
+    "trigger": "Regenerate plan",
+    "title": "Regenerate this workout plan",
+    "description": "We'll build a fresh plan from the latest profile. The current plan is archived (not deleted) and stays in history along with all logged workouts.",
+    "reasonLabel": "Why regenerate?",
+    "reasonPlaceholder": "e.g. Goals changed, plan too easy, new injury to work around",
+    "cancel": "Cancel",
+    "submit": "Regenerate",
+    "submitting": "Regenerating...",
+    "errors": {
+      "required": "Please add a reason for regenerating.",
+      "tooShort": "Please add a bit more detail.",
+      "tooLong": "That reason is too long.",
+      "noClient": "No client profile was found to base a plan on.",
+      "aiError": "The AI could not produce a valid plan. Your current plan was kept. Please try again.",
+      "saveError": "Could not save the new plan. Your current plan was kept. Please try again.",
+      "generic": "Something went wrong. Your current plan was kept. Please try again."
+    }
   }
 }
