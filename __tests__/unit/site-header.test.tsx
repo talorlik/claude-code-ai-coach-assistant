@@ -69,6 +69,9 @@ beforeEach(() => {
   adminFlag = false
 })
 
+const adminLabel = enMessages.Nav.admin
+const clientsLabel = enMessages.Nav.clients
+
 describe("SiteHeader My Plan link", () => {
   it("shows the My Plan link to a signed-in non-admin", async () => {
     currentUser = { id: "user-1" }
@@ -91,6 +94,43 @@ describe("SiteHeader My Plan link", () => {
     await renderHeader()
     expect(
       screen.queryByRole("link", { name: myPlanLabel })
+    ).not.toBeInTheDocument()
+  })
+})
+
+describe("SiteHeader admin navigation", () => {
+  it("shows an admin both the Admin (/admin) and Clients (/trainer) links", async () => {
+    currentUser = { id: "admin-1" }
+    adminFlag = true
+    await renderHeader()
+    expect(
+      screen.getByRole("link", { name: adminLabel })
+    ).toHaveAttribute("href", "/en/admin")
+    expect(
+      screen.getByRole("link", { name: clientsLabel })
+    ).toHaveAttribute("href", "/en/trainer")
+  })
+
+  it("hides both the Admin and Clients links from a signed-in non-admin", async () => {
+    currentUser = { id: "user-1" }
+    adminFlag = false
+    await renderHeader()
+    expect(
+      screen.queryByRole("link", { name: adminLabel })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("link", { name: clientsLabel })
+    ).not.toBeInTheDocument()
+  })
+
+  it("hides both the Admin and Clients links from a signed-out visitor", async () => {
+    currentUser = null
+    await renderHeader()
+    expect(
+      screen.queryByRole("link", { name: adminLabel })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("link", { name: clientsLabel })
     ).not.toBeInTheDocument()
   })
 })

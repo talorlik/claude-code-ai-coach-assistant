@@ -63,6 +63,42 @@ test.describe("trainer list (admin)", () => {
   })
 })
 
+test.describe("admin landing dashboard (admin)", () => {
+  test.skip(
+    !adminCredentials.email || !adminCredentials.password,
+    "E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set"
+  )
+
+  test("an admin lands on /en/admin and can follow the trainer-area link", async ({
+    page,
+  }) => {
+    await signIn(page, adminCredentials.email!, adminCredentials.password!)
+    // resolvePostAuthDestination sends admins to the localized /admin dashboard.
+    await page.goto("/en/admin")
+    await expect(page).toHaveURL(/\/en\/admin/)
+    await expect(
+      page.getByRole("heading", { level: 1 })
+    ).toBeVisible({ timeout: 15_000 })
+    // The primary card links to the trainer area, staying in the same locale.
+    const trainerLink = page.locator('a[href="/en/trainer"]').first()
+    await expect(trainerLink).toBeVisible()
+    await trainerLink.click()
+    await expect(page).toHaveURL(/\/en\/trainer/, { timeout: 15_000 })
+  })
+
+  test("the admin dashboard renders RTL under /he/admin", async ({ page }) => {
+    await signIn(page, adminCredentials.email!, adminCredentials.password!)
+    await page.goto("/he/admin")
+    await expect(page).toHaveURL(/\/he\/admin/)
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl")
+    // The trainer-area link preserves the Hebrew locale.
+    const trainerLink = page.locator('a[href="/he/trainer"]').first()
+    await expect(trainerLink).toBeVisible({ timeout: 15_000 })
+    await trainerLink.click()
+    await expect(page).toHaveURL(/\/he\/trainer/, { timeout: 15_000 })
+  })
+})
+
 test.describe("trainer list (customer blocked)", () => {
   test.skip(
     !customerCredentials.email || !customerCredentials.password,

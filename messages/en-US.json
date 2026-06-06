@@ -523,5 +523,18 @@
       "description": "Studio Itai can't reach the network right now. Check your connection and try again - your saved plan is waiting once you're back online.",
       "retry": "Try again"
     }
+  },
+  "AdminDashboard": {
+    "title": "Admin dashboard",
+    "intro": "Welcome back. This is your control center for Studio Itai - manage your clients, build and assign workout plans, and use your coaching tools from one place.",
+    "trainerTitle": "Clients and plans",
+    "trainerDescription": "Open the trainer area to review your clients, track their progress, and manage workout plans and templates.",
+    "trainerCta": "Manage clients",
+    "chatTitle": "AI virtual trainer",
+    "chatDescription": "Chat with the AI virtual trainer to draft messaging, answer training questions, or sanity-check guidance.",
+    "chatCta": "Open chat",
+    "accountTitle": "Your account",
+    "accountDescription": "Update your profile and account details.",
+    "accountCta": "Go to account"
   }
 }

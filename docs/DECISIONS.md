@@ -1049,3 +1049,26 @@ planned" needs the real history - these closed wiring gaps found on 2026-06-06,
 not new requirements - the two-role / two-level-hub model the owner mandated, and
 the `workout_logs` cascade hazard that shapes the editor. This is docs-only on
 `main`; the code ships via `/run-batch 22`, `23`, `24`, `25`.
+
+### 2026-06-06 - Batch 22 - Admin Landing Dashboard (Mostly UI; Wiring Pre-Existed)
+
+Batch 22 turned `/[locale]/admin` from a hardcoded-English stub into the
+localized top-level admin dashboard. Net new work was the dashboard UI
+(navigation cards built on `components/ui/card`, primary card -> `/trainer`), the
+`AdminDashboard` i18n namespace in both catalogs, and tests. Several prompt
+"tasks" were already satisfied by batch 21 and only needed confirmation, not
+edits: `site-header.tsx` already renders Admin (`/admin`) and Clients
+(`/trainer`) for admins only, `resolvePostAuthDestination` already returns
+`/admin`, and `requireAdmin()` (an alias of `requireTrainerAdmin()`) already
+gates the subtree. So Task 1 was a TSDoc-only change and Task 4 a no-op
+confirmation; the rest is additive.
+
+**Why:** the next reader should not expect batch 22 to have touched nav or
+post-auth routing - it deliberately did not, to avoid re-deriving working batch-21
+wiring. Two gotchas worth carrying: (1) a card-wrapped locale-aware `Link` has an
+accessible name that aggregates title + description + CTA, so
+`getByRole("link", { name: title })` fails - query card links by `href` (the
+locale-prefix contract under test) instead. (2) Playwright's dev server needs
+`.env.local` (Supabase URL/key); it is gitignored so it is NOT carried into a
+fresh worktree - copy it from the primary checkout before `npx playwright test`
+or the web server crashes on boot in `proxy.ts -> updateSession`.

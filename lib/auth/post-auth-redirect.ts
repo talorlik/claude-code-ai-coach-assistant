@@ -10,7 +10,8 @@ import { getActivePlanDetail } from "@/lib/db/workouts"
  * `NextResponse` redirect URL in a route handler).
  *
  * Decision order (first match wins):
- * 1. Admin -> `/admin` (the trainer console is their home).
+ * 1. Admin -> `/admin` (the top-level admin dashboard, their post-login home and
+ *    the hub linking to every admin capability, including the trainer area).
  * 2. No onboarding row (`getClient` is `null`) -> `/join` (start onboarding).
  * 3. Onboarded with an active plan -> `/my-plan`.
  * 4. Onboarded but no active plan -> `/join` (re-run onboarding to generate one).
