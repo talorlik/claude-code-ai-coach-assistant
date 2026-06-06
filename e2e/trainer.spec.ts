@@ -1,6 +1,10 @@
 import { test, expect, type Page } from "@playwright/test"
 
-import { adminCredentials, customerCredentials } from "./helpers/auth"
+import {
+  adminCredentials,
+  customerCredentials,
+  injectSession,
+} from "./helpers/auth"
 
 /** A seeded client id whose dashboard has at least one editable exercise. */
 const seededClientId = process.env.E2E_CLIENT_ID
@@ -35,18 +39,16 @@ test.describe("trainer list access control (guest)", () => {
   })
 })
 
-/** Signs a user in via the localized login form. */
+/**
+ * Signs a user in by injecting a Supabase session, bypassing the captcha-gated
+ * login form. See `injectSession` for why the form path is unusable in e2e.
+ */
 async function signIn(
   page: Page,
   email: string,
   password: string
 ): Promise<void> {
-  await page.goto("/en/login")
-  await page.getByRole("tab", { name: /sign in/i }).click()
-  await page.getByLabel(/email/i).fill(email)
-  await page.getByLabel(/password/i).fill(password)
-  await page.getByRole("button", { name: /^sign in$/i }).click()
-  await page.waitForURL(/\/(en|he)\//, { timeout: 15_000 })
+  await injectSession(page.context(), email, password)
 }
 
 test.describe("trainer list (admin)", () => {

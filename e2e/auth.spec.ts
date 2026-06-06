@@ -34,9 +34,13 @@ test.describe("admin login", () => {
 
   test("admin lands on /admin and can sign out", async ({ page }) => {
     await loginAsAdmin(page)
-    await expect(
-      page.getByText(/signed in as an administrator/i)
-    ).toBeVisible()
+    // The admin landing dashboard renders its localized H1 (the "signed in as
+    // an administrator" copy predates the localized dashboard and no longer
+    // exists). Asserting the heading is copy- and locale-agnostic, matching the
+    // other admin specs.
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
+      timeout: 15_000,
+    })
 
     await page.goto("/profile")
     await page.getByRole("button", { name: /sign out/i }).click()

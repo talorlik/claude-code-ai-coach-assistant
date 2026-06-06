@@ -89,6 +89,23 @@ To run the full e2e suite, supply confirmed accounts (the admin must be promoted
 per `docs/ADMIN_ROLE_SETUP.md`) and re-run `npm run test:e2e`. Optional
 overrides: `E2E_PORT`, `E2E_BASE_URL`.
 
+### Authentication and the auth captcha
+
+Supabase auth has Turnstile captcha enforced, so a headless browser cannot
+complete the login form - every UI sign-in is rejected with
+`invalidCredentials`. The credential-gated specs therefore do not drive the
+login form; they call `injectSession` (in `e2e/helpers/auth.ts`), which mints a
+session via the secret-key password grant (the secret key bypasses captcha, a
+server-side privilege), round-trips the tokens through `@supabase/ssr` to
+produce the exact `sb-<ref>-auth-token` cookies the app reads, and injects them
+into the browser context. Captcha stays fully enforced for real users.
+
+This means the runner process needs the app's Supabase env, not just the
+`E2E_*` vars. `playwright.config.ts` loads `.env.local` (then `.env`) so
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and
+`SUPABASE_SECRET_KEY` are present; shell-exported `E2E_*` values still take
+precedence over file values.
+
 The reason these are skipped rather than removed: they assert real
 authenticated behavior that cannot be exercised without a confirmed Supabase
 account, and committing test credentials would violate the secrets-out-of-git

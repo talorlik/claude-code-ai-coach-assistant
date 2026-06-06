@@ -1216,3 +1216,40 @@ loaded logs.
 are copied in from the primary checkout. Lint/typecheck/build/unit do not need
 them. Future batches whose gate includes e2e must copy the local env files into
 the worktree first.
+
+## 2026-06-06 - Admin e2e auth: inject sessions past the Turnstile captcha
+
+**Decision:** The credential-gated Playwright specs no longer drive the login
+form. They authenticate via `injectSession` (`e2e/helpers/auth.ts`), which mints
+a session through the Supabase secret-key password grant and injects the
+resulting `sb-<ref>-auth-token` cookies into the browser context.
+
+**Why:** Supabase auth has Turnstile captcha enforced, and the project uses a
+real (not Cloudflare-test) Turnstile site key, so a headless browser cannot
+solve the challenge. Every UI sign-in was rejected with `invalidCredentials`,
+which made all 7 admin-authenticated e2e tests fail (verified: a raw password
+grant returns `400 captcha protection: request disallowed`). The secret key
+bypasses captcha server-side, so the harness mints tokens directly; round-
+tripping them through `@supabase/ssr`'s `createServerClient` yields byte-exact,
+correctly-chunked cookies, so the injected session is indistinguishable from a
+real sign-in. Captcha stays fully enforced for real users - only the test
+harness, which holds the secret key, sidesteps it. Rejected alternatives:
+swapping in dummy Turnstile keys (mutates remote Supabase auth config) and
+disabling captcha (removes enforcement for production traffic).
+
+**Runner env:** `playwright.config.ts` now loads `.env.local` then `.env` via
+`dotenv` so the runner process sees `NEXT_PUBLIC_SUPABASE_URL` /
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY`, which
+`injectSession` needs. Shell-exported `E2E_*` values still win over file values.
+
+**Stale assertion fixed:** `auth.spec.ts`'s admin test asserted the text "signed
+in as an administrator", which predates the localized admin dashboard (commit
+5477ceb) and no longer exists in any source or message file. Replaced with a
+copy- and locale-agnostic `getByRole("heading", { level: 1 })` check, matching
+the other admin specs. The drift went unnoticed because the test had never run
+with real credentials.
+
+**Result:** 16 admin e2e tests pass, 0 fail. 6 still skip for missing seed data
+(no non-admin customer password; `public.clients` is empty so no `E2E_CLIENT_ID`)
+- documented skip-gates, not failures; the same flows are covered at the
+integration layer with mocked Supabase.

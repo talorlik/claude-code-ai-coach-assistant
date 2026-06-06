@@ -1,4 +1,16 @@
 import { defineConfig, devices } from "@playwright/test"
+import { config as loadEnv } from "dotenv"
+
+/**
+ * Load local env into the Playwright runner process. Next.js loads `.env.local`
+ * for the app, but the test runner is a separate Node process; without this it
+ * cannot see `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SECRET_KEY`, which the
+ * session-injection helper needs to mint an admin session past the auth
+ * captcha. Shell-exported vars (e.g. `E2E_ADMIN_*`) are not overridden, so they
+ * still take precedence over file values.
+ */
+loadEnv({ path: ".env.local" })
+loadEnv({ path: ".env" })
 
 /**
  * Playwright config for the auth E2E suite. Starts the app via `webServer`
