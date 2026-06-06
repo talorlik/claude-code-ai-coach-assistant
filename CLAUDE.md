@@ -73,6 +73,17 @@ cap per gate, then commits WIP and stops without touching `main`), and
 squash-merges into local `main`. Do NOT execute a batch by hand or improvise the
 git workflow - route through `/run-batch`.
 
+**Tech-debt batch.** Small, out-of-scope cleanups noticed during normal work are
+appended to `docs/planning/TECH_DEBT.md` (the maintained backlog), not fixed
+inline. To clear them all in one pass, use the `/run-batch-tech-debt` command.
+When the user says "run batch tech-debt", "do the tech-debt batch", "clear tech
+debt", or anything equivalent - including plain English with no slash - invoke
+`/run-batch-tech-debt`. It behaves exactly like a numbered batch (worktree off
+clean `main`, fixes each open item to its acceptance check, gates with 3-retry
+self-correction, squash-merge into local `main`, capture, report) and ticks each
+item into the Done section as it lands. When you spot a small cleanup outside a
+batch, append it to `TECH_DEBT.md` Open Items rather than acting on it.
+
 Authoritative runbook:
 `/Users/talo/.claude/plans/review-the-project-s-sleepy-castle.md`. Current batch
 = count of squash commits on `main` (one per completed batch).
