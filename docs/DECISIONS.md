@@ -1177,3 +1177,42 @@ check and STOPs outside it; the build has since grown to batch 25 (prompts
 `20`-`25` exist, batches 21-23 already merged). Batch 24 ran fine by treating
 that check as stale. A future maintainer should widen the command's range guard
 (and the runbook table, which still stops at 20) to cover 21-25.
+
+### 2026-06-06 - Batch 25 - Live-Plan Editor Guards The workout_logs Cascade At Two Layers
+
+The live-plan editor never hard-deletes a workout that has completion logs, and
+the protection is enforced TWICE: `deleteWorkout` in `lib/db/plan-edits.ts`
+counts referencing `workout_logs` (head count) and returns a typed
+`{ ok:false, reason:"has_logs" }` before issuing any delete; `deleteWorkoutAction`
+maps that to a `hasLogs` `ActionResult` failure; and the dashboard page passes a
+per-workout `hasLogs` flag so the editor disables the delete control up front and
+shows the blocking copy instead. Exercise deletes and workout-metadata edits are
+left unguarded because logs reference workouts, not exercises - removing an
+exercise or renaming a workout cannot cascade.
+
+The per-client safety rule is re-validated PRE-WRITE (not in a transaction):
+each exercise edit/add loads the workout's current exercises, applies the change
+in memory, and rejects when the client has limitations and any resulting exercise
+lacks `safety_notes`. Supabase has no client-side transaction here, so validating
+before the single write avoids needing rollback - the same shape the batch-08
+validator and `assignTemplateAction` use.
+
+**Why:** `workout_logs.workout_id` is `ON DELETE CASCADE` (migration
+`0002_app_schema.sql`), so a naive workout delete silently destroys the client's
+progress history and charts. A UI-only guard would be bypassable (the action is a
+public server entry point) and a server-only guard would let the trainer click a
+control that always fails; both layers together make the safe path the only path
+and keep the failure legible. Wholesale plan changes still go through
+regeneration, which archives the old plan rather than mutating it.
+
+**Editor data piggybacks on the existing load:** the dashboard page builds the
+editor bundle (planId, hasLimitations, per-workout hasLogs, exercises) from the
+`getActivePlanDetail` result it already fetched for batch 24's read-only plan
+detail - no new query. `hasLogs` is derived from the workout ids present in the
+loaded logs.
+
+**Env note:** a fresh per-batch worktree has no `.env.local` / `.env.vapid.local`
+(both gitignored), so `npm run test:e2e` fails to boot its dev server until those
+are copied in from the primary checkout. Lint/typecheck/build/unit do not need
+them. Future batches whose gate includes e2e must copy the local env files into
+the worktree first.

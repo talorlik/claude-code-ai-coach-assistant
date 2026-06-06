@@ -30,6 +30,7 @@ import {
   type PlanDetailWorkout,
   type ProfileField,
 } from "./client-dashboard"
+import type { PlanEditorData } from "./plan-editor"
 
 /** Recognised weekday keys under the `MyPlan.weekday` message namespace. */
 const WEEKDAY_KEYS = [
@@ -101,7 +102,10 @@ export default async function TrainerClientDashboardPage({
     detail = await getTrainerClientDetail(clientId)
   } catch {
     return (
-      <ErrorState title={t("error.title")} description={t("error.description")} />
+      <ErrorState
+        title={t("error.title")}
+        description={t("error.description")}
+      />
     )
   }
 
@@ -138,20 +142,18 @@ export default async function TrainerClientDashboardPage({
     { labelKey: "phone", value: client.phone },
     {
       labelKey: "joined",
-      value: format.dateTime(
-        new Date(client.onboardedAt ?? client.createdAt),
-        { dateStyle: "medium" }
-      ),
+      value: format.dateTime(new Date(client.onboardedAt ?? client.createdAt), {
+        dateStyle: "medium",
+      }),
     },
   ]
 
   // Plan title + completion over the active plan's distinct workouts.
   const planTitle = activePlan?.plan.title ?? null
   const completionPercent = activePlan
-    ? completionPercentage(
-        activePlan.workouts.length,
-        [...completedWorkoutIds(activePlan.logs)]
-      )
+    ? completionPercentage(activePlan.workouts.length, [
+        ...completedWorkoutIds(activePlan.logs),
+      ])
     : 0
 
   // Full plan detail, threaded from the data getActivePlanDetail already loaded
@@ -229,7 +231,8 @@ export default async function TrainerClientDashboardPage({
   )
   const logs: LogEntry[] = recentLogs.map((log) => ({
     id: log.id,
-    workoutTitle: titleByWorkout.get(log.workout_id) ?? t("log.untitledWorkout"),
+    workoutTitle:
+      titleByWorkout.get(log.workout_id) ?? t("log.untitledWorkout"),
     dateLabel: format.dateTime(new Date(log.completed_at), {
       dateStyle: "medium",
     }),
@@ -261,6 +264,45 @@ export default async function TrainerClientDashboardPage({
     }),
   }))
 
+  // Live-plan editor bundle (batch 25). Built from the already-loaded active plan
+  // detail: no extra query. `hasLogs` is derived from the workout ids that appear
+  // in the loaded completion logs, so the editor can disable delete on a workout
+  // whose removal would cascade-destroy history. `hasLimitations` drives the
+  // per-client safety-note rule the editor and its actions enforce. The editor is
+  // null when there is no active plan (nothing to edit yet).
+  const editor: PlanEditorData | null = activePlan
+    ? {
+        clientId,
+        planId: activePlan.plan.id,
+        hasLimitations: Boolean(
+          client.limitations && client.limitations.trim() !== ""
+        ),
+        workouts: activePlan.workouts.map((workout) => {
+          const hasLogs = activePlan.logs.some(
+            (log) => log.workout_id === workout.id
+          )
+          return {
+            id: workout.id,
+            title: workout.title,
+            focus: workout.focus,
+            dayOfWeek: workout.day_of_week,
+            notes: workout.notes,
+            hasLogs,
+            exercises: workout.exercises.map((exercise) => ({
+              id: exercise.id,
+              name: exercise.name,
+              sets: exercise.sets,
+              reps: exercise.reps,
+              duration: exercise.duration,
+              rest: exercise.rest,
+              instructions: exercise.instructions,
+              safetyNotes: exercise.safety_notes,
+            })),
+          }
+        }),
+      }
+    : null
+
   const data: ClientDashboardData = {
     clientId,
     displayName,
@@ -276,6 +318,7 @@ export default async function TrainerClientDashboardPage({
     chat,
     whatsAppHref,
     notes: noteItems,
+    editor,
   }
 
   return <ClientDashboard data={data} />

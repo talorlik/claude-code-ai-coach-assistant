@@ -23,11 +23,9 @@ import {
 } from "@/components/ui/table"
 import { Link } from "@/i18n/navigation"
 import { ProgressCharts, type ProgressDatum } from "./progress-charts"
-import {
-  TrainerNotesPanel,
-  type TrainerNoteItem,
-} from "./trainer-notes-panel"
+import { TrainerNotesPanel, type TrainerNoteItem } from "./trainer-notes-panel"
 import { RegenerateClientPlan } from "./regenerate-client-plan"
+import { PlanEditor, type PlanEditorData } from "./plan-editor"
 
 /** The label keys available under the `TrainerDashboard.profile` namespace. */
 export type ProfileFieldKey =
@@ -115,6 +113,11 @@ export interface ClientDashboardData {
   chat: ChatEntry[]
   whatsAppHref: string | null
   notes: TrainerNoteItem[]
+  /**
+   * The live-plan editor bundle, or `null` when the client has no active plan
+   * (there is nothing to edit; regeneration creates the first plan).
+   */
+  editor: PlanEditorData | null
 }
 
 /**
@@ -173,6 +176,8 @@ export function ClientDashboard({ data }: { data: ClientDashboardData }) {
       <PushStatus status={data.pushStatus} />
 
       <PlanDetail workouts={data.planWorkouts} />
+
+      {data.editor ? <PlanEditor data={data.editor} /> : null}
 
       <ProgressCharts weekly={data.weekly} monthly={data.monthly} />
 
@@ -458,7 +463,9 @@ function WorkoutLog({ logs }: { logs: LogEntry[] }) {
           <TableBody>
             {logs.map((log) => (
               <TableRow key={log.id}>
-                <TableCell className="font-medium">{log.workoutTitle}</TableCell>
+                <TableCell className="font-medium">
+                  {log.workoutTitle}
+                </TableCell>
                 <TableCell className="text-muted-foreground">
                   {log.dateLabel}
                 </TableCell>
@@ -534,7 +541,9 @@ function ChatTranscript({ chat }: { chat: ChatEntry[] }) {
                   : "max-w-[80%] rounded-lg bg-muted px-3 py-2 text-sm"
               }
             >
-              <p className="whitespace-pre-wrap break-words">{message.content}</p>
+              <p className="break-words whitespace-pre-wrap">
+                {message.content}
+              </p>
             </div>
           </li>
         ))}

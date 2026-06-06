@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useTranslations } from "next-intl"
-import { Copy, Pencil, Plus, UserPlus } from "lucide-react"
+import { Copy, Pencil, Plus, Sparkles, UserPlus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -24,15 +24,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select"
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import {
   createTemplateAction,
   updateTemplateAction,
   duplicateTemplateAction,
   assignTemplateAction,
+  createAiTemplateAction,
 } from "@/lib/trainer/template-actions"
 import { TEMPLATE_LOCALES } from "@/lib/trainer/template-validation"
 import type { Locale } from "@/i18n/routing"
@@ -78,6 +76,17 @@ interface TemplateForm {
   description: string
   locale: string
   payloadJson: string
+}
+
+/** Editable fields for the AI-assisted "Create with AI" dialog. */
+interface AiTemplateForm {
+  title: string
+  description: string
+  locale: Locale
+  goal: string
+  fitnessLevel: string
+  location: string
+  equipment: string
 }
 
 /** An empty starter payload that satisfies the plan schema's required shape. */
@@ -154,6 +163,8 @@ export function PlansManager({
   const [assignFor, setAssignFor] = React.useState<TemplateItem | null>(null)
   const [assignClientId, setAssignClientId] = React.useState<string>("")
   const [feedback, setFeedback] = React.useState<string | null>(null)
+  const [aiForm, setAiForm] = React.useState<AiTemplateForm | null>(null)
+  const [aiError, setAiError] = React.useState<string | null>(null)
 
   const defaultLocaleTag = locale === "he" ? "he-IL" : "en-US"
 
@@ -163,7 +174,12 @@ export function PlansManager({
     fieldErrors?: Record<string, string>
   }): string {
     const fields = result.fieldErrors ?? {}
-    for (const field of ["title", "description", "locale", "payload"] as const) {
+    for (const field of [
+      "title",
+      "description",
+      "locale",
+      "payload",
+    ] as const) {
       const code = fields[field]
       if (isFieldErrorKey(code)) return t(`errors.${field}.${code}`)
     }
@@ -183,6 +199,70 @@ export function PlansManager({
         payloadJson: STARTER_PAYLOAD,
       },
     })
+  }
+
+  /** Opens the AI-assisted create dialog with empty shaping fields. */
+  function openAiCreate() {
+    setAiError(null)
+    setAiForm({
+      title: "",
+      description: "",
+      locale,
+      goal: "",
+      fitnessLevel: "",
+      location: "",
+      equipment: "",
+    })
+  }
+
+  /**
+   * Submits the AI-create form. The AI call runs server-side inside
+   * {@link createAiTemplateAction} (no generator is passed, so the production SDK
+   * generator is used); the validated template returns and is prepended to the
+   * list. Only the title is required client-side; the action re-validates.
+   */
+  async function onAiSubmit() {
+    if (!aiForm) return
+    setAiError(null)
+
+    if (aiForm.title.trim() === "") {
+      setAiError(t("ai.errors.title"))
+      return
+    }
+
+    setPending(true)
+    try {
+      const result = await createAiTemplateAction({
+        title: aiForm.title,
+        description: aiForm.description.trim() || null,
+        locale: aiForm.locale,
+        goal: aiForm.goal.trim() || null,
+        fitnessLevel: aiForm.fitnessLevel.trim() || null,
+        location: aiForm.location.trim() || null,
+        equipment: aiForm.equipment
+          .split(",")
+          .map((item) => item.trim())
+          .filter((item) => item !== ""),
+      })
+
+      if (!result.ok) {
+        setAiError(result.error || t("ai.errors.generic"))
+        return
+      }
+
+      const item: TemplateItem = {
+        id: result.data.id,
+        title: result.data.title,
+        description: result.data.description,
+        locale: result.data.locale,
+        payloadJson: JSON.stringify(result.data.payload, null, 2),
+      }
+      setTemplates((prev) => [item, ...prev])
+      setAiForm(null)
+      setFeedback(t("ai.success"))
+    } finally {
+      setPending(false)
+    }
   }
 
   /** Opens the edit dialog seeded from an existing template. */
@@ -301,10 +381,22 @@ export function PlansManager({
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-medium">{t("library.title")}</h2>
-        <Button onClick={openCreate} disabled={pending}>
-          <Plus className="size-4" />
-          {t("actions.create")}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={openAiCreate}
+            disabled={pending}
+            data-testid="create-with-ai-open"
+          >
+            <Sparkles className="size-4" />
+            {t("actions.createAi")}
+          </Button>
+          <Button onClick={openCreate} disabled={pending}>
+            <Plus className="size-4" />
+            {t("actions.create")}
+          </Button>
+        </div>
       </div>
 
       {feedback ? (
@@ -321,7 +413,9 @@ export function PlansManager({
             <li key={template.id}>
               <Card className="h-full">
                 <CardHeader>
-                  <CardTitle className="break-words">{template.title}</CardTitle>
+                  <CardTitle className="break-words">
+                    {template.title}
+                  </CardTitle>
                   {template.description ? (
                     <CardDescription className="break-words">
                       {template.description}
@@ -483,6 +577,122 @@ export function PlansManager({
             </Button>
             <Button type="button" onClick={onSubmit} disabled={pending}>
               {pending ? t("form.saving") : t("form.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create-with-AI dialog */}
+      <Dialog
+        open={aiForm !== null}
+        onOpenChange={(open) => {
+          if (!open) setAiForm(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("ai.title")}</DialogTitle>
+            <DialogDescription>{t("ai.description")}</DialogDescription>
+          </DialogHeader>
+
+          {aiForm ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ai-title">{t("ai.fields.title")}</Label>
+                <Input
+                  id="ai-title"
+                  value={aiForm.title}
+                  onChange={(e) =>
+                    setAiForm({ ...aiForm, title: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ai-description">
+                  {t("ai.fields.description")}
+                </Label>
+                <Textarea
+                  id="ai-description"
+                  rows={2}
+                  value={aiForm.description}
+                  onChange={(e) =>
+                    setAiForm({ ...aiForm, description: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ai-goal">{t("ai.fields.goal")}</Label>
+                <Input
+                  id="ai-goal"
+                  value={aiForm.goal}
+                  onChange={(e) =>
+                    setAiForm({ ...aiForm, goal: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ai-fitness-level">
+                  {t("ai.fields.fitnessLevel")}
+                </Label>
+                <Input
+                  id="ai-fitness-level"
+                  value={aiForm.fitnessLevel}
+                  onChange={(e) =>
+                    setAiForm({ ...aiForm, fitnessLevel: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ai-location">{t("ai.fields.location")}</Label>
+                <Input
+                  id="ai-location"
+                  value={aiForm.location}
+                  onChange={(e) =>
+                    setAiForm({ ...aiForm, location: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ai-equipment">{t("ai.fields.equipment")}</Label>
+                <Input
+                  id="ai-equipment"
+                  value={aiForm.equipment}
+                  onChange={(e) =>
+                    setAiForm({ ...aiForm, equipment: e.target.value })
+                  }
+                  placeholder={t("ai.fields.equipmentHint")}
+                />
+              </div>
+
+              {aiError ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {aiError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAiForm(null)}
+              disabled={pending}
+            >
+              {t("form.cancel")}
+            </Button>
+            <Button
+              type="button"
+              onClick={onAiSubmit}
+              disabled={pending}
+              data-testid="create-with-ai-submit"
+            >
+              {pending ? t("ai.generating") : t("ai.generate")}
             </Button>
           </DialogFooter>
         </DialogContent>

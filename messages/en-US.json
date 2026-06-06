@@ -438,7 +438,8 @@
       "create": "New template",
       "edit": "Edit",
       "duplicate": "Duplicate",
-      "assign": "Assign"
+      "assign": "Assign",
+      "createAi": "Create with AI"
     },
     "form": {
       "createTitle": "New template",
@@ -488,6 +489,26 @@
         "required": "A plan body is required.",
         "tooLong": "That plan body is too long.",
         "invalid": "The plan body is not valid. Check the JSON and required fields."
+      }
+    },
+    "ai": {
+      "title": "Create a template with AI",
+      "description": "Describe the plan and let AI draft a reusable template. You can edit it afterward.",
+      "fields": {
+        "title": "Title",
+        "description": "Description",
+        "goal": "Training goal",
+        "fitnessLevel": "Fitness level",
+        "location": "Preferred location",
+        "equipment": "Equipment",
+        "equipmentHint": "Comma-separated, e.g. dumbbells, bench"
+      },
+      "generate": "Generate",
+      "generating": "Generating...",
+      "success": "AI template created.",
+      "errors": {
+        "title": "A title is required.",
+        "generic": "The AI could not produce a valid plan. Please try again."
       }
     }
   },
@@ -565,5 +586,42 @@
     "plansTitle": "Plan templates",
     "plansDescription": "Create and manage reusable workout plan templates to assign to your clients.",
     "backToAdmin": "Back to admin dashboard"
+  },
+  "PlanEditor": {
+    "title": "Edit live plan",
+    "intro": "Edit the client’s active plan in place. Changes apply immediately.",
+    "limitationsNotice": "This client reported limitations, so every exercise must keep safety notes.",
+    "addWorkout": "Add workout",
+    "newWorkoutTitle": "New workout",
+    "untitledWorkout": "Untitled workout",
+    "editWorkout": "Edit workout",
+    "deleteWorkout": "Delete workout",
+    "editExercise": "Edit",
+    "deleteExercise": "Remove",
+    "addExercise": "Add exercise",
+    "save": "Save",
+    "cancel": "Cancel",
+    "fields": {
+      "workoutTitle": "Workout title",
+      "focus": "Focus",
+      "dayOfWeek": "Day of week",
+      "notes": "Notes",
+      "name": "Exercise name",
+      "sets": "Sets",
+      "reps": "Reps",
+      "duration": "Duration",
+      "rest": "Rest",
+      "instructions": "Instructions",
+      "safetyNotes": "Safety notes"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "invalid": "Please correct the highlighted fields.",
+      "safetyRequired": "This client requires safety notes on every exercise.",
+      "hasLogs": "Cannot delete a workout with logged sessions.",
+      "missing": "That item no longer exists.",
+      "loadError": "Could not load the plan. Please try again.",
+      "saveError": "Could not save your change. Please try again."
+    }
   }
 }

@@ -24,10 +24,9 @@ import {
  * suite). The locale-aware `Link` becomes a plain anchor so the back link does
  * not require a router.
  */
-vi.mock(
-  "@/app/[locale]/trainer/clients/[clientId]/progress-charts",
-  () => ({ ProgressCharts: () => null })
-)
+vi.mock("@/app/[locale]/trainer/clients/[clientId]/progress-charts", () => ({
+  ProgressCharts: () => null,
+}))
 vi.mock(
   "@/app/[locale]/trainer/clients/[clientId]/regenerate-client-plan",
   () => ({ RegenerateClientPlan: () => null })
@@ -36,6 +35,9 @@ vi.mock(
   "@/app/[locale]/trainer/clients/[clientId]/trainer-notes-panel",
   () => ({ TrainerNotesPanel: () => null })
 )
+vi.mock("@/app/[locale]/trainer/clients/[clientId]/plan-editor", () => ({
+  PlanEditor: () => null,
+}))
 vi.mock("@/i18n/navigation", () => ({
   Link: ({
     href,
@@ -105,6 +107,7 @@ function makeData(
     chat: [],
     whatsAppHref: null,
     notes: [],
+    editor: null,
     ...overrides,
   }
 }
@@ -150,9 +153,7 @@ describe("ClientDashboard plan detail", () => {
     expect(
       exq.getByText(/Keep your back flat on the bench\./)
     ).toBeInTheDocument()
-    expect(
-      exq.getByText(/Use a spotter for heavy sets\./)
-    ).toBeInTheDocument()
+    expect(exq.getByText(/Use a spotter for heavy sets\./)).toBeInTheDocument()
 
     // The rest day renders the localized rest indicator, no exercises.
     expect(screen.getByText(pd.restDay)).toBeInTheDocument()
@@ -189,9 +190,7 @@ describe("ClientDashboard PDF export button", () => {
       "href",
       `/api/pdf/workout-plan?clientId=${CLIENT_ID}&locale=en`
     )
-    expect(link).toHaveTextContent(
-      enMessages.TrainerDashboard.plan.exportPdf
-    )
+    expect(link).toHaveTextContent(enMessages.TrainerDashboard.plan.exportPdf)
   })
 
   it("links to the export route with the he locale", () => {
@@ -203,9 +202,7 @@ describe("ClientDashboard PDF export button", () => {
       "href",
       `/api/pdf/workout-plan?clientId=${CLIENT_ID}&locale=he`
     )
-    expect(link).toHaveTextContent(
-      heMessages.TrainerDashboard.plan.exportPdf
-    )
+    expect(link).toHaveTextContent(heMessages.TrainerDashboard.plan.exportPdf)
   })
 })
 

@@ -2,6 +2,9 @@ import { test, expect, type Page } from "@playwright/test"
 
 import { adminCredentials, customerCredentials } from "./helpers/auth"
 
+/** A seeded client id whose dashboard has at least one editable exercise. */
+const seededClientId = process.env.E2E_CLIENT_ID
+
 /**
  * Trainer client list E2E.
  *
@@ -57,9 +60,9 @@ test.describe("trainer list (admin)", () => {
     await page.goto("/en/trainer")
     await expect(page).toHaveURL(/\/en\/trainer/)
     // The page renders the localized heading whether the list is full or empty.
-    await expect(
-      page.getByRole("heading", { name: /clients/i })
-    ).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("heading", { name: /clients/i })).toBeVisible({
+      timeout: 15_000,
+    })
   })
 })
 
@@ -76,9 +79,9 @@ test.describe("admin landing dashboard (admin)", () => {
     // resolvePostAuthDestination sends admins to the localized /admin dashboard.
     await page.goto("/en/admin")
     await expect(page).toHaveURL(/\/en\/admin/)
-    await expect(
-      page.getByRole("heading", { level: 1 })
-    ).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
+      timeout: 15_000,
+    })
     // The primary card links to the trainer area, staying in the same locale.
     const trainerLink = page.locator('a[href="/en/trainer"]').first()
     await expect(trainerLink).toBeVisible()
@@ -133,6 +136,45 @@ test.describe("trainer dashboard hub navigation (admin)", () => {
       })
     })
   }
+})
+
+test.describe("trainer live-plan editor (admin)", () => {
+  test.skip(
+    !adminCredentials.email || !adminCredentials.password || !seededClientId,
+    "E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD / E2E_CLIENT_ID not set"
+  )
+
+  test("an admin edits a client's live plan and the change persists on reload", async ({
+    page,
+  }) => {
+    await signIn(page, adminCredentials.email!, adminCredentials.password!)
+    await page.goto(`/en/trainer/clients/${seededClientId}`)
+    await expect(page).toHaveURL(
+      new RegExp(`/en/trainer/clients/${seededClientId}`)
+    )
+
+    // The live-plan editor renders for a client with an active plan.
+    const editor = page.getByTestId("plan-editor")
+    await expect(editor).toBeVisible({ timeout: 15_000 })
+
+    // Open the first exercise's editor, change its reps to a unique marker, save.
+    const marker = `${Date.now() % 100000}`
+    await editor.getByTestId("edit-exercise").first().click()
+    const repsField = editor.getByLabel(/^reps$/i)
+    await expect(repsField).toBeVisible()
+    await repsField.fill(marker)
+    await editor.getByTestId("save-exercise").first().click()
+
+    // After the server action + router refresh, the new reps value persists; a
+    // full reload proves it was written, not just held in client state.
+    await page.reload()
+    await expect(page.getByTestId("plan-editor")).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(page.getByText(marker, { exact: false })).toBeVisible({
+      timeout: 15_000,
+    })
+  })
 })
 
 test.describe("trainer list (customer blocked)", () => {
