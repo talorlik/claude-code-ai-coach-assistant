@@ -166,8 +166,14 @@ Authorization rules:
 2. Client reviews product value proposition.
 3. Client selects language and theme if needed.
 4. Client registers.
-5. Client confirms email if Supabase confirmation is enabled.
-6. Client logs in.
+5. Client confirms email if Supabase confirmation is enabled; confirming a
+   signup link establishes the session and routes the client directly into the
+   post-auth decision flow (a new client with no onboarding record lands on
+   `/en/join` or `/he/join`).
+6. Client logs in (if not already signed in from confirmation). The post-auth
+   decision flow applies: a client with no onboarding record is routed to
+   `/en/join` or `/he/join`; a client with an active plan is routed to
+   `/en/my-plan` or `/he/my-plan`; the trainer admin is routed to the admin area.
 7. Client lands on onboarding route `/en/join` or `/he/join`.
 8. Client completes multi-step onboarding.
 9. Client clicks `Create my workout plan`.
@@ -175,8 +181,9 @@ Authorization rules:
 11. System calls the AI workout generator server-side.
 12. System validates structured AI response.
 13. System saves plan, workouts, and exercises.
-14. Client sees localized success state.
-15. Client opens `/en/my-plan` or `/he/my-plan`.
+14. Client sees a localized success state.
+15. On success the app routes the client automatically to `/en/my-plan` or
+    `/he/my-plan` (no manual navigation required).
 16. Client views weekly calendar/list.
 17. Client completes workouts and submits feedback.
 18. System updates progress and workout logs.
@@ -282,7 +289,12 @@ Requirements:
 6. Verify forgot password.
 7. Localize auth pages and errors.
 8. Redirect signed-out users to localized login.
-9. Redirect authenticated clients toward onboarding or plan page.
+9. Redirect authenticated clients via a shared post-auth decision: no onboarding
+   record -> `/join`; active plan -> `/my-plan`; otherwise -> `/join`. The
+   trainer admin goes to the admin area. A safe same-site `?redirect=` target,
+   when present, takes precedence. Signup confirmation enters this decision flow;
+   password recovery does NOT - a recovery link always lands on
+   `/reset-password`.
 10. Protect trainer routes.
 
 ### FR-005 - Client Onboarding

@@ -914,3 +914,29 @@ rsvg-generated placeholder dumbbells; the trainer should replace them with brand
 art (non-blocking follow-up). iOS web push still requires the user to install the
 app to the Home Screen first - the install affordance shows localized
 Add-to-Home-Screen steps on iOS Safari (no `beforeinstallprompt` there).
+
+### 2026-06-06 - Planning - Added Batch 21 (Signup Journey Wiring)
+
+Reviewing `docs/planning/USER_JOURNEY.md` against the built app showed the data
+layer and AI features are complete (batches 00-20) but the journey SEAMS are
+broken: signup confirmation dead-ends at `/profile`, login routes everyone to
+`/profile` regardless of onboarding state, the nav never links to the plan, and
+onboarding success needs a manual button click. Batch 21 wires these with a
+shared `resolvePostAuthDestination(userId)` resolver (admin -> `/admin`; no
+client row -> `/join`; active plan -> `/my-plan`; onboarded-no-plan -> `/join`)
+used by both `login()` and `/auth/confirm`, plus an onboarding auto-redirect and
+a My Plan nav link. This completes the explicit follow-up noted in the
+batch-07 entry above ("after sign-in, route a client with no onboarding to
+`/join`"); that batch-07 decision (homepage CTA stays `/register`, onboarding is
+post-auth) still holds - the CTA is unchanged.
+
+**Why:** the resolver is one shared source of truth so the confirm and login
+paths cannot drift. Password recovery is deliberately EXCLUDED: `/auth/confirm`
+branches on the OTP `type` and a `recovery` link always lands on
+`/reset-password`, never the resolver, so a password reset never gets pulled into
+the onboarding flow (own test enforces this). Onboarding stays SOFT-routed, not
+hard-gated - `proxy.ts` and the `require*` guards are untouched and `/my-plan` /
+`/chat` are not blocked - to keep the change low-risk and away from the
+highest-risk integration point. Phase 1 (this entry plus the prompt, task
+breakdown, PRD, technical-requirements, and user-journey edits) is docs-only on
+`main`; the code ships later via `/run-batch 21`.

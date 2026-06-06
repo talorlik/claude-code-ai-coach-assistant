@@ -317,6 +317,46 @@ canManagePlan(authUserId: string, planId: string)
 
 Each helper requires TSDoc and unit tests.
 
+### 5.6 Post-Auth Routing
+
+A shared, server-only resolver decides where an authenticated user lands after
+signup confirmation and after login, so the two paths cannot drift:
+
+```ts
+resolvePostAuthDestination(userId: string): Promise<string>
+```
+
+Decision order (returns a locale-agnostic in-app path; the caller applies the
+active locale):
+
+1. Trainer admin (`isAdmin(userId)`) -> `/admin`.
+2. No onboarding record (`getClient(userId)` is `null`) -> `/join`.
+3. Active plan exists (`getActivePlanDetail(userId)` is non-null) -> `/my-plan`.
+4. Onboarded but no active plan -> `/join`.
+
+The resolver reuses `getClient` (`lib/db/clients.ts`), `getActivePlanDetail`
+(`lib/db/workouts.ts`), and `isAdmin` (`lib/auth/roles.ts`); it runs under the
+request-scoped Supabase client (RLS) and takes no external redirect target.
+
+Routing rules:
+
+1. `login()` honors a safe same-site `?redirect=` target when present, otherwise
+   uses the resolver.
+2. `/auth/confirm` branches on the OTP `type`. Signup, email-change, and invite
+   confirmations enter the resolver. A `recovery` confirmation always redirects
+   to `/reset-password` and MUST NEVER call the resolver - password recovery
+   never enters the onboarding/my-plan flow.
+3. The confirm route's `next` allowlist permits `/profile`, `/reset-password`,
+   `/join`, and `/my-plan`; an allowlisted explicit `next` is honored, otherwise
+   the resolver (signup) or `/reset-password` (recovery) decides.
+4. Onboarding success auto-redirects to `/my-plan` when a plan was generated.
+5. Onboarding is SOFT-routed, not hard-gated: users are routed toward `/join`,
+   but `proxy.ts` and the `require*` guards are unchanged and `/my-plan` /
+   `/chat` are not blocked.
+
+The resolver and both call sites require TSDoc and unit tests, including an
+explicit test that the recovery path never invokes the resolver.
+
 ## 6. Database Design
 
 ### 6.1 General Rules

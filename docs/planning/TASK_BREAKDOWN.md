@@ -60,6 +60,7 @@ If scripts are missing, add them in the relevant tooling batch.
   -> 18 Test hardening
   -> 19 Deployment verification
   -> 20 PWA installability
+  -> 21 Signup-to-plan journey wiring
 ```
 
 ## 4. Batch Summary Table
@@ -87,6 +88,7 @@ If scripts are missing, add them in the relevant tooling batch.
 |    18 | `docs/prompts/18_TEST_HARDENING.md`                           | Complete unit/integration/e2e coverage                 | Full test suite                 | `Harden automated test coverage`           |
 |    19 | `docs/prompts/19_DEPLOYMENT_VERIFICATION.md`                  | Vercel/GitHub/Supabase final verification              | Production smoke                | `Verify deployment readiness`              |
 |    20 | `docs/prompts/20_PWA_INSTALLABILITY.md`                       | Installable PWA: manifest, icons, offline shell, SW    | Unit + integration + e2e        | `Add installable PWA support`              |
+|    21 | `docs/prompts/21_SIGNUP_JOURNEY_WIRING.md`                   | Post-auth routing: confirm/login decision flow, onboarding auto-redirect, My Plan nav | Unit + integration + e2e        | `Wire signup-to-plan journey routing`      |
 
 ## 5. Detailed Batch Breakdown
 
@@ -653,6 +655,49 @@ Tests:
 
 Note: batch 20 ships a user-facing feature AFTER batch 19's deployment
 verification, so re-run the batch-19 production/preview smoke after merging 20.
+
+### Batch 21 - Signup Journey Wiring
+
+Prompt file: `docs/prompts/21_SIGNUP_JOURNEY_WIRING.md`
+
+Goal: wire the already-built pieces into the end-to-end journey from
+`docs/planning/USER_JOURNEY.md` so a new user flows register -> confirm ->
+onboarding (`/join`) -> AI plan -> plan view (`/my-plan`) with no manual URL
+typing, in both locales, while leaving password recovery untouched. No schema, no
+AI, no new tables - routing and navigation wiring only.
+
+Tasks:
+
+1. Add `lib/auth/post-auth-redirect.ts` with `resolvePostAuthDestination(userId)`:
+   admin -> `/admin`; no client row -> `/join`; active plan -> `/my-plan`;
+   onboarded without a plan -> `/join`. Reuses `getClient`,
+   `getActivePlanDetail`, `isAdmin`.
+2. `login()` uses a safe `?redirect=` when present, else the resolver.
+3. `app/auth/confirm/route.ts` branches on `type`: `recovery` -> `/reset-password`
+   (NEVER the resolver); signup/email-change/invite -> the resolver. Allowlist
+   gains `/join` and `/my-plan`.
+4. Onboarding success auto-redirects to `/my-plan` when a plan was generated.
+5. Add a My Plan nav link for signed-in non-admins (`Nav.myPlan`). Homepage CTA
+   unchanged.
+
+Tests:
+
+1. `resolvePostAuthDestination` decision matrix (admin / no-client / active-plan /
+   no-plan).
+2. `login()` routing: safe redirect honored, unsafe rejected, resolver fallback.
+3. Confirm route: signup -> resolver; recovery -> `/reset-password` with the
+   resolver never invoked; allowlisted `next` honored; invalid token -> login.
+4. Reset-flow regression: `setNewPassword` still ends at
+   `/login?notice=passwordUpdated`.
+5. Onboarding-form auto-redirect on `planGenerated`.
+6. Site-header My Plan link visibility by auth state.
+7. Playwright: new user lands on `/en/join`; onboarded-with-plan user lands on
+   `/en/my-plan`; `/he` equivalents work.
+
+Note: onboarding is SOFT-routed, not hard-gated - `proxy.ts` and the
+`require*` guards are untouched, and `/my-plan` / `/chat` are not blocked. Batch
+21 changes user-facing post-auth routing AFTER batch 19, so re-run the batch-19
+production/preview smoke after merging 21.
 
 ## 6. Final Submission Checklist
 
