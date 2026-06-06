@@ -73,6 +73,7 @@ import {
   disablePushSubscription,
   listEnabledSubscriptions,
   listAllEnabledSubscriptions,
+  getClientPushStatus,
 } from "@/lib/db/push-subscriptions"
 
 function subRow(id: string, endpoint: string, enabled = true) {
@@ -165,5 +166,44 @@ describe("listAllEnabledSubscriptions", () => {
     const result = await listAllEnabledSubscriptions()
     expect(result).toHaveLength(2)
     expect(lastOp?.filters.enabled).toBe("true")
+  })
+})
+
+describe("getClientPushStatus", () => {
+  it("reports 'enabled' when at least one subscription is enabled", async () => {
+    rows = [
+      subRow("s1", "https://a/1", false),
+      subRow("s2", "https://a/2", true),
+    ]
+    expect(await getClientPushStatus("client-1")).toBe("enabled")
+    // Scoped to the client; reads all rows (no enabled filter).
+    expect(lastOp?.filters.client_id).toBe("client-1")
+    expect(lastOp?.filters.enabled).toBeUndefined()
+  })
+
+  it("reports 'disabled' when subscriptions exist but none are enabled", async () => {
+    rows = [
+      subRow("s1", "https://a/1", false),
+      subRow("s2", "https://a/2", false),
+    ]
+    expect(await getClientPushStatus("client-1")).toBe("disabled")
+  })
+
+  it("reports 'unavailable' when the client has no subscriptions", async () => {
+    rows = []
+    expect(await getClientPushStatus("client-1")).toBe("unavailable")
+  })
+
+  it("reports 'unavailable' when RLS hides another client's rows", async () => {
+    rows = [subRow("s1", "https://a/1", true)]
+    rlsHidesRows = true
+    expect(await getClientPushStatus("client-2")).toBe("unavailable")
+  })
+
+  it("throws loudly on a database error", async () => {
+    forcedError = { message: "boom" }
+    await expect(getClientPushStatus("client-1")).rejects.toThrow(
+      /Failed to load push status/
+    )
   })
 })

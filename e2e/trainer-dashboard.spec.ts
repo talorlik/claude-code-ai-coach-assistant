@@ -70,4 +70,32 @@ test.describe("trainer dashboard (admin)", () => {
     await noteItem.getByRole("button", { name: /delete/i }).click()
     await expect(page.getByText(noteText)).toHaveCount(0, { timeout: 15_000 })
   })
+
+  test("an admin sees the plan detail and a PDF export control", async ({
+    page,
+  }) => {
+    await loginAsAdmin(page)
+    await page.goto(`/en/trainer/clients/${clientId}`)
+    await expect(page).toHaveURL(
+      new RegExp(`/en/trainer/clients/${clientId}`)
+    )
+
+    // The plan-detail section renders (the seeded client has an active plan, so
+    // at least one workout block is present).
+    await expect(
+      page.getByTestId("plan-detail-workout").first()
+    ).toBeVisible({ timeout: 15_000 })
+
+    // The PDF export control links to the admin export route for this client,
+    // carrying the active locale.
+    const pdfLink = page.getByTestId("trainer-export-plan-pdf")
+    await expect(pdfLink).toBeVisible()
+    await expect(pdfLink).toHaveAttribute(
+      "href",
+      `/api/pdf/workout-plan?clientId=${clientId}&locale=en`
+    )
+
+    // The push-reminder status indicator is present in one of its three states.
+    await expect(page.getByTestId("push-status")).toBeVisible()
+  })
 })

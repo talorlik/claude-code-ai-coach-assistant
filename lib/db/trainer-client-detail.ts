@@ -3,6 +3,10 @@ import { getActivePlanDetail, type ActivePlanDetail } from "@/lib/db/workouts"
 import { listChatMessages } from "@/lib/db/chat-messages"
 import { listTrainerNotes } from "@/lib/db/trainer-notes"
 import { listClientLogsSince } from "@/lib/db/workout-logs"
+import {
+  getClientPushStatus,
+  type ClientPushStatus,
+} from "@/lib/db/push-subscriptions"
 import type { Client } from "@/lib/db/mappers"
 import type {
   ChatMessageRow,
@@ -34,6 +38,8 @@ export interface TrainerClientDetail {
   chatMessages: ChatMessageRow[]
   /** Private trainer notes about the client, newest first. */
   notes: TrainerNoteRow[]
+  /** The client's push-reminder readiness (enabled / disabled / unavailable). */
+  pushStatus: ClientPushStatus
 }
 
 /**
@@ -58,12 +64,14 @@ export async function getTrainerClientDetail(
   const since = new Date(reference)
   since.setUTCDate(since.getUTCDate() - DASHBOARD_HISTORY_DAYS)
 
-  const [activePlan, recentLogs, chatMessages, notes] = await Promise.all([
-    getActivePlanDetail(clientId),
-    listClientLogsSince(clientId, since),
-    listChatMessages(clientId),
-    listTrainerNotes(clientId),
-  ])
+  const [activePlan, recentLogs, chatMessages, notes, pushStatus] =
+    await Promise.all([
+      getActivePlanDetail(clientId),
+      listClientLogsSince(clientId, since),
+      listChatMessages(clientId),
+      listTrainerNotes(clientId),
+      getClientPushStatus(clientId),
+    ])
 
-  return { client, activePlan, recentLogs, chatMessages, notes }
+  return { client, activePlan, recentLogs, chatMessages, notes, pushStatus }
 }

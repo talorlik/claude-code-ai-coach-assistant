@@ -355,7 +355,8 @@
       "percent": "{value}%",
       "completed": "Completed",
       "none": "This client has no active plan yet.",
-      "workoutCount": "{count, plural, =0 {No workouts} one {# workout} other {# workouts}}"
+      "workoutCount": "{count, plural, =0 {No workouts} one {# workout} other {# workouts}}",
+      "exportPdf": "Export PDF"
     },
     "charts": {
       "weeklyTitle": "Weekly activity",
@@ -402,6 +403,25 @@
         "tooLong": "Keep notes under 2000 characters.",
         "generic": "Something went wrong. Please try again."
       }
+    },
+    "push": {
+      "title": "Workout reminders",
+      "enabled": "Reminders on",
+      "disabled": "Reminders off",
+      "unavailable": "No reminders set up"
+    },
+    "planDetail": {
+      "title": "Plan detail",
+      "empty": "No plan detail to show yet.",
+      "untitledWorkout": "Workout",
+      "focus": "Focus",
+      "restDay": "Rest day",
+      "sets": "Sets",
+      "reps": "Reps",
+      "duration": "Duration",
+      "rest": "Rest",
+      "instructions": "Instructions",
+      "safety": "Safety"
     }
   },
   "TrainerPlans": {

@@ -27,8 +27,28 @@ import {
   ClientDashboard,
   type ClientDashboardData,
   type LogEntry,
+  type PlanDetailWorkout,
   type ProfileField,
 } from "./client-dashboard"
+
+/** Recognised weekday keys under the `MyPlan.weekday` message namespace. */
+const WEEKDAY_KEYS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const
+
+/** A lowercase weekday key known to the `MyPlan.weekday` catalog. */
+type WeekdayKey = (typeof WEEKDAY_KEYS)[number]
+
+/** Type guard narrowing a raw day-of-week string to a catalog weekday key. */
+function isWeekdayKey(value: string): value is WeekdayKey {
+  return (WEEKDAY_KEYS as readonly string[]).includes(value)
+}
 
 /** Number of weekly buckets the dashboard's weekly chart shows. */
 const WEEKLY_WINDOW = 12
@@ -73,6 +93,7 @@ export default async function TrainerClientDashboardPage({
   await requireTrainerAdmin()
 
   const t = await getTranslations("TrainerDashboard")
+  const weekdayT = await getTranslations("MyPlan.weekday")
   const format = await getFormatter()
 
   let detail
@@ -93,7 +114,8 @@ export default async function TrainerClientDashboardPage({
     )
   }
 
-  const { client, activePlan, recentLogs, chatMessages, notes } = detail
+  const { client, activePlan, recentLogs, chatMessages, notes, pushStatus } =
+    detail
   const reference = new Date()
 
   // Profile fields, in display order; empty values fall back to "not provided".
@@ -131,6 +153,49 @@ export default async function TrainerClientDashboardPage({
         [...completedWorkoutIds(activePlan.logs)]
       )
     : 0
+
+  // Full plan detail, threaded from the data getActivePlanDetail already loaded
+  // (no new query). Workouts and exercises arrive in stored `position` order; a
+  // workout with no exercises is treated as a rest day. Day-of-week is localized
+  // against the shared MyPlan.weekday catalog, falling back to the raw stored
+  // value for any non-standard label.
+  const planWorkouts: PlanDetailWorkout[] | null = activePlan
+    ? activePlan.workouts.map((workout) => {
+        const dayKey = workout.day_of_week?.toLowerCase() ?? null
+        const dayLabel = dayKey
+          ? isWeekdayKey(dayKey)
+            ? weekdayT(dayKey)
+            : workout.day_of_week
+          : null
+        return {
+          id: workout.id,
+          dayLabel,
+          title: workout.title,
+          focus: workout.focus,
+          notes: workout.notes,
+          isRestDay: workout.exercises.length === 0,
+          exercises: workout.exercises.map((exercise) => ({
+            id: exercise.id,
+            name: exercise.name,
+            sets: exercise.sets,
+            reps: exercise.reps,
+            duration: exercise.duration,
+            rest: exercise.rest,
+            instructions: exercise.instructions,
+            safetyNotes: exercise.safety_notes,
+          })),
+        }
+      })
+    : null
+
+  // PDF export is a pure link to the existing admin-authorized route, gated on an
+  // active plan (the route 404s without one). The locale is passed as a query
+  // param; the route itself is not locale-prefixed.
+  const pdfHref = activePlan
+    ? `/api/pdf/workout-plan?clientId=${encodeURIComponent(
+        clientId
+      )}&locale=${locale}`
+    : null
 
   // Chart series from the recent (cross-plan) logs, with localized short labels.
   const weeklyBuckets = weeklyCompletions(recentLogs, reference, WEEKLY_WINDOW)
@@ -202,6 +267,9 @@ export default async function TrainerClientDashboardPage({
     profileFields,
     planTitle,
     completionPercent,
+    planWorkouts,
+    pdfHref,
+    pushStatus,
     weekly,
     monthly,
     logs,

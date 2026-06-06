@@ -1,7 +1,15 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { ArrowLeft, MessageCircle } from "lucide-react"
+import {
+  ArrowLeft,
+  Bell,
+  BellOff,
+  BellRing,
+  Download,
+  Dumbbell,
+  MessageCircle,
+} from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -58,6 +66,34 @@ export interface ChatEntry {
   content: string
 }
 
+/** A single exercise within a plan workout, serializable for the client boundary. */
+export interface PlanDetailExercise {
+  id: string
+  name: string
+  sets: number | null
+  reps: string | null
+  duration: string | null
+  rest: string | null
+  instructions: string | null
+  safetyNotes: string | null
+}
+
+/** A single workout within the active plan, with its ordered exercises. */
+export interface PlanDetailWorkout {
+  id: string
+  /** Localized day-of-week / scheduling label, or `null` when unscheduled. */
+  dayLabel: string | null
+  title: string | null
+  focus: string | null
+  notes: string | null
+  /** `true` for an intentional rest day (no exercises). */
+  isRestDay: boolean
+  exercises: PlanDetailExercise[]
+}
+
+/** The client's reminder readiness, mirrored from `ClientPushStatus`. */
+export type PushStatus = "enabled" | "disabled" | "unavailable"
+
 /** Everything the dashboard renders, fully serializable for the client boundary. */
 export interface ClientDashboardData {
   clientId: string
@@ -65,6 +101,14 @@ export interface ClientDashboardData {
   profileFields: ProfileField[]
   planTitle: string | null
   completionPercent: number
+  /** The active plan's workouts and exercises, or `null` when there is no plan. */
+  planWorkouts: PlanDetailWorkout[] | null
+  /**
+   * Locale-aware download URL for the client's plan PDF, or `null` when there is
+   * no active plan (the export route 404s without one, so the button is hidden).
+   */
+  pdfHref: string | null
+  pushStatus: PushStatus
   weekly: ProgressDatum[]
   monthly: ProgressDatum[]
   logs: LogEntry[]
@@ -75,12 +119,14 @@ export interface ClientDashboardData {
 
 /**
  * The trainer's detailed dashboard for one client: profile summary, current plan
- * with completion, weekly/monthly progress charts, the workout log, the AI chat
- * transcript, a WhatsApp contact button (only when a valid phone exists), and
- * the private notes panel. Every value is resolved and localized server-side and
- * passed in as plain data, so this component is a pure presentation layer. Copy
- * comes from the `TrainerDashboard` namespace; the layout inherits the page
- * direction, so it reads right-to-left under Hebrew.
+ * with completion, the full plan detail (each workout and exercise with sets,
+ * reps, duration, rest, instructions, and safety notes) plus a PDF export link,
+ * the client's push-reminder readiness, weekly/monthly progress charts, the
+ * workout log, the AI chat transcript, a WhatsApp contact button (only when a
+ * valid phone exists), and the private notes panel. Every value is resolved and
+ * localized server-side and passed in as plain data, so this component is a pure
+ * presentation layer. Copy comes from the `TrainerDashboard` namespace; the
+ * layout inherits the page direction, so it reads right-to-left under Hebrew.
  *
  * @param data - The fully-shaped, serializable dashboard data.
  */
@@ -121,7 +167,12 @@ export function ClientDashboard({ data }: { data: ClientDashboardData }) {
         clientId={data.clientId}
         title={data.planTitle}
         completionPercent={data.completionPercent}
+        pdfHref={data.pdfHref}
       />
+
+      <PushStatus status={data.pushStatus} />
+
+      <PlanDetail workouts={data.planWorkouts} />
 
       <ProgressCharts weekly={data.weekly} monthly={data.monthly} />
 
@@ -154,15 +205,23 @@ function ProfileSummary({ fields }: { fields: ProfileField[] }) {
   )
 }
 
-/** Current-plan card with title, a completion progress bar, and regeneration. */
+/**
+ * Current-plan card with title, a completion progress bar, plan regeneration,
+ * and (only when an active plan exists) a localized PDF export link. The PDF
+ * link is gated on `pdfHref`: the page passes `null` when there is no active
+ * plan, because the export route 404s without one, so the control never appears
+ * in a dead state.
+ */
 function PlanSummary({
   clientId,
   title,
   completionPercent,
+  pdfHref,
 }: {
   clientId: string
   title: string | null
   completionPercent: number
+  pdfHref: string | null
 }) {
   const t = useTranslations("TrainerDashboard.plan")
   if (!title) {
@@ -184,6 +243,17 @@ function PlanSummary({
         <h2 className="text-lg font-medium">{t("title")}</h2>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">{title}</Badge>
+          {pdfHref ? (
+            <a
+              href={pdfHref}
+              download
+              data-testid="trainer-export-plan-pdf"
+              className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <Download className="size-4" aria-hidden="true" />
+              {t("exportPdf")}
+            </a>
+          ) : null}
           <RegenerateClientPlan clientId={clientId} />
         </div>
       </div>
@@ -197,6 +267,165 @@ function PlanSummary({
         <Progress value={completionPercent} />
       </div>
     </section>
+  )
+}
+
+/**
+ * Push-reminder readiness indicator. Renders one of three localized states with
+ * a matching icon and tone: `enabled` (reminders fire), `disabled` (the client
+ * has subscriptions but turned them off), `unavailable` (no subscription at all,
+ * e.g. never opted in or unsupported browser). Copy comes from
+ * `TrainerDashboard.push`.
+ */
+function PushStatus({ status }: { status: PushStatus }) {
+  const t = useTranslations("TrainerDashboard.push")
+  const presentation = {
+    enabled: {
+      Icon: BellRing,
+      className: "text-emerald-700 dark:text-emerald-500",
+    },
+    disabled: {
+      Icon: BellOff,
+      className: "text-amber-700 dark:text-amber-500",
+    },
+    unavailable: {
+      Icon: Bell,
+      className: "text-muted-foreground",
+    },
+  }[status]
+  const { Icon, className } = presentation
+  return (
+    <section className="rounded-lg border bg-card p-4 text-card-foreground">
+      <h2 className="mb-2 text-lg font-medium">{t("title")}</h2>
+      <p
+        className={`inline-flex items-center gap-2 text-sm font-medium ${className}`}
+        data-testid="push-status"
+        data-status={status}
+      >
+        <Icon className="size-4" aria-hidden="true" />
+        {t(status)}
+      </p>
+    </section>
+  )
+}
+
+/**
+ * Full active-plan detail: every workout (with its localized day label, focus,
+ * and notes) and every exercise's sets, reps, duration, rest, instructions, and
+ * safety notes, in stored order. Rest days render an explicit rest indicator
+ * instead of an exercise list. Inherits the page direction, so it reads
+ * right-to-left under Hebrew. When there is no active plan, renders the localized
+ * empty state. Copy comes from `TrainerDashboard.planDetail`.
+ */
+function PlanDetail({ workouts }: { workouts: PlanDetailWorkout[] | null }) {
+  const t = useTranslations("TrainerDashboard.planDetail")
+  if (!workouts || workouts.length === 0) {
+    return (
+      <section className="rounded-lg border bg-card p-4 text-card-foreground">
+        <h2 className="mb-2 text-lg font-medium">{t("title")}</h2>
+        <p className="text-sm text-muted-foreground">{t("empty")}</p>
+      </section>
+    )
+  }
+  return (
+    <section className="rounded-lg border bg-card p-4 text-card-foreground">
+      <h2 className="mb-3 text-lg font-medium">{t("title")}</h2>
+      <ol className="flex flex-col gap-4">
+        {workouts.map((workout) => (
+          <li
+            key={workout.id}
+            className="rounded-md border p-4"
+            data-testid="plan-detail-workout"
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="font-medium">
+                {workout.title ?? t("untitledWorkout")}
+              </h3>
+              {workout.dayLabel ? (
+                <span className="text-sm text-muted-foreground">
+                  {workout.dayLabel}
+                </span>
+              ) : null}
+            </div>
+            {workout.focus ? (
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {t("focus")}: {workout.focus}
+              </p>
+            ) : null}
+            {workout.notes ? (
+              <p className="mt-2 text-sm">{workout.notes}</p>
+            ) : null}
+
+            {workout.isRestDay ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                {t("restDay")}
+              </p>
+            ) : (
+              <ol className="mt-3 flex flex-col gap-3">
+                {workout.exercises.map((exercise) => (
+                  <li
+                    key={exercise.id}
+                    className="flex flex-col gap-1 rounded-md border p-3"
+                    data-testid="plan-detail-exercise"
+                  >
+                    <div className="flex items-center gap-2 font-medium">
+                      <Dumbbell
+                        className="size-4 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                      {exercise.name}
+                    </div>
+                    <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                      {exercise.sets != null ? (
+                        <Detail
+                          label={t("sets")}
+                          value={String(exercise.sets)}
+                        />
+                      ) : null}
+                      {exercise.reps ? (
+                        <Detail label={t("reps")} value={exercise.reps} />
+                      ) : null}
+                      {exercise.duration ? (
+                        <Detail
+                          label={t("duration")}
+                          value={exercise.duration}
+                        />
+                      ) : null}
+                      {exercise.rest ? (
+                        <Detail label={t("rest")} value={exercise.rest} />
+                      ) : null}
+                    </dl>
+                    {exercise.instructions ? (
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">
+                          {t("instructions")}:
+                        </span>{" "}
+                        {exercise.instructions}
+                      </p>
+                    ) : null}
+                    {exercise.safetyNotes ? (
+                      <p className="text-sm text-amber-700 dark:text-amber-500">
+                        {t("safety")}: {exercise.safetyNotes}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+/** A single inline label/value pair within an exercise's metadata list. */
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-1">
+      <dt>{label}</dt>
+      <dd className="font-medium text-foreground">{value}</dd>
+    </div>
   )
 }
 

@@ -1115,3 +1115,65 @@ recurred exactly as the batch-22 entry warned: the first `npx playwright test`
 exited 0 but ran zero tests (webServer timed out on the missing Supabase env);
 copying `.env.local` + `.env.vapid.local` from the primary checkout fixed it
 (both gitignored, so they never reach the commit).
+
+### 2026-06-06 - Batch 24 - Client Dashboard Completeness (Plan Detail, PDF, Push Status)
+
+Batch 24 filled three rendering gaps on the per-client trainer dashboard
+(`/[locale]/trainer/clients/[clientId]`): full active-plan detail (every workout
+with day/focus/notes plus each exercise's sets/reps/duration/rest/instructions/
+safety notes, in stored order), a PDF export control, and a push-reminder status
+indicator. No new tables, no AI, no new plan query.
+
+Key decisions:
+
+1. **Plan detail reuses already-fetched data.** `getActivePlanDetail` already
+   returns the active plan's workouts and exercises (ordered). The page maps that
+   existing structure into a serializable `planWorkouts` shape on
+   `ClientDashboardData` (snake_case row fields -> camelCase, e.g.
+   `safety_notes` -> `safetyNotes`); no new DB read was added for the detail.
+2. **Rest day is inferred from zero exercises.** A workout with an empty
+   `exercises` array renders the localized rest-day indicator instead of an
+   (empty) exercise list. The schema has no explicit rest-day flag, so absence of
+   exercises is the signal - matches how the client `my-plan` view treats it.
+3. **PDF button is a plain `<a href download>`, not the fetch-blob
+   `ExportPlanButton`.** The prompt's Scope calls it "a pure link to the existing
+   route" and test #3 asserts an anchor `href` carrying the locale. A GET to
+   `/api/pdf/workout-plan?clientId=&locale=` returns the PDF with a
+   content-disposition attachment, so a download anchor triggers the file without
+   any client-side PDF code. The href is built server-side in the page (the route
+   is NOT locale-prefixed; locale is a query param) and passed as `pdfHref`,
+   `null` when there is no active plan, so the control is simply absent then (the
+   route 404s without a plan).
+4. **`getClientPushStatus` reads ALL rows, not just enabled.** Existing
+   `listEnabledSubscriptions` filters `enabled = true`, which cannot distinguish
+   "disabled" from "unavailable". The new helper selects by `client_id` only and
+   maps: any enabled -> `enabled`; rows exist but none enabled -> `disabled`; no
+   rows -> `unavailable`. RLS still scopes it (a non-admin non-owner sees no rows
+   -> `unavailable`).
+5. **Weekday label localized via the shared `MyPlan.weekday` catalog.** The page
+   resolves `day_of_week` through a typed `isWeekdayKey` guard (next-intl messages
+   ARE strictly typed in this repo, so a plain `string` key fails typecheck;
+   narrowing to the literal union is required), falling back to the raw stored
+   value for any non-standard label.
+
+Tests added: `__tests__/unit/trainer-client-dashboard.test.tsx` (render every
+plan-detail field en + he/RTL catalog, empty-plan state hides the PDF button, PDF
+href per-locale, all three push states localized); `getClientPushStatus` cases in
+`__tests__/integration/db-push-subscriptions.test.ts`;
+`__tests__/unit/trainer-dashboard-detail-i18n.test.ts` (key parity for the new
+`push` / `planDetail` namespaces + `plan.exportPdf`); and a creds-gated extension
+to `e2e/trainer-dashboard.spec.ts` (admin sees plan-detail workout blocks, the
+PDF link with the locale, and the push-status indicator).
+
+**Why:** the PDF-as-anchor vs reuse-ExportPlanButton choice is the non-obvious
+one - `ExportPlanButton` exists and accepts a `clientId`, but it uses `fetch`
+(no assertable href) and `MyPlan.export` copy, so it would have failed the
+prompt's "links to ... locale" test and mislabeled the trainer surface. The
+rest-day-from-zero-exercises inference is a schema gap a future batch adding an
+explicit rest flag should know about.
+
+**Process note:** the `/run-batch` command still hardcodes a "00-19" valid-range
+check and STOPs outside it; the build has since grown to batch 25 (prompts
+`20`-`25` exist, batches 21-23 already merged). Batch 24 ran fine by treating
+that check as stale. A future maintainer should widen the command's range guard
+(and the runbook table, which still stops at 20) to cover 21-25.

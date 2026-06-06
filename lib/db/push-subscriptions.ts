@@ -101,6 +101,49 @@ export async function listEnabledSubscriptions(
 }
 
 /**
+ * The trainer-facing readiness of a client's workout reminders, derived from
+ * their `push_subscriptions` rows:
+ *
+ * - `enabled` - at least one subscription exists and is enabled (reminders fire).
+ * - `disabled` - subscriptions exist but every one is disabled (the client
+ *   subscribed then turned reminders off; re-enabling re-activates a row).
+ * - `unavailable` - no subscription rows at all (the client never opted in, or
+ *   their browser does not support push).
+ */
+export type ClientPushStatus = "enabled" | "disabled" | "unavailable"
+
+/**
+ * Reports a client's push-reminder readiness for the trainer dashboard. Reads
+ * ALL of the client's subscription rows (enabled and disabled) through the
+ * request-scoped Supabase client, so the trainer-admin RLS grant on
+ * `push_subscriptions` applies; a non-admin, non-owner caller sees no rows and
+ * the status collapses to `unavailable`. Maps the rows to a single status:
+ * `enabled` when any row is enabled, `disabled` when rows exist but none are
+ * enabled, `unavailable` when there are none. Throws loudly on a database error
+ * so the dashboard renders its error state rather than a misleading status.
+ *
+ * @param clientId - The client's auth user id.
+ * @returns The client's reminder readiness as a {@link ClientPushStatus}.
+ */
+export async function getClientPushStatus(
+  clientId: string
+): Promise<ClientPushStatus> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("push_subscriptions")
+    .select("enabled")
+    .eq("client_id", clientId)
+
+  if (error) {
+    throw new Error(`Failed to load push status: ${error.message}`)
+  }
+
+  const subscriptions = (data as Pick<PushSubscriptionRow, "enabled">[]) ?? []
+  if (subscriptions.length === 0) return "unavailable"
+  return subscriptions.some((row) => row.enabled) ? "enabled" : "disabled"
+}
+
+/**
  * Lists every enabled push subscription across all clients, for the reminder
  * trigger. RLS scopes this to the trainer admin (a client caller would see only
  * their own rows); the reminder route additionally guards with

@@ -355,7 +355,8 @@
       "percent": "{value}%",
       "completed": "הושלם",
       "none": "ללקוח זה אין עדיין תוכנית פעילה.",
-      "workoutCount": "{count, plural, =0 {אין אימונים} one {אימון אחד} two {שני אימונים} other {# אימונים}}"
+      "workoutCount": "{count, plural, =0 {אין אימונים} one {אימון אחד} two {שני אימונים} other {# אימונים}}",
+      "exportPdf": "ייצוא PDF"
     },
     "charts": {
       "weeklyTitle": "פעילות שבועית",
@@ -402,6 +403,25 @@
         "tooLong": "שמרו על הערות מתחת ל-2000 תווים.",
         "generic": "משהו השתבש. נסו שוב."
       }
+    },
+    "push": {
+      "title": "תזכורות אימון",
+      "enabled": "תזכורות פעילות",
+      "disabled": "תזכורות כבויות",
+      "unavailable": "לא הוגדרו תזכורות"
+    },
+    "planDetail": {
+      "title": "פירוט התוכנית",
+      "empty": "אין עדיין פירוט תוכנית להצגה.",
+      "untitledWorkout": "אימון",
+      "focus": "מיקוד",
+      "restDay": "יום מנוחה",
+      "sets": "סטים",
+      "reps": "חזרות",
+      "duration": "משך",
+      "rest": "מנוחה",
+      "instructions": "הוראות",
+      "safety": "בטיחות"
     }
   },
   "TrainerPlans": {
