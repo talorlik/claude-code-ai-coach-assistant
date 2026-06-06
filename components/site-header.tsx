@@ -12,9 +12,11 @@ import { Button, buttonVariants } from "@/components/ui/button"
 /**
  * Global top navigation, server-rendered so it reflects the current auth and
  * admin state on every page. Signed-out visitors see a Sign in link; signed-in
- * users see links to their chat and account plus a sign-out control; admins also
- * see Clients (the trainer console) and Admin links. The brand always links
- * home. All nav links use the
+ * non-admin clients see a My Plan link (their single client entry point, since
+ * the empty `/my-plan` state routes to onboarding) alongside chat and account
+ * plus a sign-out control; admins also see Clients (the trainer console) and
+ * Admin links instead of My Plan. The brand always links home. All nav links
+ * use the
  * locale-aware {@link Link} so they preserve the active language, and labels
  * come from the `Nav` message namespace.
  *
@@ -41,6 +43,11 @@ export async function SiteHeader() {
             <Sparkles className="h-5 w-5 text-primary" />
             {common("appName")}
           </Link>
+          {user && !admin ? (
+            <Link href="/my-plan" className="hover:underline">
+              {t("myPlan")}
+            </Link>
+          ) : null}
           {user ? (
             <Link href="/chat" className="hover:underline">
               {t("chat")}

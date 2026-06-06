@@ -940,3 +940,34 @@ hard-gated - `proxy.ts` and the `require*` guards are untouched and `/my-plan` /
 highest-risk integration point. Phase 1 (this entry plus the prompt, task
 breakdown, PRD, technical-requirements, and user-journey edits) is docs-only on
 `main`; the code ships later via `/run-batch 21`.
+
+### 2026-06-06 - Batch 21 - Signup Journey Wiring: Execution Notes
+
+Phase 2 (the code) shipped. The resolver lives in
+`lib/auth/post-auth-redirect.ts`; `login()` and `/auth/confirm` both call it,
+the onboarding form auto-redirects to `/my-plan` via a `useEffect` on
+`done && planGenerated`, and the header gained a `Nav.myPlan` link gated on
+`user && !admin`. Two non-obvious execution points:
+
+1. The prompt suggested an `import "server-only"` guard on the resolver, but the
+   package is not a dependency in this template (no other file imports it).
+   Adding it would have meant a new dependency for a lint-time guard. Dropped the
+   import; server-only-ness is carried by the request-scoped `createClient`
+   helpers the resolver composes and documented in its TSDoc instead.
+2. `login()` no longer imports `isAdmin` directly (the resolver owns the admin
+   check), so `__tests__/integration/login-actions.test.ts` now mocks
+   `@/lib/auth/post-auth-redirect` rather than `@/lib/auth/roles`, and the old
+   "non-admin -> /profile" / "admin -> /admin" assertions became
+   resolver-driven destination assertions.
+
+**Why:** these are the two places a future reader would otherwise be surprised -
+why the resolver has no `server-only` import despite the prompt, and why the
+login test's mock surface changed. Recovery insulation, soft-routing, and the
+unchanged homepage CTA are all as the phase-1 entry above describes.
+
+**Worktree gotcha (cross-batch, also in auto-memory):** symlinking the
+worktree's `node_modules` to the primary checkout makes `next build` (Turbopack)
+panic with "Symlink node_modules is invalid, it points out of the filesystem
+root". Lint, typecheck, and vitest tolerate the symlink; only the build fails.
+Fix: `rm node_modules && npm install` a real tree inside the worktree before the
+build gate. `node_modules` is gitignored, so this never touches the commit.

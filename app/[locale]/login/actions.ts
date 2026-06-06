@@ -7,7 +7,7 @@ import { getLocale } from "next-intl/server"
 import { redirect } from "@/i18n/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { isValidEmail } from "@/lib/auth/validation"
-import { isAdmin } from "@/lib/auth/roles"
+import { resolvePostAuthDestination } from "@/lib/auth/post-auth-redirect"
 import { ensureProfile } from "@/lib/profile/profile-actions"
 import { REMEMBER_FLAG, SESSION_ONLY } from "@/lib/supabase/cookie-persistence"
 
@@ -54,8 +54,13 @@ function readCredentials(formData: FormData): Credentials | string {
 }
 
 /**
- * Signs an existing user in, then redirects by role: admins to /admin, everyone
- * else to /profile (or a safe ?redirect= target). Ensures a profile row exists.
+ * Signs an existing user in, then redirects to the right post-auth destination.
+ *
+ * Precedence: a safe same-site `?redirect=` target (carried on the form) always
+ * wins, preserving the "return to where you were" behavior. With no such target,
+ * {@link resolvePostAuthDestination} decides by account state - admins to
+ * `/admin`, un-onboarded clients to `/join`, onboarded clients with a plan to
+ * `/my-plan`. Ensures a profile row exists and honors the remember-me choice.
  */
 export async function login(formData: FormData) {
   const locale = await getLocale()
@@ -95,11 +100,13 @@ export async function login(formData: FormData) {
   }
 
   await ensureProfile(data.user.id)
-  const admin = await isAdmin(data.user.id)
 
   revalidatePath("/", "layout")
-  const target = safeRedirect(formData)
-  return redirect({ href: target ?? (admin ? "/admin" : "/profile"), locale })
+  // A safe same-site ?redirect= target takes precedence; otherwise the shared
+  // resolver decides where this account belongs.
+  const target =
+    safeRedirect(formData) ?? (await resolvePostAuthDestination(data.user.id))
+  return redirect({ href: target, locale })
 }
 
 /**

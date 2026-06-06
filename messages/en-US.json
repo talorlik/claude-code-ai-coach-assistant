@@ -21,6 +21,7 @@
   },
   "Nav": {
     "home": "Home",
+    "myPlan": "My Plan",
     "chat": "Chat",
     "account": "My Account",
     "clients": "Clients",
@@ -177,6 +178,7 @@
       "body": "Your details are saved. Your personalized workout plan is on the way.",
       "cta": "Go to my account",
       "planReady": "Your personalized workout plan is ready. This plan is general guidance, not medical advice - stop and consult a professional if you feel pain.",
+      "redirecting": "Taking you to your plan...",
       "viewPlan": "View my plan",
       "planPending": "Your details are saved, but we couldn't build your plan just now. Please try again in a little while from your account."
     }

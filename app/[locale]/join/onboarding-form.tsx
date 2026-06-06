@@ -167,6 +167,15 @@ export function OnboardingForm({
     setDone(true)
   }
 
+  // When the AI plan was generated, route the client straight to their plan
+  // instead of waiting for a manual "View Plan" click. The pending branch
+  // (no plan) keeps its existing button and is not auto-redirected.
+  React.useEffect(() => {
+    if (done && planGenerated) {
+      router.push("/my-plan")
+    }
+  }, [done, planGenerated, router])
+
   if (done) {
     // The profile is always saved here; the variant depends on whether the AI
     // plan was generated. Both states are localized and reassure the client.
@@ -185,9 +194,9 @@ export function OnboardingForm({
             <p className="max-w-md text-sm text-muted-foreground">
               {t("success.planReady")}
             </p>
-            <Button onClick={() => router.push("/my-plan")}>
-              {t("success.viewPlan")}
-            </Button>
+            <p className="max-w-md text-sm text-muted-foreground">
+              {t("success.redirecting")}
+            </p>
           </>
         ) : (
           <>

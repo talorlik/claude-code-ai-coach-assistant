@@ -25,7 +25,7 @@ let signUpResult: {
   data: { user: { identities?: unknown[] } | null }
   error: unknown
 }
-let adminFlag = false
+let resolvedDestination = "/profile"
 const cookieStore = {
   set: vi.fn(),
   delete: vi.fn(),
@@ -62,8 +62,16 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }))
 
-vi.mock("@/lib/auth/roles", () => ({
-  isAdmin: async () => adminFlag,
+// login() no longer calls isAdmin directly; it delegates the post-auth landing
+// decision to resolvePostAuthDestination. Mock the resolver so the action's own
+// branching (validation, remember-me, ?redirect= precedence) is what's tested,
+// not the resolver's internals (covered in post-auth-redirect.test.ts).
+const resolvePostAuthDestination = vi.fn(
+  async (_id: string) => resolvedDestination
+)
+
+vi.mock("@/lib/auth/post-auth-redirect", () => ({
+  resolvePostAuthDestination: (id: string) => resolvePostAuthDestination(id),
 }))
 
 vi.mock("@/lib/profile/profile-actions", () => ({
@@ -91,7 +99,8 @@ async function captureRedirect(run: () => Promise<void>): Promise<string> {
 beforeEach(() => {
   signInResult = { data: { user: { id: "user-1" } }, error: null }
   signUpResult = { data: { user: { identities: [{}] } }, error: null }
-  adminFlag = false
+  resolvedDestination = "/profile"
+  resolvePostAuthDestination.mockClear()
   cookieStore.set.mockReset()
   cookieStore.delete.mockReset()
   cookieStore.get.mockReset()
@@ -112,22 +121,25 @@ describe("login", () => {
     expect(target).toBe("/login?error=passwordTooShort")
   })
 
-  it("redirects a non-admin to /profile on success", async () => {
+  it("uses the resolved destination when there is no redirect", async () => {
+    resolvedDestination = "/join"
     const target = await captureRedirect(() =>
       login(form({ email: "dana@example.com", password: "longenough1" }))
     )
-    expect(target).toBe("/profile")
+    expect(target).toBe("/join")
+    expect(resolvePostAuthDestination).toHaveBeenCalledWith("user-1")
   })
 
-  it("redirects an admin to /admin on success", async () => {
-    adminFlag = true
+  it("routes an onboarded user with a plan to the resolved /my-plan", async () => {
+    resolvedDestination = "/my-plan"
     const target = await captureRedirect(() =>
-      login(form({ email: "admin@example.com", password: "longenough1" }))
+      login(form({ email: "dana@example.com", password: "longenough1" }))
     )
-    expect(target).toBe("/admin")
+    expect(target).toBe("/my-plan")
   })
 
-  it("honors a safe in-app redirect target", async () => {
+  it("honors a safe in-app redirect target over the resolver", async () => {
+    resolvedDestination = "/join"
     const target = await captureRedirect(() =>
       login(
         form({
@@ -138,9 +150,12 @@ describe("login", () => {
       )
     )
     expect(target).toBe("/chat")
+    // The safe ?redirect= short-circuits the resolver entirely.
+    expect(resolvePostAuthDestination).not.toHaveBeenCalled()
   })
 
-  it("ignores an off-site redirect target", async () => {
+  it("ignores an off-site redirect and lets the resolver decide", async () => {
+    resolvedDestination = "/join"
     const target = await captureRedirect(() =>
       login(
         form({
@@ -150,7 +165,8 @@ describe("login", () => {
         })
       )
     )
-    expect(target).toBe("/profile")
+    expect(target).toBe("/join")
+    expect(resolvePostAuthDestination).toHaveBeenCalledWith("user-1")
   })
 
   it("redirects to invalidCredentials when sign-in fails", async () => {

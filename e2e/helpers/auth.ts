@@ -42,12 +42,17 @@ export async function loginAsAdmin(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/admin/, { timeout: 15_000 })
 }
 
-/** Logs in as the customer and waits for the /profile redirect. */
+/**
+ * Logs in as the customer and waits for the post-auth landing. Since batch 21
+ * the destination depends on onboarding/plan state: a fresh customer lands on
+ * `/join`, an onboarded one with a plan on `/my-plan`. The helper only asserts
+ * the sign-in left `/login`, so it stays valid across all client states.
+ */
 export async function loginAsCustomer(page: Page): Promise<void> {
   const { email, password } = customerCredentials
   if (!email || !password) {
     throw new Error("E2E_CUSTOMER_EMAIL / E2E_CUSTOMER_PASSWORD are required")
   }
   await signIn(page, email, password)
-  await expect(page).toHaveURL(/\/profile/, { timeout: 15_000 })
+  await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 })
 }
