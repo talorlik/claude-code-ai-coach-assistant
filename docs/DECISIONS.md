@@ -971,3 +971,81 @@ panic with "Symlink node_modules is invalid, it points out of the filesystem
 root". Lint, typecheck, and vitest tolerate the symlink; only the build fails.
 Fix: `rm node_modules && npm install` a real tree inside the worktree before the
 build gate. `node_modules` is gitignored, so this never touches the commit.
+
+### 2026-06-06 - Batches 22-25 - Admin Journey Completion: Planning
+
+Reviewed `docs/planning/ADMIN_CAPABILITIES.md` against the built code. The admin
+infrastructure was already shipped across batches 11-16 and 20 (data model, RLS
+with `is_trainer_admin()`, AI generation/regeneration, client list, client
+dashboard, template manager, PDF route, push notifications). The real defects
+were wiring and a few missing surfaces, not missing backend. Eight confirmed
+gaps:
+
+1. The post-auth resolver sent admins to `/[locale]/admin`, a hardcoded-English
+   stub with only chat/profile links, while the localized console at
+   `/[locale]/trainer` was reachable only via a header link.
+2-8. `/admin` did not link to the trainer area; `/trainer` did not link to
+   `/trainer/plans`; the client dashboard showed only plan title + completion %
+   (not the exercises/sets/reps/rest/safety notes already loaded by
+   `getActivePlanDetail`); the PDF route had no admin button;
+   `createAiTemplateAction` had no UI; per-client push status was not surfaced;
+   and there was no in-place editor for a client's live plan.
+
+Decisions (page model set by the product owner, 2026-06-06):
+
+- **Two roles only: `admin` and `customer`. The admin IS the trainer** - no
+  separate trainer role. Matches the existing `public.app_role` enum.
+- **Two-level hub.** `/[locale]/admin` is the TOP-LEVEL admin dashboard and the
+  admin's post-login landing; it links to all admin capabilities, chiefly the
+  trainer area. `/[locale]/trainer` is the trainer-specific dashboard reached
+  FROM `/admin`, where the admin manages clients and plans. `/admin` is NOT
+  collapsed into `/trainer`, and both nav links (Admin -> `/admin`, Clients ->
+  `/trainer`) are kept. The resolver continues to return `/admin` (as batch 21
+  set), so no resolver change is needed - only the `/admin` page content.
+- Closed the gaps as FOUR themed batches: 22 (localized `/admin` top-level
+  dashboard + routing), 23 (`/trainer` trainer dashboard + admin<->trainer
+  navigation), 24 (client-dashboard completeness: full plan detail, PDF button,
+  push status), 25 (plan authoring: AI-template UI + safe live-plan editor).
+- Hub links from `/admin`: a trainer-area link to `/trainer` plus account/chat;
+  admin-role assignment stays the manual SQL flow (`docs/ADMIN_ROLE_SETUP.md`).
+  Hub links from `/trainer`: the client list (the analytics surface) and the
+  plan-template manager; notes are per-client; Settings is deferred (no model).
+- Batch 25's live-plan editor must NOT hard-delete a workout that has completion
+  logs: `workout_logs.workout_id` is `ON DELETE CASCADE` (migration 0002), so an
+  unguarded delete would silently destroy the client's progress history that the
+  dashboard charts. The editor counts referencing logs and refuses; wholesale
+  changes go through the existing archive-based regeneration flow. Edits validate
+  pre-write (reusing `lib/ai/schemas` shapes and the limitations safety-note rule)
+  to avoid needing transactional rollback Supabase cannot give here.
+- Planning docs (PRD, TECHNICAL_REQUIREMENTS, USER_JOURNEY, TASK_BREAKDOWN, the
+  prompt files, PROMPT_INDEX) were retconned to present batches 22-25 as original
+  scope at the user's request; this entry is the audit trail of why they actually
+  exist. RLS read access for the admin on `push_subscriptions` was confirmed
+  (migration 0002 policy) before committing batch 24's push-status scope.
+
+**Locale-aware URLs (owner emphasis, 2026-06-06):** every in-app URL across
+batches 22-25 must be locale-aware - links/redirects via the `@/i18n/navigation`
+`Link`/`redirect` helpers with locale-agnostic paths (e.g. `/trainer`, never
+`/en/trainer`), route handlers and server redirects building locale-prefixed
+targets, and no raw `<a href>` / `next/link` / `next/navigation` / hardcoded
+`/en|/he` for in-app navigation. This was always a project constraint (prompt
+constraint #5, FR-001), but it is called out explicitly here because these
+batches add the bulk of the app's inter-page admin/trainer navigation
+(admin <-> trainer <-> clients <-> plans), so a stray hardcoded path would drop
+the user's locale on a hop. Batches 22 and 23 gain an explicit
+locale-preservation test (links carry the active prefix in both `/en` and `/he`;
+no `next/link`/`<a href>`); the batch-24 PDF link already asserts its locale
+param.
+
+**Earlier-plan supersession:** a first planning pass (same day) proposed three
+batches that COLLAPSED `/admin` into `/trainer` (making `/trainer` the single
+hub and removing the Admin nav link). The product owner then specified the
+two-level model above - `/admin` is the main admin dashboard, `/trainer` the
+trainer dashboard reached from it - so the plan was reworked into the four
+batches here. Do not re-collapse `/admin`.
+
+**Why:** a future reader seeing batches 22-25 in the planning docs as "always
+planned" needs the real history - these closed wiring gaps found on 2026-06-06,
+not new requirements - the two-role / two-level-hub model the owner mandated, and
+the `workout_logs` cascade hazard that shapes the editor. This is docs-only on
+`main`; the code ships via `/run-batch 22`, `23`, `24`, `25`.

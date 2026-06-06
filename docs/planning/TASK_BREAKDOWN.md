@@ -61,6 +61,10 @@ If scripts are missing, add them in the relevant tooling batch.
   -> 19 Deployment verification
   -> 20 PWA installability
   -> 21 Signup-to-plan journey wiring
+  -> 22 Admin landing dashboard and routing
+  -> 23 Trainer dashboard and navigation
+  -> 24 Trainer client dashboard completeness
+  -> 25 Trainer plan authoring
 ```
 
 ## 4. Batch Summary Table
@@ -89,6 +93,10 @@ If scripts are missing, add them in the relevant tooling batch.
 |    19 | `docs/prompts/19_DEPLOYMENT_VERIFICATION.md`                  | Vercel/GitHub/Supabase final verification              | Production smoke                | `Verify deployment readiness`              |
 |    20 | `docs/prompts/20_PWA_INSTALLABILITY.md`                       | Installable PWA: manifest, icons, offline shell, SW    | Unit + integration + e2e        | `Add installable PWA support`              |
 |    21 | `docs/prompts/21_SIGNUP_JOURNEY_WIRING.md`                   | Post-auth routing: confirm/login decision flow, onboarding auto-redirect, My Plan nav | Unit + integration + e2e        | `Wire signup-to-plan journey routing`      |
+|    22 | `docs/prompts/22_ADMIN_LANDING_DASHBOARD.md`                 | Localized top-level admin dashboard at `/admin`; admin post-login lands here; links to all admin capabilities incl. trainer | Unit + integration + e2e        | `Add localized admin landing dashboard and routing` |
+|    23 | `docs/prompts/23_TRAINER_DASHBOARD_AND_NAVIGATION.md`        | `/trainer` trainer-specific dashboard reached from `/admin`; links to client list and plan templates | Unit + integration + e2e        | `Add trainer dashboard and admin navigation` |
+|    24 | `docs/prompts/24_TRAINER_CLIENT_DASHBOARD_COMPLETENESS.md`   | Full plan detail on dashboard, PDF export button, per-client push-reminder status | Unit + integration + e2e        | `Render full plan detail, PDF export, and push status on client dashboard` |
+|    25 | `docs/prompts/25_TRAINER_PLAN_AUTHORING.md`                  | AI-assisted template creation UI; safe in-place live-plan editor over workouts/exercises | Unit + integration + e2e        | `Add AI template authoring and safe live-plan editor` |
 
 ## 5. Detailed Batch Breakdown
 
@@ -699,6 +707,131 @@ Note: onboarding is SOFT-routed, not hard-gated - `proxy.ts` and the
 21 changes user-facing post-auth routing AFTER batch 19, so re-run the batch-19
 production/preview smoke after merging 21.
 
+### Batch 22 - Admin Landing Dashboard And Routing
+
+Prompt file: `docs/prompts/22_ADMIN_LANDING_DASHBOARD.md`
+
+Goal: make `/[locale]/admin` the localized top-level admin dashboard and the
+admin's post-login landing page, linking to all admin capabilities including the
+trainer area (per `docs/planning/ADMIN_CAPABILITIES.md`). There are two roles
+only - `admin` (the trainer) and `customer`.
+
+Tasks:
+
+1. Keep the admin branch of `resolvePostAuthDestination` returning `/admin`;
+   update its TSDoc to describe `/admin` as the top-level admin dashboard.
+2. Replace the `app/[locale]/admin/page.tsx` stub with a localized dashboard:
+   heading, intro, and navigation cards/links to the admin capabilities, chiefly
+   a trainer-area link to `/trainer`. Keep the `/admin` layout guard.
+3. Add an `AdminDashboard` i18n namespace to both message catalogs.
+4. Keep the site-header Admin (`/admin`) and Clients (`/trainer`) links for
+   admins; confirm neither renders for non-admins.
+5. Document Settings as deferred; admin-role assignment stays the manual SQL flow.
+
+Tests:
+
+1. Resolver returns `/admin` for admins; non-admin branches unchanged.
+2. `/admin` renders a localized dashboard in en and he with a link to `/trainer`.
+3. Role-gating intact (guest -> login, non-admin -> home).
+4. Site header shows Admin + Clients for admins, neither for non-admins.
+5. i18n key parity for `AdminDashboard` across en-US and he-IL.
+6. E2E: admin lands on `/admin` and can follow the trainer-area link to
+   `/trainer`.
+
+Note: batch 22 changes the admin post-login landing content AFTER batch 19, so
+re-run the batch-19 production/preview smoke after merging 22.
+
+### Batch 23 - Trainer Dashboard And Navigation
+
+Prompt file: `docs/prompts/23_TRAINER_DASHBOARD_AND_NAVIGATION.md`
+
+Goal: make `/[locale]/trainer` the trainer-specific dashboard reached from
+`/[locale]/admin`, with clear links into client management (the client list) and
+plan management (the plan-template manager), and a path back to `/admin`.
+
+Tasks:
+
+1. Add a localized dashboard header and navigation to `/[locale]/trainer` linking
+   to the client list and `/trainer/plans`, plus a back-to-admin link to `/admin`.
+2. Confirm the `/admin` trainer-area link from batch 22 lands here.
+3. Add a `TrainerHub` i18n namespace to both message catalogs.
+4. Keep the existing per-page `requireTrainerAdmin()` guard (no second guard).
+
+Tests:
+
+1. Trainer dashboard renders localized in en and he with links to the client
+   list, `/trainer/plans`, and back to `/admin`.
+2. Role-gating intact (guest -> login, non-admin -> home).
+3. i18n key parity for `TrainerHub` across en-US and he-IL.
+4. E2E: admin navigates `/admin` -> `/trainer` -> `/trainer/plans`.
+
+### Batch 24 - Trainer Client Dashboard Completeness
+
+Prompt file: `docs/prompts/24_TRAINER_CLIENT_DASHBOARD_COMPLETENESS.md`
+
+Goal: complete the client dashboard so it renders the full workout-plan detail,
+exposes an admin-facing PDF export, and surfaces per-client push-reminder status
+(per `docs/planning/ADMIN_CAPABILITIES.md` sections 2, 4, 12, 13).
+
+Tasks:
+
+1. Thread the active plan's workouts/exercises (already loaded by
+   `getActivePlanDetail`) into the dashboard data shape.
+2. Render weekly structure: workouts and exercises with sets, reps, duration,
+   rest, instructions, and safety notes; RTL- and theme-correct.
+3. Add a PDF export button linking to the existing
+   `/api/pdf/workout-plan?clientId=&locale=` route; gate it on an active plan.
+4. Add a `getClientPushStatus` read helper (enabled/disabled/unavailable) and
+   surface it on the dashboard.
+5. Add the new copy to both message catalogs.
+
+Tests:
+
+1. Each plan-detail field renders in en and he (RTL).
+2. PDF button href + locale correct; button absent when no active plan.
+3. `getClientPushStatus` maps subscription rows to the three states.
+4. Push-status indicator renders correctly for each state.
+5. i18n key parity for the new keys.
+6. E2E: admin opens a client and sees plan detail and a PDF control.
+
+### Batch 25 - Trainer Plan Authoring
+
+Prompt file: `docs/prompts/25_TRAINER_PLAN_AUTHORING.md`
+
+Goal: give the admin (the trainer) AI-assisted template creation from the plan
+manager and a safe in-place editor for a client's live assigned plan (modify
+workouts and exercises), per `docs/planning/ADMIN_CAPABILITIES.md` section 9.
+
+Tasks:
+
+1. Wire the existing `createAiTemplateAction` into a "Create with AI" UI in the
+   plan manager (AI stays server-side via the mockable seam).
+2. Add a write data-access module (`lib/db/plan-edits.ts`) with narrow
+   update/add/delete functions over workouts and exercises; refuse to delete a
+   workout that has completion logs.
+3. Add guarded server actions (`requireTrainerAdmin`, `ActionResult`, localized
+   revalidation) with pre-write validation reusing the AI schema shapes and the
+   limitations safety-note rule.
+4. Add an editor UI on the client dashboard.
+5. Add the new copy to both message catalogs.
+
+Tests:
+
+1. AI template UI invokes `createAiTemplateAction` with an injected fake
+   generator and persists.
+2. Update/add/delete write paths persist the intended fields.
+3. Deleting a workout that has logs is rejected; a metadata edit leaves logs
+   intact.
+4. Safety-note re-validation rejects for a limited client, accepts otherwise.
+5. Each new action rejects a non-admin caller.
+6. i18n key parity for the new keys.
+7. E2E: admin edits a seeded client's live plan and the change persists.
+
+Note: the editor must respect the `ON DELETE CASCADE` on
+`workout_logs.workout_id` - deleting a workout would otherwise destroy the
+client's completion history. Batch 25 ships a user-facing feature AFTER batch 19,
+so re-run the batch-19 smoke after merging 25.
+
 ## 6. Final Submission Checklist
 
 Product:
@@ -711,7 +844,13 @@ Product:
 - [ ] Workout completion tracking works.
 - [ ] AI chat works.
 - [ ] Trainer admin area works.
+- [ ] `/[locale]/admin` is the top-level admin dashboard (admin post-login
+      landing) and links to the trainer area.
+- [ ] `/[locale]/trainer` is the trainer dashboard, reached from `/admin`, with
+      links to the client list and plan templates.
+- [ ] Client dashboard shows full plan detail, PDF export, and push status.
 - [ ] Plan management works.
+- [ ] Trainer can create a template with AI and edit a client's live plan.
 - [ ] Push notifications work or degrade clearly when unsupported.
 - [ ] PDF export works.
 - [ ] Trainer notes work.

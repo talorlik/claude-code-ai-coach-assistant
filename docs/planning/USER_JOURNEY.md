@@ -218,6 +218,85 @@ The AI chat must use the client's goal, fitness level, current workout plan, and
 known limitations/injuries as context. Chat history must be saved in Supabase so
 the trainer can review it.
 
+## 11. Admin And Trainer Journey
+
+The admin is Itai, the trainer. There are two roles only - `admin` and
+`customer` - and the admin IS the trainer. The admin journey runs in parallel to
+the client journey and shares the same auth and localization foundation.
+
+After the admin logs in (or confirms a signup link), the shared post-auth
+decision routes them to the top-level admin dashboard:
+
+```text
+/en/admin
+/he/admin
+```
+
+The admin dashboard is localized and RTL-aware. It is the admin's landing page
+and links to all admin capabilities, chiefly the trainer area. A signed-out
+visitor is sent to the localized login; a customer is blocked from every `/admin`
+and `/trainer` surface.
+
+From the admin dashboard the admin opens the trainer dashboard:
+
+```text
+/en/trainer
+/he/trainer
+```
+
+The trainer dashboard presents the client list as its primary content and links
+to the plan-template manager (and back to the admin dashboard). From it the admin
+can:
+
+```text
+See all clients with goal, join date, plan status, monthly completion %, and
+  a green/yellow/red activity indicator
+Open a client dashboard
+Open the plan-template manager
+```
+
+Opening a client dashboard shows the complete state of one client:
+
+```text
+Profile and onboarding summary
+Full current plan: workouts and exercises with sets, reps or duration, rest,
+  execution instructions, rest days, and safety notes
+Completion percentage
+Weekly progress chart
+Monthly progress chart
+Workout log with feedback and notes
+AI chat questions and answers
+Private trainer notes
+WhatsApp contact button
+PDF export of the client's plan
+Push-reminder readiness status (enabled / disabled / unavailable)
+```
+
+From the dashboard the trainer admin can act:
+
+```text
+Add or edit private trainer notes
+Contact the client through WhatsApp
+Export the plan to PDF
+Edit the client's live plan (workouts and exercises) in place, validated and
+  without destroying completion history
+Regenerate the client's plan when goals, availability, or limitations change
+```
+
+In the plan-template manager the trainer admin can:
+
+```text
+Create a template manually
+Create a template with AI
+Edit a template
+Duplicate a template
+Assign a template to a client
+```
+
+All trainer admin actions are role-gated server-side (`requireTrainerAdmin`) and
+protected by Supabase RLS, which grants the trainer admin read/write across
+client data while clients remain scoped to their own rows.
+
 ## Signup Journey Schematic
 
 ```text

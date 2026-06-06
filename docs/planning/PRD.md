@@ -124,39 +124,47 @@ The trainer admin is Itai Avivi.
 Trainer capabilities:
 
 - Log in.
-- Access trainer-only pages.
+- Land on the top-level admin dashboard at `/[locale]/admin`, which links to the
+  trainer area at `/[locale]/trainer` (client and plan management).
+- Access admin/trainer-only pages.
 - View all clients.
 - View client goals, plans, and progress.
 - Review workout logs and workout notes.
 - Review AI chat history.
+- Review per-client push-reminder readiness.
 - Open WhatsApp to contact a client.
+- Export a client's plan to PDF.
 - Add private trainer notes.
 - Create a plan manually.
 - Create a plan with AI.
-- Edit a plan.
+- Edit a plan, including a client's live assigned plan.
 - Duplicate a plan for a client.
 - Save plan templates.
 - Regenerate plans for clients.
 
 ## 7. User Roles And Permissions
 
-| Role            | Description                | Access                                    |
-| --------------- | -------------------------- | ----------------------------------------- |
-| `client`        | Regular authenticated user | Client pages and own data                 |
-| `trainer_admin` | Itai/admin user            | Trainer dashboard and all client data     |
-| Signed-out user | Visitor                    | Homepage, login, register, password reset |
+There are exactly two roles. The `admin` is the trainer (Itai); there is no
+separate trainer role.
+
+| Role            | Description                 | Access                                          |
+| --------------- | --------------------------- | ----------------------------------------------- |
+| `customer`      | Regular authenticated user  | Client pages and own data                       |
+| `admin`         | Itai, the trainer           | Admin dashboard, trainer dashboard, client data |
+| Signed-out user | Visitor                     | Homepage, login, register, password reset       |
 
 Authorization rules:
 
 1. Signed-out users must be redirected to the localized login route.
-2. Clients must not access `/en/trainer/*` or `/he/trainer/*`.
-3. Clients must only read and write their own client records, plans, logs, and
+2. Customers must not access `/en/admin/*`, `/he/admin/*`, `/en/trainer/*`, or
+   `/he/trainer/*`.
+3. Customers must only read and write their own client records, plans, logs, and
    chat messages.
-4. Trainer admin can read all client data.
-5. Trainer admin can manage plan templates and private trainer notes.
+4. The admin can read all client data.
+5. The admin can manage plan templates and private trainer notes.
 6. Role assignment must be persisted in Supabase and manually assignable.
-7. A controlled admin setup flow may assign the first trainer admin, but it must
-   not remain publicly exploitable.
+7. A controlled admin setup flow may assign the first admin, but it must not
+   remain publicly exploitable.
 
 ## 8. User Journeys
 
@@ -202,17 +210,24 @@ Authorization rules:
 ### 8.3 Trainer Admin Journey
 
 1. Itai logs in.
-2. System verifies `trainer_admin` role.
-3. Itai opens `/en/trainer` or `/he/trainer`.
+2. System verifies the `admin` role (the admin is the trainer; there are two
+   roles only, `admin` and `customer`).
+3. The post-auth decision routes Itai to the top-level admin dashboard at
+   `/en/admin` or `/he/admin`. From there Itai opens the trainer area at
+   `/en/trainer` or `/he/trainer`, which links to the client list and the
+   plan-template manager.
 4. Itai sees all clients with goals, join dates, plan status, completion
    percentage, and activity indicator.
 5. Itai opens a client dashboard.
-6. Itai reviews client profile, current plan, progress charts, logs, notes, and
-   chat history.
+6. Itai reviews client profile, the full current plan (workouts and exercises
+   with sets, reps, rest, instructions, and safety notes), progress charts, logs,
+   notes, chat history, and push-reminder status.
 7. Itai adds private notes.
 8. Itai opens WhatsApp contact link.
-9. Itai edits or regenerates a plan if needed.
-10. Itai creates or duplicates templates in plan management.
+9. Itai exports the client's plan as PDF.
+10. Itai edits the client's live plan, or regenerates it, if needed.
+11. Itai creates (manually or with AI), edits, or duplicates templates in plan
+    management.
 
 ## 9. Functional Requirements
 
@@ -232,8 +247,14 @@ The application must support locale-prefixed routes:
 - `/he/my-plan`
 - `/en/chat`
 - `/he/chat`
+- `/en/admin`
+- `/he/admin`
 - `/en/trainer`
 - `/he/trainer`
+- `/en/trainer/plans`
+- `/he/trainer/plans`
+- `/en/trainer/clients/[clientId]`
+- `/he/trainer/clients/[clientId]`
 
 Requirements:
 
@@ -248,6 +269,11 @@ Requirements:
 8. Keep navigation in the active language.
 9. Render Hebrew pages as RTL.
 10. All user-facing text must come from translation files.
+11. Every in-app URL must be locale-aware. Links and redirects use the
+    `@/i18n/navigation` `Link` / `redirect` helpers with locale-agnostic paths so
+    the active locale is preserved; route handlers and server redirects build
+    locale-prefixed targets. No raw `<a href>`, `next/link`, `next/navigation`, or
+    hardcoded `/en` / `/he` paths for in-app navigation.
 
 ### FR-002 - Theme Support
 
@@ -290,11 +316,11 @@ Requirements:
 7. Localize auth pages and errors.
 8. Redirect signed-out users to localized login.
 9. Redirect authenticated clients via a shared post-auth decision: no onboarding
-   record -> `/join`; active plan -> `/my-plan`; otherwise -> `/join`. The
-   trainer admin goes to the admin area. A safe same-site `?redirect=` target,
-   when present, takes precedence. Signup confirmation enters this decision flow;
-   password recovery does NOT - a recovery link always lands on
-   `/reset-password`.
+   record -> `/join`; active plan -> `/my-plan`; otherwise -> `/join`. The admin
+   (the trainer) goes to the top-level admin dashboard at `/admin`. A safe
+   same-site `?redirect=` target, when present, takes precedence. Signup
+   confirmation enters this decision flow; password recovery does NOT - a recovery
+   link always lands on `/reset-password`.
 10. Protect trainer routes.
 
 ### FR-005 - Client Onboarding
@@ -425,12 +451,23 @@ Safety requirements:
 3. Provide exercise alternatives when appropriate.
 4. Stay within fitness coaching scope.
 
-### FR-009 - Trainer Admin Client List
+### FR-009 - Admin Dashboard, Trainer Dashboard, And Client List
 
 Routes:
 
-- `/en/trainer`
-- `/he/trainer`
+- `/en/admin`, `/he/admin` - the top-level admin dashboard.
+- `/en/trainer`, `/he/trainer` - the trainer dashboard.
+
+`/[locale]/admin` is the top-level admin landing dashboard: it is the post-login
+destination for the admin and links to all admin capabilities, chiefly the
+trainer area. `/[locale]/trainer` is the trainer-specific dashboard, reached from
+`/admin`, where the admin manages all clients and their plans; it links to the
+client list and the plan-template manager. There are two roles only - `admin`
+(the trainer) and `customer` - so the admin and trainer dashboards are
+authorization-identical and differ only in purpose. Analytics is the client list
+itself; private notes are reached through a client dashboard; an admin settings
+surface is out of scope until a settings model is introduced, and admin-role
+assignment remains a manual database flow.
 
 The client list must show:
 
@@ -457,7 +494,9 @@ tests.
 The client dashboard must show:
 
 1. Profile summary.
-2. Current workout plan.
+2. Current workout plan in full detail: each workout and its exercises with
+   sets, repetitions or duration, rest times, execution instructions, rest days,
+   and safety notes.
 3. Completion percentage.
 4. Weekly progress chart.
 5. Monthly progress chart.
@@ -467,14 +506,22 @@ The client dashboard must show:
 9. Private trainer notes.
 10. WhatsApp contact button.
 11. Plan regeneration action.
+12. PDF export action for the client's plan.
+13. Push-reminder readiness status for the client (enabled, disabled, or
+    unavailable).
 
 ### FR-011 - Plan Management
 
 Trainer admin must be able to:
 
 1. Create a plan manually.
-2. Create a plan with AI.
-3. Edit existing plan.
+2. Create a plan with AI (from the plan manager, server-side via a mockable
+   seam).
+3. Edit an existing plan, including a client's live assigned plan: modify
+   workouts and exercises (sets, reps, duration, rest, instructions, notes,
+   safety notes), add and remove exercises, and edit workout metadata. Edits are
+   validated before write and must not destroy completion history (a workout with
+   logged sessions cannot be hard-deleted).
 4. Duplicate a plan for another client.
 5. Save plan templates in a library.
 6. Edit templates.
@@ -494,6 +541,8 @@ Requirements:
 5. Handle unsupported browsers gracefully.
 6. Include tests for subscription helper logic.
 7. Do not send sensitive medical or injury text in push notification body.
+8. Surface per-client reminder readiness (enabled, disabled, or unavailable) to
+   the trainer admin on the client dashboard.
 
 ### FR-013 - PDF Export
 
@@ -688,8 +737,12 @@ The product is acceptable when:
 10. Current plan can be reloaded without regenerating.
 11. Workout completion creates a log.
 12. Client chat persists messages.
-13. Trainer dashboard shows client progress and chat history.
-14. Plan templates can be created, edited, duplicated, and assigned.
+13. Trainer dashboard shows client progress, full plan detail, chat history, PDF
+    export, and push-reminder status.
+14. The admin lands on `/[locale]/admin` (the top-level dashboard), which links to
+    the trainer area at `/[locale]/trainer`.
+15. Plan templates can be created (manually or with AI), edited, duplicated, and
+    assigned; a client's live plan can be edited in place without losing logs.
 15. Push notifications are implemented or browser capability is handled clearly.
 16. PDF export works for a saved plan.
 17. English and Hebrew translations are complete for user-facing text.

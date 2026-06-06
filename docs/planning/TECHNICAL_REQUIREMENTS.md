@@ -107,6 +107,8 @@ app/
           page.tsx
       plans/
         page.tsx
+    admin/
+      page.tsx
   api/
     ai/
       workout-plan/
@@ -159,6 +161,7 @@ lib/
     chat-messages.ts
     trainer-notes.ts
     plan-templates.ts
+    plan-edits.ts
   locale/
     direction.ts
     parsing.ts
@@ -329,7 +332,9 @@ resolvePostAuthDestination(userId: string): Promise<string>
 Decision order (returns a locale-agnostic in-app path; the caller applies the
 active locale):
 
-1. Trainer admin (`isAdmin(userId)`) -> `/admin`.
+1. Admin (`isAdmin(userId)`) -> `/admin` (the top-level admin dashboard, which
+   links to the trainer area at `/trainer`). The admin is the trainer; there are
+   two roles only, `admin` and `customer`.
 2. No onboarding record (`getClient(userId)` is `null`) -> `/join`.
 3. Active plan exists (`getActivePlanDetail(userId)` is non-null) -> `/my-plan`.
 4. Onboarded but no active plan -> `/join`.
