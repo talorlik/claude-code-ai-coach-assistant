@@ -86,7 +86,7 @@ export async function saveOnboarding(
       phone: data.phone || null,
       age: data.age,
       ageRange: data.ageRange,
-      goal: data.goal,
+      goals: data.goals,
       fitnessLevel: data.fitnessLevel,
       limitations: data.limitations,
       availableDays: data.availableDays,

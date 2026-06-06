@@ -124,7 +124,10 @@ export default async function TrainerClientDashboardPage({
 
   // Profile fields, in display order; empty values fall back to "not provided".
   const profileFields: ProfileField[] = [
-    { labelKey: "goal", value: client.goal },
+    {
+      labelKey: "goal",
+      value: client.goals.length ? client.goals.join(", ") : null,
+    },
     { labelKey: "fitnessLevel", value: client.fitnessLevel },
     { labelKey: "age", value: client.age != null ? String(client.age) : null },
     {

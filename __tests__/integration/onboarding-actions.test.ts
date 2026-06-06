@@ -101,7 +101,7 @@ function valid(overrides: Partial<OnboardingInput> = {}): OnboardingInput {
     fullName: "Dana Levi",
     phone: "050-123-4567",
     age: "32",
-    goal: "build_muscle",
+    goals: ["build_muscle"],
     fitnessLevel: "intermediate",
     availableDays: ["monday", "wednesday", "friday"],
     preferredLocation: "gym",
@@ -126,14 +126,14 @@ describe("saveOnboarding", () => {
       // Generation is mocked to succeed, so a plan is reported generated.
       expect(result.data.planGenerated).toBe(true)
       expect(result.data.client.userId).toBe("user-1")
-      expect(result.data.client.goal).toBe("build_muscle")
+      expect(result.data.client.goals).toEqual(["build_muscle"])
     }
     expect(upsertedRow).toMatchObject({
       user_id: "user-1",
       full_name: "Dana Levi",
       phone: "0501234567",
       age: 32,
-      goal: "build_muscle",
+      goals: ["build_muscle"],
       fitness_level: "intermediate",
       available_days: ["monday", "wednesday", "friday"],
       preferred_location: "gym",
@@ -147,7 +147,7 @@ describe("saveOnboarding", () => {
     // Simulate a returning client changing their goal, level, and schedule.
     const result = await saveOnboarding(
       valid({
-        goal: "lose_weight",
+        goals: ["lose_weight"],
         fitnessLevel: "advanced",
         availableDays: ["tuesday", "thursday"],
         equipment: [],
@@ -158,7 +158,7 @@ describe("saveOnboarding", () => {
     expect(result.ok).toBe(true)
     expect(upsertedRow).toMatchObject({
       user_id: "user-1",
-      goal: "lose_weight",
+      goals: ["lose_weight"],
       fitness_level: "advanced",
       available_days: ["tuesday", "thursday"],
       equipment: [],

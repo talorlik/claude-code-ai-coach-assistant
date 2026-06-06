@@ -260,7 +260,7 @@ function templateClientContext(input: {
     phone: null,
     age: null,
     ageRange: null,
-    goal: input.goal,
+    goals: input.goal ? [input.goal] : [],
     fitnessLevel: input.fitnessLevel,
     limitations: null,
     availableDays: [],

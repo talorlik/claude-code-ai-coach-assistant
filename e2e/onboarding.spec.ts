@@ -61,8 +61,14 @@ async function completeOnboarding(
   await page.locator('input[name="age"]').fill("30")
   await page.getByRole("button", { name: /next|הבא/i }).click()
 
-  // Step 2: goal, level, location (native selects).
-  await page.locator('select[name="goal"]').selectOption("build_muscle")
+  // Step 2: goal (multi-select popover), level + location (native selects).
+  // Open the goal popover (trigger shows the "Select…" placeholder when empty).
+  await page.getByRole("button", { name: /select|בחר/i }).first().click()
+  // Tick a goal by its row checkbox, then close the popover.
+  await page
+    .getByRole("checkbox", { name: /build muscle|בניית שריר/i })
+    .click()
+  await page.keyboard.press("Escape")
   await page
     .locator('select[name="fitnessLevel"]')
     .selectOption("intermediate")

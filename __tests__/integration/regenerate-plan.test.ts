@@ -70,7 +70,7 @@ function clientModel() {
     phone: null,
     age: null,
     ageRange: null,
-    goal: "strength",
+    goals: ["strength"],
     fitnessLevel: "intermediate",
     limitations: null,
     availableDays: ["monday"],

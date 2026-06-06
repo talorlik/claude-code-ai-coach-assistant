@@ -65,7 +65,7 @@ function clientRow(id: string, name: string) {
     phone: null,
     age: null,
     age_range: null,
-    goal: "strength",
+    goals: ["strength"],
     fitness_level: "intermediate",
     limitations: null,
     available_days: [],

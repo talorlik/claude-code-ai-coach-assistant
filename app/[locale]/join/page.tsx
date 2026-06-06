@@ -48,7 +48,7 @@ export default async function JoinPage({
         phone: existing.phone ?? "",
         age: existing.age != null ? String(existing.age) : "",
         ageRange: existing.ageRange ?? "",
-        goal: existing.goal ?? "",
+        goals: existing.goals ?? [],
         fitnessLevel: existing.fitnessLevel ?? "",
         limitations: existing.limitations ?? "",
         availableDays: existing.availableDays,

@@ -11,7 +11,7 @@ import { normalizePhone } from "@/lib/auth/validation"
  * batches (AI plan generation) can branch on them without re-parsing free text.
  */
 
-/** Training goals a client can pick exactly one of. */
+/** Training goals a client may select one or more of. */
 export const GOALS = [
   "lose_weight",
   "build_muscle",
@@ -81,7 +81,7 @@ export interface OnboardingInput {
   phone?: string
   age?: string | number | null
   ageRange?: string | null
-  goal?: string | null
+  goals?: string[]
   fitnessLevel?: string | null
   limitations?: string | null
   availableDays?: string[]
@@ -100,7 +100,7 @@ export interface ValidatedOnboarding {
   phone: string
   age: number | null
   ageRange: AgeRange | null
-  goal: Goal
+  goals: Goal[]
   fitnessLevel: FitnessLevel
   limitations: string | null
   availableDays: WorkoutDay[]
@@ -130,7 +130,8 @@ function isMember<T extends readonly string[]>(
  * - `fullName` is required, 2-120 characters after trimming.
  * - At least one of `age` (a number in 13-100) or `ageRange` (a known bracket)
  *   must be present; both may be supplied.
- * - `goal` and `fitnessLevel` are required and must be known values.
+ * - `fitnessLevel` is required and must be a known value.
+ * - `goals` must contain at least one known goal; unknown or duplicate goals are rejected.
  * - `availableDays` must contain at least one known weekday; unknown or
  *   duplicate days are rejected.
  * - `preferredLocation` is required and must be a known location.
@@ -181,13 +182,17 @@ export function validateOnboarding(
     fieldErrors.age = "required"
   }
 
-  let goal: Goal | null = null
-  if (!input.goal) {
-    fieldErrors.goal = "required"
-  } else if (isMember(GOALS, input.goal)) {
-    goal = input.goal
+  const rawGoals = input.goals ?? []
+  let goals: Goal[] = []
+  if (rawGoals.length === 0) {
+    fieldErrors.goals = "required"
+  } else if (
+    rawGoals.some((g) => !isMember(GOALS, g)) ||
+    new Set(rawGoals).size !== rawGoals.length
+  ) {
+    fieldErrors.goals = "invalid"
   } else {
-    fieldErrors.goal = "invalid"
+    goals = rawGoals as Goal[]
   }
 
   let fitnessLevel: FitnessLevel | null = null
@@ -252,7 +257,7 @@ export function validateOnboarding(
     ageRange,
     // Non-null assertions are safe: a failing check would have populated
     // fieldErrors and returned above before reaching here.
-    goal: goal!,
+    goals,
     fitnessLevel: fitnessLevel!,
     limitations,
     availableDays,

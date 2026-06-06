@@ -81,7 +81,7 @@ export default async function TrainerPage({
       return {
         userId: client.userId,
         fullName: client.fullName,
-        goal: client.goal,
+        goals: client.goals,
         joinDate: client.onboardedAt ?? client.createdAt,
         joinDateLabel: format.dateTime(
           new Date(client.onboardedAt ?? client.createdAt),

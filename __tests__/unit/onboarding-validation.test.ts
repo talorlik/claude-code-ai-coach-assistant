@@ -18,7 +18,7 @@ function valid(overrides: Partial<OnboardingInput> = {}): OnboardingInput {
     fullName: "Dana Levi",
     phone: "050-123-4567",
     age: "32",
-    goal: "build_muscle",
+    goals: ["build_muscle"],
     fitnessLevel: "intermediate",
     availableDays: ["monday", "wednesday", "friday"],
     preferredLocation: "gym",
@@ -36,7 +36,7 @@ describe("validateOnboarding - required fields", () => {
     if (result.ok) {
       expect(result.data.fullName).toBe("Dana Levi")
       expect(result.data.phone).toBe("0501234567")
-      expect(result.data.goal).toBe("build_muscle")
+      expect(result.data.goals).toEqual(["build_muscle"])
       expect(result.data.fitnessLevel).toBe("intermediate")
       expect(result.data.preferredLocation).toBe("gym")
     }
@@ -48,16 +48,39 @@ describe("validateOnboarding - required fields", () => {
     if (!result.ok) expect(result.fieldErrors?.fullName).toBe("invalid")
   })
 
-  it("rejects a missing goal", () => {
-    const result = validateOnboarding(valid({ goal: "" }))
-    expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.fieldErrors?.goal).toBe("required")
+  it("accepts a single goal", () => {
+    const result = validateOnboarding(valid({ goals: ["build_muscle"] }))
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.data.goals).toEqual(["build_muscle"])
   })
 
-  it("rejects an unknown goal value", () => {
-    const result = validateOnboarding(valid({ goal: "become_a_wizard" }))
+  it("accepts multiple goals", () => {
+    const result = validateOnboarding(
+      valid({ goals: ["lose_weight", "build_muscle"] })
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok)
+      expect(result.data.goals).toEqual(["lose_weight", "build_muscle"])
+  })
+
+  it("requires at least one goal", () => {
+    const result = validateOnboarding(valid({ goals: [] }))
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.fieldErrors?.goal).toBe("invalid")
+    if (!result.ok) expect(result.fieldErrors?.goals).toBe("required")
+  })
+
+  it("rejects an unknown goal", () => {
+    const result = validateOnboarding(valid({ goals: ["become_a_wizard"] }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.goals).toBe("invalid")
+  })
+
+  it("rejects duplicate goals", () => {
+    const result = validateOnboarding(
+      valid({ goals: ["build_muscle", "build_muscle"] })
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.goals).toBe("invalid")
   })
 
   it("rejects a missing fitness level", () => {

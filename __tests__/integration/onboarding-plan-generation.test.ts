@@ -68,7 +68,7 @@ function validInput(overrides: Partial<OnboardingInput> = {}): OnboardingInput {
     fullName: "Dana Levi",
     phone: "050-123-4567",
     age: "32",
-    goal: "build_muscle",
+    goals: ["build_muscle"],
     fitnessLevel: "intermediate",
     availableDays: ["monday", "wednesday", "friday"],
     preferredLocation: "gym",

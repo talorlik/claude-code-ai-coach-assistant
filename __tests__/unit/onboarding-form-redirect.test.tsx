@@ -38,7 +38,7 @@ function renderForm() {
     fullName: "Dana Cohen",
     age: "30",
     ageRange: "26-35",
-    goal: "muscle",
+    goals: ["build_muscle"],
     fitnessLevel: "beginner",
     preferredLocation: "gym",
     availableDays: ["mon", "wed", "fri"],

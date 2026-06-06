@@ -31,9 +31,9 @@ describe("toClientUpsertRow", () => {
     })
   })
 
-  it("omits undefined fields so partial updates do not clobber columns", () => {
-    const row = toClientUpsertRow({ userId: "user-1", goal: "strength" })
-    expect(row).toEqual({ user_id: "user-1", goal: "strength" })
+  it("maps goals to the goals column", () => {
+    const row = toClientUpsertRow({ userId: "user-1", goals: ["strength"] })
+    expect(row).toEqual({ user_id: "user-1", goals: ["strength"] })
     expect("phone" in row).toBe(false)
     expect("equipment" in row).toBe(false)
   })
@@ -51,7 +51,7 @@ describe("fromClientRow", () => {
     phone: "0501234567",
     age: 34,
     age_range: "30-39",
-    goal: "strength",
+    goals: ["strength"],
     fitness_level: "intermediate",
     limitations: null,
     available_days: ["mon", "wed"],
@@ -71,7 +71,7 @@ describe("fromClientRow", () => {
       phone: "0501234567",
       age: 34,
       ageRange: "30-39",
-      goal: "strength",
+      goals: ["strength"],
       fitnessLevel: "intermediate",
       limitations: null,
       availableDays: ["mon", "wed"],

@@ -82,6 +82,7 @@
     "hints": {
       "phone": "Used by your coach to reach you on WhatsApp.",
       "age": "Enter your age, or choose a range below.",
+      "goal": "You can choose more than one goal.",
       "days": "Pick at least one day.",
       "equipment": "Choose all that apply, or leave blank.",
       "limitations": "Tell us about any injuries we should plan around.",
@@ -153,9 +154,9 @@
       "ageRange": {
         "invalid": "Choose a valid age range."
       },
-      "goal": {
-        "required": "Choose your main goal.",
-        "invalid": "Choose a valid goal."
+      "goals": {
+        "required": "Choose at least one goal.",
+        "invalid": "Choose valid goals."
       },
       "fitnessLevel": {
         "required": "Choose your fitness level.",

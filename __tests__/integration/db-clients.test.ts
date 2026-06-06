@@ -72,7 +72,7 @@ const clientRow = {
   phone: "0501234567",
   age: 34,
   age_range: "30-39",
-  goal: "strength",
+  goals: ["strength"],
   fitness_level: "intermediate",
   limitations: null,
   available_days: ["mon"],

@@ -21,7 +21,7 @@ function client(overrides: Partial<Client> = {}): Client {
     phone: "0501234567",
     age: 32,
     ageRange: null,
-    goal: "build_muscle",
+    goals: ["build_muscle", "lose_weight"],
     fitnessLevel: "intermediate",
     limitations: null,
     availableDays: ["monday", "wednesday", "friday"],
@@ -54,7 +54,7 @@ describe("PLAN_SYSTEM_PROMPT", () => {
 describe("buildPlanUserPrompt", () => {
   it("includes goal, fitness level, days, location, and equipment", () => {
     const prompt = buildPlanUserPrompt(client(), "en-US")
-    expect(prompt).toContain("build_muscle")
+    expect(prompt).toContain("Goal: build_muscle, lose_weight")
     expect(prompt).toContain("intermediate")
     expect(prompt).toContain("monday, wednesday, friday")
     expect(prompt).toContain("gym")

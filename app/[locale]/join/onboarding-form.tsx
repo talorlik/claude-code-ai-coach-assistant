@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
-import { CheckCircle2, TriangleAlert } from "lucide-react"
+import { CheckCircle2, Info, TriangleAlert } from "lucide-react"
 
 import { useRouter } from "@/i18n/navigation"
 import { saveOnboarding } from "@/lib/onboarding/onboarding-actions"
@@ -22,7 +22,18 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Progress } from "@/components/ui/progress"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Textarea } from "@/components/ui/textarea"
 
 /** Initial values used to prefill the form when a client re-onboards. */
@@ -31,7 +42,7 @@ export interface OnboardingDefaults {
   phone: string
   age: string
   ageRange: string
-  goal: string
+  goals: string[]
   fitnessLevel: string
   limitations: string
   availableDays: string[]
@@ -46,7 +57,7 @@ export const EMPTY_DEFAULTS: OnboardingDefaults = {
   phone: "",
   age: "",
   ageRange: "",
-  goal: "",
+  goals: [],
   fitnessLevel: "",
   limitations: "",
   availableDays: [],
@@ -134,7 +145,7 @@ export function OnboardingForm({
         phone: values.phone,
         age: values.age,
         ageRange: values.ageRange,
-        goal: values.goal,
+        goals: values.goals,
         fitnessLevel: values.fitnessLevel,
         limitations: values.limitations,
         availableDays: values.availableDays,
@@ -371,24 +382,67 @@ function StepAboutYou({ t, values, set, fieldError }: StepProps) {
 
 /** Step 2: goal, level, location. */
 function StepTraining({ t, values, set, fieldError }: StepProps) {
+  const goalError = fieldError("goals")
   return (
     <div className="flex flex-col gap-5">
-      <Field label={t("fields.goal")} error={fieldError("goal")}>
-        <NativeSelect
-          className="w-full"
-          name="goal"
-          value={values.goal}
-          onChange={(e) => set("goal", e.target.value)}
-        >
-          <NativeSelectOption value="">
-            {t("options.unselected")}
-          </NativeSelectOption>
-          {GOALS.map((g) => (
-            <NativeSelectOption key={g} value={g}>
-              {t(`options.goal.${g}`)}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
+      <Field
+        label={t("fields.goal")}
+        error={goalError}
+        labelAdornment={
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    aria-label={t("hints.goal")}
+                    className="inline-flex text-muted-foreground"
+                  />
+                }
+              >
+                <Info className="size-4" aria-hidden="true" />
+              </TooltipTrigger>
+              <TooltipContent>{t("hints.goal")}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        }
+      >
+        <Popover>
+          <PopoverTrigger
+            render={
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-between font-normal"
+                aria-invalid={goalError ? true : undefined}
+              />
+            }
+          >
+            <span
+              className={
+                values.goals.length === 0 ? "text-muted-foreground" : undefined
+              }
+            >
+              {values.goals.length === 0
+                ? t("options.unselected")
+                : values.goals
+                    .map((g) => t(`options.goal.${g}` as MessageKey))
+                    .join(", ")}
+            </span>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-(--anchor-width)">
+            <div className="flex flex-col gap-2">
+              {GOALS.map((g) => (
+                <CheckboxRow
+                  key={g}
+                  label={t(`options.goal.${g}`)}
+                  checked={values.goals.includes(g)}
+                  onToggle={() => set("goals", toggle(values.goals, g))}
+                />
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
       </Field>
 
       <Field
@@ -520,16 +574,21 @@ function Field({
   label,
   hint,
   error,
+  labelAdornment,
   children,
 }: {
   label: string
   hint?: string
   error?: string | null
+  labelAdornment?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
     <div className="grid gap-2">
-      <Label>{label}</Label>
+      <div className="flex items-center gap-1.5">
+        <Label>{label}</Label>
+        {labelAdornment}
+      </div>
       {children}
       {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
       {error ? (
@@ -572,7 +631,7 @@ function stepOfFirstError(
     phone: 0,
     age: 0,
     ageRange: 0,
-    goal: 1,
+    goals: 1,
     fitnessLevel: 1,
     preferredLocation: 1,
     availableDays: 2,

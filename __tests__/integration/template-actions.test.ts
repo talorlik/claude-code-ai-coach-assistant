@@ -103,7 +103,7 @@ function clientModel(limitations: string | null) {
     phone: null,
     age: null,
     ageRange: null,
-    goal: null,
+    goals: [],
     fitnessLevel: null,
     limitations,
     availableDays: [],

@@ -26,8 +26,8 @@ export interface TrainerClientRow {
   userId: string
   /** Display name, or `null` if onboarding did not capture one. */
   fullName: string | null
-  /** The client's primary goal, or `null`. */
-  goal: string | null
+  /** The client's selected goals. */
+  goals: string[]
   /** ISO timestamp used as the sortable/raw join date. */
   joinDate: string
   /** Locale-formatted join date for display. */
@@ -62,7 +62,8 @@ const DOT_CLASS: Record<ActivityColor, string> = {
 export function TrainerClients({ rows }: { rows: TrainerClientRow[] }) {
   const t = useTranslations("TrainerClients")
 
-  const goalLabel = (goal: string | null) => goal ?? t("noGoal")
+  const goalLabel = (goals: string[]) =>
+    goals.length > 0 ? goals.join(", ") : t("noGoal")
   const planLabel = (hasActivePlan: boolean) =>
     hasActivePlan ? t("plan.active") : t("plan.none")
   const activityLabel = (level: ActivityLevel) => t(`activity.${level}`)
@@ -94,7 +95,7 @@ export function TrainerClients({ rows }: { rows: TrainerClientRow[] }) {
                   </Link>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {goalLabel(row.goal)}
+                  {goalLabel(row.goals)}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {row.joinDateLabel}
@@ -149,7 +150,7 @@ export function TrainerClients({ rows }: { rows: TrainerClientRow[] }) {
               <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <dt className="text-muted-foreground">{t("columns.goal")}</dt>
-                  <dd>{goalLabel(row.goal)}</dd>
+                  <dd>{goalLabel(row.goals)}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">

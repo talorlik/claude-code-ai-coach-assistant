@@ -24,7 +24,7 @@ function client(overrides: Partial<Client> = {}): Client {
     phone: null,
     age: 32,
     ageRange: null,
-    goal: "build_muscle",
+    goals: ["build_muscle"],
     fitnessLevel: "intermediate",
     limitations: null,
     availableDays: ["monday", "wednesday"],

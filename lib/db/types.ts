@@ -32,7 +32,7 @@ export interface ClientRow {
   phone: string | null
   age: number | null
   age_range: string | null
-  goal: string | null
+  goals: string[] | null
   fitness_level: string | null
   limitations: string | null
   available_days: string[]

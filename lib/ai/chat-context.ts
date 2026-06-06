@@ -85,7 +85,7 @@ function describeClient(client: Client | null): string[] {
         : "not provided"
 
   return [
-    `- Goal: ${client.goal ?? "general_fitness"}`,
+    `- Goal: ${list(client.goals, "general_fitness")}`,
     `- Fitness level: ${client.fitnessLevel ?? "beginner"}`,
     `- Age: ${age}`,
     `- Available training days: ${list(client.availableDays, "not specified")}`,

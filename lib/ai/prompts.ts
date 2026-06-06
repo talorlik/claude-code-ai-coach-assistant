@@ -76,7 +76,7 @@ export function buildPlanUserPrompt(
     `Generate a personalized workout plan in ${language}.`,
     "",
     "Client profile:",
-    `- Goal: ${client.goal ?? "general_fitness"}`,
+    `- Goal: ${list(client.goals, "general_fitness")}`,
     `- Fitness level: ${client.fitnessLevel ?? "beginner"}`,
     `- Age: ${age}`,
     `- Available training days: ${list(client.availableDays, "not specified")}`,
