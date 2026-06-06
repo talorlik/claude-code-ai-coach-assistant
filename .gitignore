@@ -50,3 +50,6 @@ context-practice-files/
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# Claude Code transient runtime artifacts (commands/skills/settings stay tracked)
+.claude/scheduled_tasks.lock
