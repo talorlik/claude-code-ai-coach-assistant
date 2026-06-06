@@ -536,5 +536,14 @@
     "accountTitle": "Your account",
     "accountDescription": "Update your profile and account details.",
     "accountCta": "Go to account"
+  },
+  "TrainerHub": {
+    "title": "Trainer dashboard",
+    "subtitle": "Your hub for managing every client and their workout plans. Jump into your client list or build and assign plan templates.",
+    "clientsTitle": "Client list",
+    "clientsDescription": "Review every client, their active plan, and how they're tracking this month.",
+    "plansTitle": "Plan templates",
+    "plansDescription": "Create and manage reusable workout plan templates to assign to your clients.",
+    "backToAdmin": "Back to admin dashboard"
   }
 }

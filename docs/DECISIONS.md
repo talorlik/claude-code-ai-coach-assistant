@@ -1072,3 +1072,46 @@ locale-prefix contract under test) instead. (2) Playwright's dev server needs
 `.env.local` (Supabase URL/key); it is gitignored so it is NOT carried into a
 fresh worktree - copy it from the primary checkout before `npx playwright test`
 or the web server crashes on boot in `proxy.ts -> updateSession`.
+
+### 2026-06-06 - Batch 23 - Trainer Dashboard Hub (Additive; Page H1 Moved To The Hub Header)
+
+Batch 23 turned `/[locale]/trainer` from a bare client-list page into the
+trainer-specific dashboard reached from `/admin`. Net new work: a localized
+dashboard header (with a back-to-admin link to `/admin`), a two-card navigation
+region (client-list overview + plan-template manager at `/trainer/plans`), the
+`TrainerHub` i18n namespace in both catalogs, and tests. The existing client list
+stays as the page's primary content, wrapped in a `<section id="trainer-clients">`
+so the "client list" card can anchor to it on the same page.
+
+Key decisions:
+
+1. **Task 2 was a no-op confirmation.** Batch 22's `/admin` trainer card already
+   targets the locale-agnostic `/trainer` via the locale-aware `Link`; no label or
+   target change was needed for the two-level hub to be navigable both ways.
+2. **The client-list header demoted from `<h1>` to `<h2>`.** The hub title
+   (`TrainerHub.title`) is now the page's single `<h1>`; the `TrainerClients.title`
+   ("Clients") became the list section's `<h2>`. The existing trainer e2e asserts
+   `getByRole("heading", { name: /clients/i })` with no level, so it still matches.
+   A future test that pins the trainer page `<h1>` should expect the hub title, not
+   "Clients".
+3. **Client-list nav card links to `/trainer#trainer-clients`** (an in-page anchor
+   to the list section), not a separate route - per the prompt, analytics IS the
+   existing client list, so no separate analytics page. No standalone notes link
+   (notes are per-client, reached through a client dashboard).
+4. **Single guard preserved.** No `/trainer/layout.tsx` was added; the per-page
+   `requireTrainerAdmin()` remains the sole authorization point.
+
+Tests: `__tests__/unit/trainer-hub.test.tsx` (render en/he, all three links
+locale-prefixed, no raw anchor without the locale prefix - mocks
+`requireTrainerAdmin`, `listClientsWithActivity` -> `[]`, and `getFormatter`),
+`__tests__/unit/trainer-hub-i18n.test.ts` (TrainerHub key parity + translated),
+and an extension to `e2e/trainer.spec.ts` (creds-gated `/admin` -> `/trainer` ->
+`/trainer/plans` with the locale preserved at every hop, in both `/en` and `/he`).
+
+**Why:** recorded so the next reader knows the trainer page is now a hub whose
+`<h1>` is the dashboard title (not "Clients"), and that batch 22's nav/post-auth
+wiring was deliberately left untouched. The `.env.local`-into-the-worktree step
+recurred exactly as the batch-22 entry warned: the first `npx playwright test`
+exited 0 but ran zero tests (webServer timed out on the missing Supabase env);
+copying `.env.local` + `.env.vapid.local` from the primary checkout fixed it
+(both gitignored, so they never reach the commit).

@@ -99,6 +99,42 @@ test.describe("admin landing dashboard (admin)", () => {
   })
 })
 
+test.describe("trainer dashboard hub navigation (admin)", () => {
+  test.skip(
+    !adminCredentials.email || !adminCredentials.password,
+    "E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set"
+  )
+
+  for (const locale of ["en", "he"] as const) {
+    test(`an admin navigates /admin -> /trainer -> /trainer/plans preserving the ${locale} locale`, async ({
+      page,
+    }) => {
+      await signIn(page, adminCredentials.email!, adminCredentials.password!)
+
+      // Hop 1: the admin dashboard's trainer-area card lands on /trainer.
+      await page.goto(`/${locale}/admin`)
+      await expect(page).toHaveURL(new RegExp(`/${locale}/admin`))
+      const trainerLink = page.locator(`a[href="/${locale}/trainer"]`).first()
+      await expect(trainerLink).toBeVisible({ timeout: 15_000 })
+      await trainerLink.click()
+      await expect(page).toHaveURL(new RegExp(`/${locale}/trainer(\\b|$)`), {
+        timeout: 15_000,
+      })
+
+      // Hop 2: the trainer dashboard's plan-templates card lands on
+      // /trainer/plans, keeping the active locale (no drop to the default).
+      const plansLink = page
+        .locator(`a[href="/${locale}/trainer/plans"]`)
+        .first()
+      await expect(plansLink).toBeVisible({ timeout: 15_000 })
+      await plansLink.click()
+      await expect(page).toHaveURL(new RegExp(`/${locale}/trainer/plans`), {
+        timeout: 15_000,
+      })
+    })
+  }
+})
+
 test.describe("trainer list (customer blocked)", () => {
   test.skip(
     !customerCredentials.email || !customerCredentials.password,
