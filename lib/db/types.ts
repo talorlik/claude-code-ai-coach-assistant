@@ -30,6 +30,7 @@ export interface ClientRow {
   user_id: string
   full_name: string | null
   phone: string | null
+  country_iso2: string | null
   age: number | null
   age_range: string | null
   goals: string[] | null

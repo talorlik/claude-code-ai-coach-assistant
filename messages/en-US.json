@@ -90,6 +90,12 @@
       "limitations": "Tell us about any injuries we should plan around.",
       "notes": "Preferences, dislikes, or goals beyond the basics."
     },
+    "placeholders": {
+      "countrySearch": "Search country or code…"
+    },
+    "empty": {
+      "countrySearch": "No matching country"
+    },
     "options": {
       "unselected": "Select…",
       "goal": {
@@ -150,6 +156,10 @@
       "phone": {
         "required": "Enter your phone number.",
         "invalid": "Enter a valid phone number, including country code."
+      },
+      "countryIso2": {
+        "required": "Choose a country.",
+        "invalid": "Choose a valid country."
       },
       "age": {
         "required": "Enter your age or choose an age range.",

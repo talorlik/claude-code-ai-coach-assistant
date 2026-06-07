@@ -19,6 +19,7 @@ function client(overrides: Partial<Client> = {}): Client {
     userId: "user-1",
     fullName: "Dana Levi",
     phone: "0501234567",
+    countryIso2: null,
     age: 32,
     ageRange: null,
     goals: ["build_muscle", "lose_weight"],

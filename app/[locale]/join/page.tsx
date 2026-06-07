@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { requireClient } from "@/lib/auth/require-user"
 import { getClient } from "@/lib/db/clients"
+import { splitE164 } from "@/lib/phone/phone"
 import type { Locale } from "@/i18n/routing"
 import {
   EMPTY_DEFAULTS,
@@ -42,10 +43,16 @@ export default async function JoinPage({
   const userId = await requireClient()
 
   const existing = await getClient(userId)
+  // The stored phone is full E.164; split it back into the national number and
+  // country so the form's separate phone and country fields prefill correctly.
+  const split = existing
+    ? splitE164(existing.phone ?? "", existing.countryIso2 ?? null)
+    : null
   const defaults: OnboardingDefaults = existing
     ? {
         fullName: existing.fullName ?? "",
-        phone: existing.phone ?? "",
+        phone: split!.national,
+        countryIso2: split!.country.iso2,
         age: existing.age != null ? String(existing.age) : "",
         ageRange: existing.ageRange ?? "",
         goals: existing.goals ?? [],

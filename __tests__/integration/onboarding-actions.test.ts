@@ -81,6 +81,7 @@ function valid(overrides: Partial<OnboardingInput> = {}): OnboardingInput {
   return {
     fullName: "Dana Levi",
     phone: "+972541234567",
+    countryIso2: "IL",
     age: "32",
     goals: ["build_muscle"],
     fitnessLevel: "intermediate",
@@ -112,6 +113,7 @@ describe("saveOnboardingDetails", () => {
       user_id: "user-1",
       full_name: "Dana Levi",
       phone: "+972541234567",
+      country_iso2: "IL",
       age: 32,
       goals: ["build_muscle"],
       fitness_level: "intermediate",
@@ -183,6 +185,7 @@ describe("saveOnboardingStep", () => {
     const result = await saveOnboardingStep(0, {
       fullName: "Dana Levi",
       phone: "+972541234567",
+      countryIso2: "IL",
       age: "32",
       ageRange: "",
     })
@@ -200,6 +203,16 @@ describe("saveOnboardingStep", () => {
     // A partial save must not look like a completed onboarding.
     expect(upsertedRow).not.toHaveProperty("onboarded_at")
     expect(generateCalled).toBe(false)
+  })
+
+  it("persists country_iso2 on the step-0 save", async () => {
+    const result = await saveOnboardingStep(0, valid())
+    expect(result.ok).toBe(true)
+    expect(upsertedRow).toMatchObject({
+      user_id: "user-1",
+      phone: "+972541234567",
+      country_iso2: "IL",
+    })
   })
 
   it("writes only step 1 columns", async () => {

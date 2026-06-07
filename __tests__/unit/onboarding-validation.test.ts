@@ -18,6 +18,7 @@ function valid(overrides: Partial<OnboardingInput> = {}): OnboardingInput {
   return {
     fullName: "Dana Levi",
     phone: "+972541234567",
+    countryIso2: "IL",
     age: "32",
     goals: ["build_muscle"],
     fitnessLevel: "intermediate",
@@ -284,15 +285,18 @@ describe("validateOnboarding - phone (required, E.164)", () => {
     if (result.ok) expect(result.data.phone).toBe("+972541234567")
   })
 
-  it("accepts a number without a plus that starts with a non-zero digit", () => {
+  it("rejects a number without a leading plus (selector always prepends one)", () => {
+    // PHONE_RE now requires a leading "+"; the selector always supplies the
+    // dial code, so a bare national-style number is not valid E.164.
     const result = validateOnboarding(valid({ phone: "972 54-123-4567" }))
-    expect(result.ok).toBe(true)
-    if (result.ok) expect(result.data.phone).toBe("972541234567")
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.phone).toBe("invalid")
   })
 
   it("rejects a number with a leading zero (not E.164)", () => {
-    // ^\+?[1-9]\d{1,14}$ forbids a 0 in the first significant position, so a
-    // local-format number like 054-... must be entered in its +country form.
+    // ^\+[1-9]\d{7,14}$ requires a leading "+" and forbids a 0 in the first
+    // significant position, so a local-format number like 054-... must be
+    // entered in its +country form.
     const local = validateOnboarding(valid({ phone: "054-123-4567" }))
     const plusZero = validateOnboarding(valid({ phone: "+0123456789" }))
     expect(local.ok).toBe(false)
@@ -320,6 +324,7 @@ describe("validateOnboardingStep", () => {
     const errs = validateOnboardingStep(0, {
       fullName: "Dana Levi",
       phone: "+972541234567",
+      countryIso2: "IL",
       age: "32",
       goals: [],
       availableDays: [],
@@ -357,5 +362,47 @@ describe("validateOnboardingStep", () => {
     } as OnboardingInput)
     expect(errs.availableDays).toBe("required")
     expect(errs.fullName).toBeUndefined()
+  })
+})
+
+describe("validateOnboarding - phone and country", () => {
+  it("accepts a valid E.164 phone with a known country", () => {
+    const result = validateOnboarding(
+      valid({ phone: "+972541234567", countryIso2: "IL" })
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.data.phone).toBe("+972541234567")
+      expect(result.data.countryIso2).toBe("IL")
+    }
+  })
+
+  it("rejects an empty phone as required", () => {
+    const result = validateOnboarding(valid({ phone: "", countryIso2: "IL" }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.phone).toBe("required")
+  })
+
+  it("rejects a malformed phone as invalid", () => {
+    const result = validateOnboarding(
+      valid({ phone: "+12", countryIso2: "US" })
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.phone).toBe("invalid")
+  })
+
+  it("rejects an unknown country code as invalid", () => {
+    const result = validateOnboarding(
+      valid({ phone: "+972541234567", countryIso2: "ZZ" })
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.countryIso2).toBe("invalid")
+  })
+})
+
+describe("validateOnboardingStep - step 0 country", () => {
+  it("flags an unknown country on step 0", () => {
+    const errs = validateOnboardingStep(0, valid({ countryIso2: "ZZ" }))
+    expect(errs.countryIso2).toBe("invalid")
   })
 })

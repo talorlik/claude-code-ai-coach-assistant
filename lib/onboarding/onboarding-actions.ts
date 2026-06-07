@@ -67,10 +67,13 @@ function stepUpsertInput(
         ? null
         : Number(input.age)
     const phone = normalizePhone(input.phone ?? "")
+    const countryIso2 = (input.countryIso2 ?? "").trim().toUpperCase() || null
     return {
       userId,
       fullName: (input.fullName ?? "").trim(),
       phone: phone || null,
+      // Only store a country when there's a phone; mirrors the validators.
+      countryIso2: phone ? countryIso2 : null,
       age: Number.isInteger(age) ? (age as number) : null,
       ageRange: input.ageRange || null,
     }
@@ -164,6 +167,7 @@ export async function saveOnboardingDetails(
       userId: user.id,
       fullName: data.fullName,
       phone: data.phone || null,
+      countryIso2: data.phone ? data.countryIso2 : null,
       age: data.age,
       ageRange: data.ageRange,
       goals: data.goals,

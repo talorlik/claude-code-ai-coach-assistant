@@ -21,6 +21,9 @@ import {
   type OnboardingInput,
   type OnboardingStep,
 } from "@/lib/validation/onboarding"
+import { PhoneField } from "@/components/phone-field"
+import { combineE164 } from "@/lib/phone/phone"
+import { countryByIso2 } from "@/lib/phone/countries"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -48,6 +51,7 @@ import { cn } from "@/lib/utils"
 export interface OnboardingDefaults {
   fullName: string
   phone: string
+  countryIso2: string
   age: string
   ageRange: string
   goals: string[]
@@ -63,6 +67,7 @@ export interface OnboardingDefaults {
 export const EMPTY_DEFAULTS: OnboardingDefaults = {
   fullName: "",
   phone: "",
+  countryIso2: "IL",
   age: "",
   ageRange: "",
   goals: [],
@@ -92,9 +97,13 @@ function toggle<T extends string>(list: T[], value: T): T[] {
 
 /** Maps the form's string-keyed state to the validator's input shape. */
 function toInput(values: OnboardingDefaults): OnboardingInput {
+  // `values.phone` holds the national number; combine it with the selected
+  // country's dial code into E.164, which the validator and save expect.
+  const country = countryByIso2(values.countryIso2) ?? countryByIso2("IL")!
   return {
     fullName: values.fullName,
-    phone: values.phone,
+    phone: combineE164(country.dialCode, values.phone),
+    countryIso2: values.countryIso2,
     age: values.age,
     ageRange: values.ageRange,
     goals: values.goals,
@@ -434,6 +443,7 @@ type StepProps = {
 function StepAboutYou({ t, values, set, fieldError }: StepProps) {
   const nameError = fieldError("fullName")
   const phoneError = fieldError("phone")
+  const countryError = fieldError("countryIso2")
   const ageError = fieldError("age")
   const ageRangeError = fieldError("ageRange")
   return (
@@ -456,18 +466,18 @@ function StepAboutYou({ t, values, set, fieldError }: StepProps) {
       <Field
         label={t("fields.phone")}
         hint={t("hints.phone")}
-        error={phoneError}
+        error={phoneError ?? countryError}
         required
       >
-        <Input
-          name="phone"
-          type="tel"
-          inputMode="tel"
-          value={values.phone}
-          onChange={(e) => set("phone", e.target.value)}
-          aria-invalid={phoneError ? true : undefined}
+        <PhoneField
+          countryIso2={values.countryIso2}
+          national={values.phone}
+          onCountryChange={(iso2) => set("countryIso2", iso2)}
+          onNationalChange={(n) => set("phone", n)}
+          searchPlaceholder={t("placeholders.countrySearch")}
+          emptyText={t("empty.countrySearch")}
+          invalid={!!(phoneError || countryError)}
           required
-          autoComplete="tel"
         />
       </Field>
 

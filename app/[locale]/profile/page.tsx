@@ -46,7 +46,7 @@ export default async function ProfilePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, phone")
+    .select("full_name, phone, country_iso2")
     .eq("user_id", user.id)
     .maybeSingle()
 
@@ -79,6 +79,7 @@ export default async function ProfilePage({
       <AccountForms
         initialFullName={profile?.full_name ?? ""}
         initialPhone={profile?.phone ?? ""}
+        initialCountryIso2={profile?.country_iso2 ?? ""}
         email={user.email ?? ""}
       />
     </div>

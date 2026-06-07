@@ -55,6 +55,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 import {
   updateProfile,
+  updateProfileForm,
   updateEmail,
   updatePassword,
 } from "@/lib/profile/profile-actions"
@@ -71,18 +72,48 @@ describe("updateProfile", () => {
   it("saves validated name and phone for the signed-in user", async () => {
     const result = await updateProfile({
       fullName: "Dana Levi",
-      phone: "050-123-4567",
+      phone: "+972 50-123-4567",
+      countryIso2: "IL",
     })
     expect(result.ok).toBe(true)
     expect(upsertedProfile).toMatchObject({
       user_id: "user-1",
       full_name: "Dana Levi",
-      phone: "0501234567",
+      phone: "+972501234567",
     })
   })
 
+  it("persists phone and country_iso2", async () => {
+    const result = await updateProfile({
+      fullName: "Dana Levi",
+      phone: "+972541234567",
+      countryIso2: "IL",
+    })
+    expect(result.ok).toBe(true)
+    expect(upsertedProfile).toMatchObject({
+      user_id: "user-1",
+      full_name: "Dana Levi",
+      phone: "+972541234567",
+      country_iso2: "IL",
+    })
+  })
+
+  it("stores a null country when phone is blank", async () => {
+    const result = await updateProfile({
+      fullName: "Dana Levi",
+      phone: "",
+      countryIso2: "IL",
+    })
+    expect(result.ok).toBe(true)
+    expect(upsertedProfile).toMatchObject({ phone: "", country_iso2: null })
+  })
+
   it("rejects an invalid name without writing", async () => {
-    const result = await updateProfile({ fullName: "A", phone: "" })
+    const result = await updateProfile({
+      fullName: "A",
+      phone: "",
+      countryIso2: "",
+    })
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.fieldErrors?.fullName).toBeTruthy()
     expect(upsertedProfile).toBeNull()
@@ -92,10 +123,52 @@ describe("updateProfile", () => {
     currentUser = null
     const result = await updateProfile({
       fullName: "Dana Levi",
-      phone: "0501234567",
+      phone: "+972501234567",
+      countryIso2: "IL",
     })
     expect(result.ok).toBe(false)
     expect(upsertedProfile).toBeNull()
+  })
+})
+
+describe("updateProfileForm reconstruction", () => {
+  it("recombines phone-national + countryIso2 into E.164 server-side", async () => {
+    const fd = new FormData()
+    fd.set("fullName", "Dana Levi")
+    fd.set("phone-national", "054-123 4567")
+    fd.set("countryIso2", "IL")
+    // The mocked redirect is a no-op, so the call returns normally and the
+    // captured upsert reflects the server-reconstructed E.164 number.
+    await updateProfileForm(fd)
+    expect(upsertedProfile).toMatchObject({
+      full_name: "Dana Levi",
+      phone: "+972541234567",
+      country_iso2: "IL",
+    })
+  })
+
+  it("ignores the stale hidden phone field and reconstructs from the national number", async () => {
+    const fd = new FormData()
+    fd.set("fullName", "Dana Levi")
+    // A stale hidden `phone` (e.g. left over from a prior country) must be
+    // ignored; the server rebuilds from phone-national + countryIso2.
+    fd.set("phone", "+15551234567")
+    fd.set("phone-national", "054-123 4567")
+    fd.set("countryIso2", "IL")
+    await updateProfileForm(fd)
+    expect(upsertedProfile).toMatchObject({
+      phone: "+972541234567",
+      country_iso2: "IL",
+    })
+  })
+
+  it("stores a blank phone and null country when the national number is empty", async () => {
+    const fd = new FormData()
+    fd.set("fullName", "Dana Levi")
+    fd.set("phone-national", "")
+    fd.set("countryIso2", "IL")
+    await updateProfileForm(fd)
+    expect(upsertedProfile).toMatchObject({ phone: "", country_iso2: null })
   })
 })
 

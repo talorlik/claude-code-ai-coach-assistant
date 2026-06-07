@@ -258,6 +258,7 @@ function templateClientContext(input: {
     userId: "template",
     fullName: null,
     phone: null,
+    countryIso2: null,
     age: null,
     ageRange: null,
     goals: input.goal ? [input.goal] : [],

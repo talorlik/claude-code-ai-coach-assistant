@@ -62,6 +62,7 @@ function client(): Client {
     userId: "user-1",
     fullName: "Dana Levi",
     phone: "+972541234567",
+    countryIso2: null,
     age: 32,
     ageRange: null,
     goals: ["build_muscle"],

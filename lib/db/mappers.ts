@@ -11,6 +11,7 @@ export interface ClientUpsertInput {
   userId: string
   fullName?: string | null
   phone?: string | null
+  countryIso2?: string | null
   age?: number | null
   ageRange?: string | null
   goals?: string[]
@@ -36,6 +37,7 @@ export function toClientUpsertRow(
 
   if (input.fullName !== undefined) row.full_name = input.fullName
   if (input.phone !== undefined) row.phone = input.phone
+  if (input.countryIso2 !== undefined) row.country_iso2 = input.countryIso2
   if (input.age !== undefined) row.age = input.age
   if (input.ageRange !== undefined) row.age_range = input.ageRange
   if (input.goals !== undefined) row.goals = input.goals
@@ -57,6 +59,7 @@ export interface Client {
   userId: string
   fullName: string | null
   phone: string | null
+  countryIso2: string | null
   age: number | null
   ageRange: string | null
   goals: string[]
@@ -77,6 +80,7 @@ export function fromClientRow(row: ClientRow): Client {
     userId: row.user_id,
     fullName: row.full_name,
     phone: row.phone,
+    countryIso2: row.country_iso2,
     age: row.age,
     ageRange: row.age_range,
     goals: row.goals ?? [],

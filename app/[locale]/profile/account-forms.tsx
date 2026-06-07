@@ -7,6 +7,7 @@ import {
 } from "@/lib/profile/profile-actions"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { PhoneFieldUncontrolled } from "@/components/phone-field"
 import { SubmitButton } from "./submit-button"
 
 /**
@@ -44,10 +45,12 @@ function SettingsSection({
 export function AccountForms({
   initialFullName,
   initialPhone,
+  initialCountryIso2,
   email,
 }: {
   initialFullName: string
   initialPhone: string
+  initialCountryIso2: string
   email: string
 }) {
   return (
@@ -68,13 +71,13 @@ export function AccountForms({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              name="phone"
-              type="tel"
-              defaultValue={initialPhone}
-              inputMode="tel"
+            <Label htmlFor="phone-national">Phone</Label>
+            <PhoneFieldUncontrolled
+              id="phone-national"
+              initialPhone={initialPhone}
+              initialCountryIso2={initialCountryIso2}
+              searchPlaceholder="Search country…"
+              emptyText="No matching country"
             />
           </div>
           <SubmitButton label="Save details" pendingLabel="Saving…" />

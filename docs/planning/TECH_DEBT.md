@@ -25,6 +25,20 @@ below, fixes each, checks it off, and squash-merges the result into local
 
 ## Open Items
 
+- [ ] **`combineE164` drops the trunk-0 for keep-the-zero countries** - In
+  `lib/phone/phone.ts`, `combineE164` strips a single leading national trunk-0
+  before prepending the dial code (correct for Israel and most countries). A few
+  countries retain the leading 0 in their E.164 form (e.g. Italian fixed-line:
+  `+39 06 ...` stays `+390612345678`). For those, editing a saved number is
+  non-idempotent: `splitE164` returns a national part starting with `0`, and
+  re-saving recombines to a corrupted `+3961...`. This is a deliberate trade-off
+  of not adding a phone library (see `docs/DECISIONS.md`, the phone selector
+  entry). Fix only if the user base broadens beyond IL-primary: either special-
+  case keep-the-zero dial codes, or adopt `libphonenumber-js` for per-country
+  national-number rules. Acceptance: a stored `+390612345678` / `IT` round-trips
+  through split -> display -> combine unchanged. Added: 2026-06-07. Source:
+  phone country-code selector feature, final holistic review.
+
 - [ ] **Remove unused `_id` lint warnings** - 6 `@typescript-eslint/no-unused-vars`
   warnings for an unused `_id` binding in test files. Locations:
   `__tests__/integration/confirm-route.test.ts:15` and `:16`;

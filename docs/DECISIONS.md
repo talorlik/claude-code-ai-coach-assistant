@@ -1289,3 +1289,35 @@ redirect channel was chosen over React-state inline feedback because inline stat
 is invisible without JS; it also reuses the auth forms' proven pattern and keeps
 one source of truth for feedback. Standard is also recorded in auto-memory
 (`forms-progressive-enhancement`) to govern future batches.
+
+### 2026-06-07 - Feature - Searchable Phone Country-Code Selector
+
+Replaced the plain `<input type="tel">` phone field (onboarding and profile) with
+a searchable country-code selector: emoji flag + dial code + localized name,
+searchable by dial code, ISO2 code, English name, and Hebrew name. The full
+E.164 number stays in the single `phone` column; a new nullable `country_iso2`
+column (migration `0004`, on both `clients` and `profiles`) records the selected
+country so re-edit restores the exact flag even for shared dial codes (+1 = US,
+CA, ...). Onboarding and profile phone validation were unified on one E.164 rule
+`/^\+[1-9]\d{7,14}$/` (replacing onboarding's old 8-15 char and profile's old
+7-20 digit rules). Built from the existing cmdk `Command` + Base UI `Popover`
+primitives - no new runtime dependency. Country list is a bundled static dataset
+(`lib/phone/countries.ts`, 249 entries with Hebrew names); flags are derived from
+the ISO2 code via Unicode regional-indicator codepoints, never image assets.
+
+**Why:** mamas-bakery (the cited reference) has no real country selector - just a
+plain tel input - and this project already replicated that plus E.164
+validation, so "copy mamas-bakery" was already satisfied; the real ask was a
+genuine searchable selector. Emoji flags (not images) were a hard requirement;
+the cost is that Windows browsers render the 2-letter code instead of a flag
+glyph (a platform limitation), mitigated by always showing dial code + name
+alongside. `country_iso2` is stored separately rather than parsed back out of the
+number because shared dial codes are ambiguous on re-edit; storing the picked
+ISO2 makes the flag deterministic. `combineE164` strips a single leading national
+trunk-0 (correct for Israel and most countries); a few keep-the-zero cases (e.g.
+Italian fixed-line) are not special-cased - a deliberate trade-off of not adding
+a phone library. No-JS support is full on the profile form: the server
+reconstructs E.164 from the `phone-national` + `countryIso2` fields via
+`combineE164` server-side and ignores the hidden (JS-only) `phone` input, so the
+typed number survives a no-JS submit; onboarding stays JS-orchestrated (it is a
+React multi-step wizard) per the per-surface no-JS bar.

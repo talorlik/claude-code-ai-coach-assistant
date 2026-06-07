@@ -1,6 +1,7 @@
 import type { ActionResult } from "@/lib/types/action-result"
 import { fail, ok } from "@/lib/types/action-result"
 import { normalizePhone } from "@/lib/auth/validation"
+import { countryByIso2 } from "@/lib/phone/countries"
 
 /**
  * Onboarding domain vocabulary. Each list is the closed set of values a client
@@ -86,14 +87,13 @@ export const NAME_MAX = 30
 export const NAME_RE = /^[a-zA-Zא-ת .-]+$/
 
 /**
- * Phone rules. The number is required and validated in its normalized form
- * (separators stripped, a single leading `+` kept). `PHONE_RE` is the E.164
- * shape: an optional `+`, a non-zero leading digit, then up to 14 more digits.
- * Length is counted on the normalized value, so a leading `+` consumes one slot.
+ * Phone rules. The selector always prepends a country dial code, so the stored
+ * value is full E.164: a leading `+`, a non-zero country digit, then 7-14 more
+ * digits (8-15 digits total after the `+`). `PHONE_RE` enforces that exact
+ * shape on the normalized value. This single rule is shared by onboarding and
+ * profile so the two never diverge.
  */
-export const PHONE_MIN = 8
-export const PHONE_MAX = 15
-export const PHONE_RE = /^\+?[1-9]\d{1,14}$/
+export const PHONE_RE = /^\+[1-9]\d{7,14}$/
 
 /**
  * Which onboarding fields each wizard step owns. The single source of truth for
@@ -102,7 +102,7 @@ export const PHONE_RE = /^\+?[1-9]\d{1,14}$/
  * the field groupings rendered by the three sub-step components in the form.
  */
 export const STEP_FIELDS = {
-  0: ["fullName", "phone", "age", "ageRange"],
+  0: ["fullName", "phone", "countryIso2", "age", "ageRange"],
   1: ["goals", "fitnessLevel", "preferredLocation"],
   2: ["availableDays", "equipment", "limitations", "notes"],
 } as const
@@ -114,6 +114,7 @@ export type OnboardingStep = keyof typeof STEP_FIELDS
 export interface OnboardingInput {
   fullName: string
   phone?: string
+  countryIso2?: string | null
   age?: string | number | null
   ageRange?: string | null
   goals?: string[]
@@ -133,6 +134,7 @@ export interface OnboardingInput {
 export interface ValidatedOnboarding {
   fullName: string
   phone: string
+  countryIso2: string
   age: number | null
   ageRange: AgeRange | null
   goals: Goal[]
@@ -176,21 +178,30 @@ function checkFullName(input: OnboardingInput): {
   return { value }
 }
 
-/** Phone: required; normalized form must match E.164 and be 8-15 chars. */
+/** Phone: required; normalized form must match the E.164 shape PHONE_RE. */
 function checkPhone(input: OnboardingInput): {
   value: string
   error?: string
 } {
   const value = normalizePhone(input.phone ?? "")
   if (value.length === 0) return { value, error: "required" }
-  if (
-    value.length < PHONE_MIN ||
-    value.length > PHONE_MAX ||
-    !PHONE_RE.test(value)
-  ) {
-    return { value, error: "invalid" }
-  }
+  if (!PHONE_RE.test(value)) return { value, error: "invalid" }
   return { value }
+}
+
+/**
+ * Country: required and must be a known ISO2 in the bundled dataset. Guards
+ * against tampered or no-JS posts carrying an unknown code. Returns the
+ * uppercased code on success.
+ */
+function checkCountryIso2(input: OnboardingInput): {
+  value: string
+  error?: string
+} {
+  const raw = (input.countryIso2 ?? "").trim().toUpperCase()
+  if (raw.length === 0) return { value: "", error: "required" }
+  if (!countryByIso2(raw)) return { value: "", error: "invalid" }
+  return { value: raw }
 }
 
 /**
@@ -325,6 +336,8 @@ export function validateOnboardingStep(
     if (name.error) errors.fullName = name.error
     const phone = checkPhone(input)
     if (phone.error) errors.phone = phone.error
+    const country = checkCountryIso2(input)
+    if (country.error) errors.countryIso2 = country.error
     Object.assign(errors, checkAge(input).errors)
   } else if (step === 1) {
     const goals = checkGoals(input)
@@ -354,8 +367,9 @@ export function validateOnboardingStep(
  * - `fullName` is required, {@link NAME_MIN}-{@link NAME_MAX} characters after
  *   trimming, and matches {@link NAME_RE} (Latin/Hebrew letters, space, dot,
  *   hyphen).
- * - `phone` is required; its normalized form must match {@link PHONE_RE} and be
- *   {@link PHONE_MIN}-{@link PHONE_MAX} characters.
+ * - `phone` is required; its normalized form must match the E.164 shape
+ *   {@link PHONE_RE}.
+ * - `countryIso2` is required and must be a known ISO 3166-1 alpha-2 code.
  * - At least one of `age` (a number in {@link MIN_AGE}-{@link MAX_AGE}) or
  *   `ageRange` (a known bracket) must be present; both may be supplied.
  * - `fitnessLevel` is required and must be a known value.
@@ -380,6 +394,9 @@ export function validateOnboarding(
 
   const phone = checkPhone(input)
   if (phone.error) fieldErrors.phone = phone.error
+
+  const country = checkCountryIso2(input)
+  if (country.error) fieldErrors.countryIso2 = country.error
 
   const ageResult = checkAge(input)
   Object.assign(fieldErrors, ageResult.errors)
@@ -411,6 +428,7 @@ export function validateOnboarding(
   return ok({
     fullName: name.value,
     phone: phone.value,
+    countryIso2: country.value,
     age: ageResult.age,
     ageRange: ageResult.ageRange,
     goals: goalsResult.value,

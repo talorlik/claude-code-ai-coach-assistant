@@ -10,6 +10,8 @@ import { fail, ok } from "@/lib/types/action-result"
 import type { Profile, ProfileInput } from "@/lib/profile/profile-types"
 import { validateProfile } from "@/lib/profile/profile-validation"
 import { isValidEmail } from "@/lib/auth/validation"
+import { combineE164 } from "@/lib/phone/phone"
+import { countryByIso2 } from "@/lib/phone/countries"
 
 /**
  * Locale-relative path the form wrappers redirect back to. The next-intl
@@ -34,8 +36,9 @@ export async function ensureProfile(userId: string): Promise<void> {
 }
 
 /**
- * Updates the current user's saved contact details (name and phone). Validated
- * server-side and written only to the caller's own row (enforced by RLS).
+ * Updates the current user's saved contact details (name, phone, and the
+ * phone's country code). Validated server-side and written only to the caller's
+ * own row (enforced by RLS).
  */
 export async function updateProfile(
   input: ProfileInput
@@ -56,6 +59,7 @@ export async function updateProfile(
         user_id: user.id,
         full_name: validation.data.fullName,
         phone: validation.data.phone,
+        country_iso2: validation.data.countryIso2,
       },
       { onConflict: "user_id" }
     )
@@ -124,13 +128,29 @@ export async function updatePassword(
  * try/catch: next-intl's `redirect` signals by throwing, so catching it would
  * swallow the navigation.
  *
- * @param formData - The submitted form; reads `fullName` and `phone`.
+ * The hidden `phone` input is deliberately NOT read: it cannot update without
+ * JavaScript, so it is stale on the no-JS path. Instead the server is the single
+ * source of truth - it recombines the submitted national number
+ * (`phone-national`) with the selected country's dial code into E.164 via
+ * {@link combineE164}, so the stored value is correct with or without JS.
+ *
+ * @param formData - The submitted form; reads `fullName`, `phone-national`, and
+ * `countryIso2`.
  */
 export async function updateProfileForm(formData: FormData): Promise<void> {
   const locale = await getLocale()
+  const countryIso2 = String(formData.get("countryIso2") ?? "")
+  const national = String(formData.get("phone-national") ?? "")
+  const country = countryByIso2(countryIso2.trim().toUpperCase())
+  // Server is authoritative: recombine the national number with the selected
+  // country's dial code into E.164, so the value is correct with or without JS
+  // (the hidden `phone` input cannot update client-side without JS). An unknown
+  // country yields "", which validateProfile treats as a blank (optional) phone.
+  const phone = country ? combineE164(country.dialCode, national) : ""
   const result = await updateProfile({
     fullName: String(formData.get("fullName") ?? ""),
-    phone: String(formData.get("phone") ?? ""),
+    phone,
+    countryIso2,
   })
 
   if (result.ok) {

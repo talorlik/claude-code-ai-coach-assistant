@@ -6,6 +6,7 @@ export interface Profile {
   user_id: string
   full_name: string | null
   phone: string | null
+  country_iso2: string | null
   created_at: string
   updated_at: string
 }
@@ -16,4 +17,5 @@ export interface Profile {
 export interface ProfileInput {
   fullName: string
   phone: string
+  countryIso2: string
 }
