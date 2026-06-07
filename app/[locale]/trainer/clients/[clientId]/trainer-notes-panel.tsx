@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import { Pencil, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
   createTrainerNoteAction,
@@ -139,8 +140,15 @@ export function TrainerNotesPanel({
       </header>
 
       <form onSubmit={onAdd} className="flex flex-col gap-2">
+        {/* Visually-hidden but real <label htmlFor> so the control has an
+            associated label (not just aria-label), per the form-accessibility
+            standard, without adding a visible heading to the compact panel. */}
+        <Label htmlFor="trainer-note-draft" className="sr-only">
+          {t("placeholder")}
+        </Label>
         <Textarea
-          aria-label={t("placeholder")}
+          id="trainer-note-draft"
+          name="note"
           placeholder={t("placeholder")}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

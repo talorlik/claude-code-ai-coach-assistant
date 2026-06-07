@@ -1,13 +1,21 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { getLocale } from "next-intl/server"
 
+import { redirect } from "@/i18n/navigation"
 import { createClient } from "@/lib/supabase/server"
 import type { ActionResult } from "@/lib/types/action-result"
 import { fail, ok } from "@/lib/types/action-result"
 import type { Profile, ProfileInput } from "@/lib/profile/profile-types"
 import { validateProfile } from "@/lib/profile/profile-validation"
 import { isValidEmail } from "@/lib/auth/validation"
+
+/**
+ * Locale-relative path the form wrappers redirect back to. The next-intl
+ * `redirect` helper prefixes the active locale (`/en/profile`, `/he/profile`).
+ */
+const PROFILE_PATH = "/profile"
 
 /**
  * Ensures a `profiles` row exists for the given user, creating an empty one if
@@ -101,4 +109,85 @@ export async function updatePassword(
   if (error) return fail("Could not update your password.")
 
   return ok(null)
+}
+
+/**
+ * FormData-accepting wrapper around {@link updateProfile}, bound to the contact
+ * details `<form action={...}>`. Reading from `FormData` and ending in a
+ * `redirect` is what lets the form submit and report a result with JavaScript
+ * disabled: the browser POSTs the form natively, the server handles it, and the
+ * page re-renders with a localized banner driven by the `?notice`/`?error` code.
+ * When JS is present React re-runs the same action over fetch, so the behavior
+ * is identical in both modes.
+ *
+ * The redirect is the final statement on every branch and is never wrapped in a
+ * try/catch: next-intl's `redirect` signals by throwing, so catching it would
+ * swallow the navigation.
+ *
+ * @param formData - The submitted form; reads `fullName` and `phone`.
+ */
+export async function updateProfileForm(formData: FormData): Promise<void> {
+  const locale = await getLocale()
+  const result = await updateProfile({
+    fullName: String(formData.get("fullName") ?? ""),
+    phone: String(formData.get("phone") ?? ""),
+  })
+
+  if (result.ok) {
+    redirect({ href: `${PROFILE_PATH}?notice=detailsSaved`, locale })
+  }
+  redirect({ href: `${PROFILE_PATH}?error=saveFailed`, locale })
+}
+
+/**
+ * FormData-accepting wrapper around {@link updateEmail}, bound to the email
+ * `<form action={...}>`. See {@link updateProfileForm} for the no-JS submit
+ * rationale. A malformed address is reported distinctly from an auth-layer
+ * failure so the banner copy is specific.
+ *
+ * @param formData - The submitted form; reads `email`.
+ */
+export async function updateEmailForm(formData: FormData): Promise<void> {
+  const locale = await getLocale()
+  const result = await updateEmail(String(formData.get("email") ?? ""))
+
+  if (result.ok) {
+    redirect({ href: `${PROFILE_PATH}?notice=emailConfirmSent`, locale })
+  } else {
+    // A failing validation tags the `email` field; else it is an auth error.
+    const code = result.fieldErrors?.email ? "invalidEmail" : "emailUpdateFailed"
+    redirect({ href: `${PROFILE_PATH}?error=${code}`, locale })
+  }
+}
+
+/**
+ * FormData-accepting wrapper around {@link updatePassword}, bound to the
+ * password `<form action={...}>`. The confirm-password match is re-checked here
+ * because the client-side check does not run with JavaScript disabled. See
+ * {@link updateProfileForm} for the no-JS submit rationale.
+ *
+ * @param formData - The submitted form; reads `password` and `confirmPassword`.
+ */
+export async function updatePasswordForm(formData: FormData): Promise<void> {
+  const locale = await getLocale()
+  const password = String(formData.get("password") ?? "")
+  const confirmPassword = String(formData.get("confirmPassword") ?? "")
+
+  // Server-side confirm check: with JS off the client comparison never runs, so
+  // this is the only guard. Bail before touching auth so a mismatch is cheap.
+  if (password !== confirmPassword) {
+    redirect({ href: `${PROFILE_PATH}?error=passwordsDoNotMatch`, locale })
+  }
+
+  const result = await updatePassword(password)
+
+  if (result.ok) {
+    redirect({ href: `${PROFILE_PATH}?notice=passwordUpdated`, locale })
+  } else {
+    // A failing length check tags the `password` field; else an auth error.
+    const code = result.fieldErrors?.password
+      ? "passwordTooShort"
+      : "passwordUpdateFailed"
+    redirect({ href: `${PROFILE_PATH}?error=${code}`, locale })
+  }
 }

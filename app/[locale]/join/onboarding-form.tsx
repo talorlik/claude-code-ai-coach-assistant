@@ -312,7 +312,23 @@ export function OnboardingForm({
   const isLastStep = step === STEP_COUNT - 1
 
   return (
-    <div className="flex flex-col gap-6">
+    <form
+      className="flex flex-col gap-6"
+      // The wizard is a real <form> so fields are grouped semantically and
+      // Enter submits the current step. Submission is handled in-page (per-step
+      // save and validation are JS-orchestrated via Base UI multi-selects held in
+      // React state), so the default navigation is prevented and routed to the
+      // step's primary action.
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (pending) return
+        if (isLastStep) {
+          void onSaveDetails()
+        } else {
+          void onNext()
+        }
+      }}
+    >
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>{t(`steps.${step}.title` as MessageKey)}</span>
@@ -376,10 +392,12 @@ export function OnboardingForm({
 
         {isLastStep ? (
           <div className="flex items-center gap-3">
+            {/* Save is the form's submit action (also fires on Enter via the
+                form's onSubmit). Generate is a distinct, separate action and
+                stays type="button" so it never submits the form. */}
             <Button
-              type="button"
+              type="submit"
               variant={detailsSaved ? "outline" : "default"}
-              onClick={onSaveDetails}
               disabled={pending}
             >
               {pending && !detailsSaved ? t("nav.saving") : t("nav.saveDetails")}
@@ -393,12 +411,12 @@ export function OnboardingForm({
             </Button>
           </div>
         ) : (
-          <Button type="button" onClick={onNext} disabled={pending}>
+          <Button type="submit" disabled={pending}>
             {pending ? t("nav.saving") : t("nav.next")}
           </Button>
         )}
       </div>
-    </div>
+    </form>
   )
 }
 
@@ -737,6 +755,12 @@ function StepSchedule({ t, values, set, fieldError }: StepProps) {
  * height whether or not an error is shown, so a field appearing/clearing an
  * error never shifts a neighbouring field in a side-by-side row (e.g. the age
  * row).
+ *
+ * The label is associated with its control via `htmlFor`/`id`: a generated id is
+ * placed on `<Label htmlFor>` and injected (only when not already set) into the
+ * single child element. This makes the visible label a click target for the
+ * control and announces them as a pair to assistive tech, satisfying the
+ * project's form-accessibility standard.
  */
 function Field({
   label,
@@ -753,10 +777,23 @@ function Field({
   labelAdornment?: React.ReactNode
   children: React.ReactNode
 }) {
+  const fieldId = React.useId()
+  // Associate the label with the control. Inject the generated id into the
+  // single child element unless it already carries one (so an explicit id wins).
+  const control = React.isValidElement(children)
+    ? React.cloneElement(
+        children as React.ReactElement<{ id?: string }>,
+        {
+          id:
+            (children as React.ReactElement<{ id?: string }>).props.id ??
+            fieldId,
+        }
+      )
+    : children
   return (
     <div className="grid gap-2">
       <div className="flex items-center gap-1.5">
-        <Label>
+        <Label htmlFor={fieldId}>
           {label}
           {required ? (
             <span className="ms-0.5 text-destructive" aria-hidden="true">
@@ -766,7 +803,7 @@ function Field({
         </Label>
         {labelAdornment}
       </div>
-      {children}
+      {control}
       {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
       <p className="min-h-[1.25rem] text-sm text-destructive" role="alert">
         {error}

@@ -16,6 +16,17 @@ vi.mock("next/cache", () => ({
   revalidatePath: () => {},
 }))
 
+// profile-actions.ts now imports the locale-aware navigation/getLocale for its
+// FormData wrappers; stub them so importing the module (for the typed actions
+// tested here) does not pull in next-intl's client navigation under jsdom.
+vi.mock("@/i18n/navigation", () => ({
+  redirect: () => {},
+}))
+
+vi.mock("next-intl/server", () => ({
+  getLocale: async () => "en",
+}))
+
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
     auth: {

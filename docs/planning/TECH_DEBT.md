@@ -35,25 +35,19 @@ below, fixes each, checks it off, and squash-merges the result into local
   `0 problems` (0 errors, 0 warnings). Added: 2026-06-07. Source: pre-existing,
   noted during the multi-select-goals feature.
 
-- [ ] **Associate form labels with their controls** - In the onboarding wizard
-  `app/[locale]/join/onboarding-form.tsx`, the `Field` component renders a
-  `<Label>` with no `htmlFor`, and the controls (native selects, the goal
-  Popover trigger, the day/equipment checkbox groups) have no matching `id`, so
-  labels are not programmatically associated for assistive tech. Give each
-  `Field` control a stable `id` and wire `Label htmlFor` (or `aria-labelledby`)
-  to it; for the checkbox groups (`availableDays`, `equipment`) ensure the
-  `<legend>` / group label is associated via `aria-labelledby` on the group, and
-  the goal Popover trigger gets `aria-labelledby`/`aria-describedby` pointing at
-  its label and any error text. Acceptance: every labelled control in the form
-  has an accessible name derived from its visible label (verify in the a11y tree
-  or with a Testing Library `getByLabelText` query per field); no visual change.
-  Added: 2026-06-07. Source: multi-select-goals UI code review (flagged
-  non-blocking follow-up). UPDATE 2026-06-07: the checkbox-group portion
-  (`availableDays`, `equipment`, goal options) is now resolved - `CheckboxRow`
-  renders a single `role="checkbox"` row that owns the toggle and is clickable
-  across its whole width. The remaining work is the `Field` native controls
-  (fullName, phone, age, ageRange, fitnessLevel, preferredLocation) and the goal
-  Popover trigger, which still lack `htmlFor`/`id` wiring.
+- [ ] **Goal Popover trigger lacks a direct label association** - In the
+  onboarding wizard `app/[locale]/join/onboarding-form.tsx`, the goal field's
+  child is a `<div className="relative">` wrapper (it nests a Popover trigger and
+  a clear-all button), so the `Field`-generated `htmlFor`/`id` association lands
+  on the wrapper `<div>`, not on the trigger `<Button>` itself. The trigger is
+  therefore not directly labelled for assistive tech (the surrounding label is
+  present but points at the wrapper). Fix by giving the Popover trigger an
+  explicit `id` and pointing the field `Label` at it via `aria-labelledby`, or
+  refactor the goal `Field` so its single labelable child is the trigger.
+  Acceptance: `getByLabelText(/Main goal/)` (or the goal field label) resolves to
+  the trigger button. Added: 2026-06-07. Source: forms progressive-enhancement
+  pass (native `Field` controls were fixed in the same pass; this wrapper case is
+  the residue).
 
 - [ ] **Authenticated site header overflows on mobile** -
   `components/site-header.tsx` lays the nav links and the controls cluster
@@ -82,4 +76,14 @@ below, fixes each, checks it off, and squash-merges the result into local
 
 ## Done
 
-(none yet)
+- [x] **Associate form labels with their controls (onboarding native fields)** -
+  The `Field` component in `app/[locale]/join/onboarding-form.tsx` now generates a
+  stable id (`React.useId`), sets it on `<Label htmlFor>`, and injects it into the
+  single child control via `React.cloneElement`, so the native controls (fullName,
+  phone, age, ageRange, fitnessLevel, preferredLocation) are programmatically
+  associated with their visible labels. The wizard body is also wrapped in a real
+  `<form>` and the advancing button is `type="submit"`. Verified by
+  `__tests__/unit/onboarding-form-labels.test.tsx` (`getByLabelText` resolves each
+  native control). The checkbox-group portion was already resolved earlier. The
+  goal Popover trigger residue is tracked as its own Open Item above. Done:
+  2026-06-07. Source: forms progressive-enhancement pass.

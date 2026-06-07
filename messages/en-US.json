@@ -210,6 +210,18 @@
     "updateFailed": "Could not update your password. Please try again.",
     "passwordUpdated": "Password updated, please sign in."
   },
+  "Account": {
+    "detailsSaved": "Details saved.",
+    "emailConfirmSent": "Check your inbox to confirm the new email address.",
+    "passwordUpdated": "Password updated.",
+    "passwordsDoNotMatch": "Passwords do not match.",
+    "saveFailed": "Could not save your details.",
+    "invalidEmail": "Enter a valid email address.",
+    "passwordTooShort": "Password must be at least 8 characters.",
+    "emailUpdateFailed": "Could not update your email.",
+    "passwordUpdateFailed": "Could not update your password.",
+    "signedOut": "You must be signed in."
+  },
   "MyPlan": {
     "title": "My Plan",
     "subtitle": "Your active workout plan. Open a session to see the details and log it when you're done.",

@@ -1253,3 +1253,39 @@ with real credentials.
 (no non-admin customer password; `public.clients` is empty so no `E2E_CLIENT_ID`)
 - documented skip-gates, not failures; the same flows are covered at the
 integration layer with mocked Supabase.
+
+### 2026-06-07 - out-of-batch - Forms must work without JavaScript (3-tier policy)
+
+Project-wide standard adopted: every form uses a real `<form>`, a
+`type="submit"` control, and `<label for>`-associated fields, and where feasible
+submits with JavaScript disabled. A full audit sorted the forms into three tiers
+and set the agreed depth per tier (Tal's call):
+
+- **Tier 1 - auth (login/signup, forgot/reset password):** already fully no-JS
+  (real `<form action={serverAction}>` over FormData). Confirmed the Base UI
+  `Button` honors `type="submit"` (test `button-submit-type.test.tsx`), so the
+  no-JS submit path is real, not assumed.
+- **Tier 2 - profile (3 account forms):** converted to full no-JS. New
+  FormData-accepting Server Action wrappers (`updateProfileForm` /
+  `updateEmailForm` / `updatePasswordForm`) bind directly to `<form action>`;
+  the typed-object actions are kept intact for the JS path and the existing
+  tests. Feedback uses the **query-param redirect** channel (`?notice` / `?error`
+  codes -> localized banner rendered server-side on `/profile`), mirroring the
+  auth pattern via a new `Account` message namespace and `resolveAccountMessage`
+  allowlist resolver. The password confirm check is re-done server-side so it
+  holds with JS off.
+- **Tier 3 - onboarding wizard, trainer admin area, chat, push reminders:**
+  architecturally JS-dependent; **pragmatic markup only, no rewrites.** Onboarding
+  is now wrapped in a real `<form>` with `htmlFor`/`id`-associated native fields
+  and a submit button; trainer-notes got an associated `<label>` + `id`/`name`.
+  Chat (live AI stream) and push (browser Web Push API, already degrades) stay
+  JS-only by nature.
+
+**Why:** Accessibility and resilience - the page must remain usable if JS fails
+or is disabled. Full no-JS is high-value on the client-facing profile forms but
+disproportionate effort on the admin-only trainer area and impossible for a live
+AI stream, so the bar is set per surface rather than uniformly. The query-param
+redirect channel was chosen over React-state inline feedback because inline state
+is invisible without JS; it also reuses the auth forms' proven pattern and keeps
+one source of truth for feedback. Standard is also recorded in auto-memory
+(`forms-progressive-enhancement`) to govern future batches.
