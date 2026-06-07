@@ -7,11 +7,24 @@ describe("isValidEmail", () => {
     expect(isValidEmail("  dana@example.com  ")).toBe(true)
   })
 
+  it("accepts addresses using the allowed local-part symbols", () => {
+    expect(isValidEmail("dana.levi+tag@sub.example.co.il")).toBe(true)
+    expect(isValidEmail("a_b%c@example.com")).toBe(true)
+  })
+
   it("rejects malformed addresses", () => {
     expect(isValidEmail("nope")).toBe(false)
     expect(isValidEmail("a@b")).toBe(false)
     expect(isValidEmail("a b@example.com")).toBe(false)
     expect(isValidEmail("")).toBe(false)
+  })
+
+  it("rejects a missing or too-short TLD and a trailing dot", () => {
+    // The new regex requires a dot-separated TLD of at least two letters.
+    expect(isValidEmail("dana@example")).toBe(false)
+    expect(isValidEmail("dana@example.c")).toBe(false)
+    expect(isValidEmail("dana@example.com.")).toBe(false)
+    expect(isValidEmail("dana@@example.com")).toBe(false)
   })
 })
 

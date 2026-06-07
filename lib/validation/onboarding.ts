@@ -72,8 +72,43 @@ export type WorkoutDay = (typeof WORKOUT_DAYS)[number]
 export type Equipment = (typeof EQUIPMENT)[number]
 
 /** Lower/upper bounds for an exact age, when given instead of a range. */
-const MIN_AGE = 13
-const MAX_AGE = 100
+export const MIN_AGE = 13
+export const MAX_AGE = 100
+
+/**
+ * Full-name rules. The charset allows Latin and Hebrew letters plus spaces,
+ * dots, and hyphens (e.g. "Anne-Marie O.", "ישראל ישראלי"); digits and other
+ * symbols are rejected. Exported so the client-side step gate and the server
+ * validator share one definition and can never drift.
+ */
+export const NAME_MIN = 2
+export const NAME_MAX = 30
+export const NAME_RE = /^[a-zA-Zא-ת .-]+$/
+
+/**
+ * Phone rules. The number is required and validated in its normalized form
+ * (separators stripped, a single leading `+` kept). `PHONE_RE` is the E.164
+ * shape: an optional `+`, a non-zero leading digit, then up to 14 more digits.
+ * Length is counted on the normalized value, so a leading `+` consumes one slot.
+ */
+export const PHONE_MIN = 8
+export const PHONE_MAX = 15
+export const PHONE_RE = /^\+?[1-9]\d{1,14}$/
+
+/**
+ * Which onboarding fields each wizard step owns. The single source of truth for
+ * step ownership: the client form gates and saves per step against this map,
+ * and {@link validateOnboardingStep} validates only the named fields. Mirrors
+ * the field groupings rendered by the three sub-step components in the form.
+ */
+export const STEP_FIELDS = {
+  0: ["fullName", "phone", "age", "ageRange"],
+  1: ["goals", "fitnessLevel", "preferredLocation"],
+  2: ["availableDays", "equipment", "limitations", "notes"],
+} as const
+
+/** A wizard step index. */
+export type OnboardingStep = keyof typeof STEP_FIELDS
 
 /** Raw, untrusted onboarding payload as it arrives from the client form. */
 export interface OnboardingInput {
@@ -120,39 +155,55 @@ function isMember<T extends readonly string[]>(
 }
 
 /**
- * Validates and normalizes a raw onboarding payload. Returns a discriminated
- * {@link ActionResult}: on success the cleaned {@link ValidatedOnboarding};
- * on failure a generic message plus per-field error codes. The error codes are
- * stable keys (e.g. `"required"`, `"invalid"`), not user-facing prose, so the
- * caller can localize them.
- *
- * Rules:
- * - `fullName` is required, 2-120 characters after trimming.
- * - At least one of `age` (a number in 13-100) or `ageRange` (a known bracket)
- *   must be present; both may be supplied.
- * - `fitnessLevel` is required and must be a known value.
- * - `goals` must contain at least one known goal; unknown or duplicate goals are rejected.
- * - `availableDays` must contain at least one known weekday; unknown or
- *   duplicate days are rejected.
- * - `preferredLocation` is required and must be a known location.
- * - `equipment` may be empty; every entry must be known and unique.
- * - `phone`, `limitations`, and `notes` are optional and trimmed; phone, when
- *   present, must normalize to 7-20 digits.
- *
- * @param input - The raw payload from the onboarding form.
- * @returns A validated, normalized result or a field-keyed error result.
+ * Per-field validation helpers. Each returns the cleaned value plus an optional
+ * error code, so both {@link validateOnboarding} (all fields) and
+ * {@link validateOnboardingStep} (a subset) evaluate identical rules with no
+ * duplicated logic. Codes are stable keys (`"required"`, `"invalid"`,
+ * `"length"`, `"chars"`), localized by the caller.
  */
-export function validateOnboarding(
-  input: OnboardingInput
-): ActionResult<ValidatedOnboarding> {
-  const fieldErrors: FieldErrors = {}
 
-  const fullName = (input.fullName ?? "").trim()
-  if (fullName.length < 2 || fullName.length > 120) {
-    fieldErrors.fullName = "invalid"
+/** Name: required, 2-30 chars, Latin/Hebrew letters + space/dot/hyphen. */
+function checkFullName(input: OnboardingInput): {
+  value: string
+  error?: string
+} {
+  const value = (input.fullName ?? "").trim()
+  if (value.length === 0) return { value, error: "required" }
+  if (value.length < NAME_MIN || value.length > NAME_MAX) {
+    return { value, error: "length" }
   }
+  if (!NAME_RE.test(value)) return { value, error: "chars" }
+  return { value }
+}
 
-  // Age: accept an exact number or a bracket; require at least one.
+/** Phone: required; normalized form must match E.164 and be 8-15 chars. */
+function checkPhone(input: OnboardingInput): {
+  value: string
+  error?: string
+} {
+  const value = normalizePhone(input.phone ?? "")
+  if (value.length === 0) return { value, error: "required" }
+  if (
+    value.length < PHONE_MIN ||
+    value.length > PHONE_MAX ||
+    !PHONE_RE.test(value)
+  ) {
+    return { value, error: "invalid" }
+  }
+  return { value }
+}
+
+/**
+ * Age / age range: at least one of an exact age (13-100) or a known bracket.
+ * Returns both normalized values and, on failure, the field that should carry
+ * the error (`age` is the primary control, so a missing pair flags `age`).
+ */
+function checkAge(input: OnboardingInput): {
+  age: number | null
+  ageRange: AgeRange | null
+  errors: FieldErrors
+} {
+  const errors: FieldErrors = {}
   let age: number | null = null
   let ageRange: AgeRange | null = null
 
@@ -162,7 +213,7 @@ export function validateOnboarding(
       : Number(input.age)
   if (rawAge !== null) {
     if (!Number.isInteger(rawAge) || rawAge < MIN_AGE || rawAge > MAX_AGE) {
-      fieldErrors.age = "invalid"
+      errors.age = "invalid"
     } else {
       age = rawAge
     }
@@ -172,76 +223,183 @@ export function validateOnboarding(
     if (isMember(AGE_RANGES, input.ageRange)) {
       ageRange = input.ageRange
     } else {
-      fieldErrors.ageRange = "invalid"
+      errors.ageRange = "invalid"
     }
   }
 
-  if (age === null && ageRange === null && !fieldErrors.age) {
-    // Neither given and the age field wasn't itself malformed: flag age as the
-    // field to fix, since the exact-age input is the primary control.
-    fieldErrors.age = "required"
+  if (age === null && ageRange === null && !errors.age) {
+    errors.age = "required"
   }
 
-  const rawGoals = input.goals ?? []
-  let goals: Goal[] = []
-  if (rawGoals.length === 0) {
-    fieldErrors.goals = "required"
-  } else if (
-    rawGoals.some((g) => !isMember(GOALS, g)) ||
-    new Set(rawGoals).size !== rawGoals.length
-  ) {
-    fieldErrors.goals = "invalid"
-  } else {
-    goals = rawGoals as Goal[]
-  }
+  return { age, ageRange, errors }
+}
 
-  let fitnessLevel: FitnessLevel | null = null
-  if (!input.fitnessLevel) {
-    fieldErrors.fitnessLevel = "required"
-  } else if (isMember(FITNESS_LEVELS, input.fitnessLevel)) {
-    fitnessLevel = input.fitnessLevel
-  } else {
-    fieldErrors.fitnessLevel = "invalid"
+/** Goals: at least one known goal; no unknowns or duplicates. */
+function checkGoals(input: OnboardingInput): {
+  value: Goal[]
+  error?: string
+} {
+  const raw = input.goals ?? []
+  if (raw.length === 0) return { value: [], error: "required" }
+  if (raw.some((g) => !isMember(GOALS, g)) || new Set(raw).size !== raw.length) {
+    return { value: [], error: "invalid" }
   }
+  return { value: raw as Goal[] }
+}
 
+/** Fitness level: required, a known value. */
+function checkFitnessLevel(input: OnboardingInput): {
+  value: FitnessLevel | null
+  error?: string
+} {
+  if (!input.fitnessLevel) return { value: null, error: "required" }
+  if (isMember(FITNESS_LEVELS, input.fitnessLevel)) {
+    return { value: input.fitnessLevel }
+  }
+  return { value: null, error: "invalid" }
+}
+
+/** Preferred location: required, a known value. */
+function checkPreferredLocation(input: OnboardingInput): {
+  value: WorkoutLocation | null
+  error?: string
+} {
+  if (!input.preferredLocation) return { value: null, error: "required" }
+  if (isMember(LOCATIONS, input.preferredLocation)) {
+    return { value: input.preferredLocation }
+  }
+  return { value: null, error: "invalid" }
+}
+
+/** Available days: at least one known weekday; no unknowns or duplicates. */
+function checkAvailableDays(input: OnboardingInput): {
+  value: WorkoutDay[]
+  error?: string
+} {
   const days = input.availableDays ?? []
-  let availableDays: WorkoutDay[] = []
-  if (days.length === 0) {
-    fieldErrors.availableDays = "required"
-  } else if (
+  if (days.length === 0) return { value: [], error: "required" }
+  if (
     days.some((d) => !isMember(WORKOUT_DAYS, d)) ||
     new Set(days).size !== days.length
   ) {
-    fieldErrors.availableDays = "invalid"
-  } else {
-    availableDays = days as WorkoutDay[]
+    return { value: [], error: "invalid" }
   }
+  return { value: days as WorkoutDay[] }
+}
 
-  let preferredLocation: WorkoutLocation | null = null
-  if (!input.preferredLocation) {
-    fieldErrors.preferredLocation = "required"
-  } else if (isMember(LOCATIONS, input.preferredLocation)) {
-    preferredLocation = input.preferredLocation
-  } else {
-    fieldErrors.preferredLocation = "invalid"
-  }
-
+/** Equipment: optional; every entry must be known and unique. */
+function checkEquipment(input: OnboardingInput): {
+  value: Equipment[]
+  error?: string
+} {
   const equip = input.equipment ?? []
-  let equipment: Equipment[] = []
   if (
     equip.some((e) => !isMember(EQUIPMENT, e)) ||
     new Set(equip).size !== equip.length
   ) {
-    fieldErrors.equipment = "invalid"
+    return { value: [], error: "invalid" }
+  }
+  return { value: equip as Equipment[] }
+}
+
+/**
+ * Validates the fields owned by a single wizard step and returns a field-keyed
+ * error map (empty when the step is valid). The client form calls this to gate
+ * "Next" and before a per-step save, so the user is stopped on the same step
+ * rather than bounced after a full-form submit. It reuses the exact per-field
+ * helpers that {@link validateOnboarding} uses, so client gating and server
+ * validation never diverge.
+ *
+ * @param step - The wizard step index (0-2) to validate.
+ * @param input - The raw payload; only this step's fields are inspected.
+ * @returns A map of field name to error code; `{}` when the step passes.
+ */
+export function validateOnboardingStep(
+  step: OnboardingStep,
+  input: OnboardingInput
+): FieldErrors {
+  const errors: FieldErrors = {}
+
+  if (step === 0) {
+    const name = checkFullName(input)
+    if (name.error) errors.fullName = name.error
+    const phone = checkPhone(input)
+    if (phone.error) errors.phone = phone.error
+    Object.assign(errors, checkAge(input).errors)
+  } else if (step === 1) {
+    const goals = checkGoals(input)
+    if (goals.error) errors.goals = goals.error
+    const fitness = checkFitnessLevel(input)
+    if (fitness.error) errors.fitnessLevel = fitness.error
+    const location = checkPreferredLocation(input)
+    if (location.error) errors.preferredLocation = location.error
   } else {
-    equipment = equip as Equipment[]
+    const days = checkAvailableDays(input)
+    if (days.error) errors.availableDays = days.error
+    const equip = checkEquipment(input)
+    if (equip.error) errors.equipment = equip.error
   }
 
-  const phone = normalizePhone(input.phone ?? "")
-  const digits = phone.replace(/\D/g, "")
-  if (phone && (digits.length < 7 || digits.length > 20)) {
-    fieldErrors.phone = "invalid"
+  return errors
+}
+
+/**
+ * Validates and normalizes a raw onboarding payload. Returns a discriminated
+ * {@link ActionResult}: on success the cleaned {@link ValidatedOnboarding};
+ * on failure a generic message plus per-field error codes. The error codes are
+ * stable keys (e.g. `"required"`, `"invalid"`, `"length"`, `"chars"`), not
+ * user-facing prose, so the caller can localize them.
+ *
+ * Rules:
+ * - `fullName` is required, {@link NAME_MIN}-{@link NAME_MAX} characters after
+ *   trimming, and matches {@link NAME_RE} (Latin/Hebrew letters, space, dot,
+ *   hyphen).
+ * - `phone` is required; its normalized form must match {@link PHONE_RE} and be
+ *   {@link PHONE_MIN}-{@link PHONE_MAX} characters.
+ * - At least one of `age` (a number in {@link MIN_AGE}-{@link MAX_AGE}) or
+ *   `ageRange` (a known bracket) must be present; both may be supplied.
+ * - `fitnessLevel` is required and must be a known value.
+ * - `goals` must contain at least one known goal; unknown or duplicate goals are
+ *   rejected.
+ * - `availableDays` must contain at least one known weekday; unknown or
+ *   duplicate days are rejected.
+ * - `preferredLocation` is required and must be a known location.
+ * - `equipment` may be empty; every entry must be known and unique.
+ * - `limitations` and `notes` are optional and trimmed.
+ *
+ * @param input - The raw payload from the onboarding form.
+ * @returns A validated, normalized result or a field-keyed error result.
+ */
+export function validateOnboarding(
+  input: OnboardingInput
+): ActionResult<ValidatedOnboarding> {
+  const fieldErrors: FieldErrors = {}
+
+  const name = checkFullName(input)
+  if (name.error) fieldErrors.fullName = name.error
+
+  const phone = checkPhone(input)
+  if (phone.error) fieldErrors.phone = phone.error
+
+  const ageResult = checkAge(input)
+  Object.assign(fieldErrors, ageResult.errors)
+
+  const goalsResult = checkGoals(input)
+  if (goalsResult.error) fieldErrors.goals = goalsResult.error
+
+  const fitnessResult = checkFitnessLevel(input)
+  if (fitnessResult.error) fieldErrors.fitnessLevel = fitnessResult.error
+
+  const daysResult = checkAvailableDays(input)
+  if (daysResult.error) fieldErrors.availableDays = daysResult.error
+
+  const locationResult = checkPreferredLocation(input)
+  if (locationResult.error) {
+    fieldErrors.preferredLocation = locationResult.error
   }
+
+  const equipmentResult = checkEquipment(input)
+  if (equipmentResult.error) fieldErrors.equipment = equipmentResult.error
 
   const limitations = (input.limitations ?? "").trim() || null
   const notes = (input.notes ?? "").trim() || null
@@ -251,18 +409,18 @@ export function validateOnboarding(
   }
 
   return ok({
-    fullName,
-    phone,
-    age,
-    ageRange,
+    fullName: name.value,
+    phone: phone.value,
+    age: ageResult.age,
+    ageRange: ageResult.ageRange,
+    goals: goalsResult.value,
     // Non-null assertions are safe: a failing check would have populated
     // fieldErrors and returned above before reaching here.
-    goals,
-    fitnessLevel: fitnessLevel!,
+    fitnessLevel: fitnessResult.value!,
     limitations,
-    availableDays,
-    preferredLocation: preferredLocation!,
-    equipment,
+    availableDays: daysResult.value,
+    preferredLocation: locationResult.value!,
+    equipment: equipmentResult.value,
     notes,
   })
 }

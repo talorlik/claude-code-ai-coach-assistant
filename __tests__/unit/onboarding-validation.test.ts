@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   validateOnboarding,
+  validateOnboardingStep,
   type OnboardingInput,
 } from "@/lib/validation/onboarding"
 
@@ -16,7 +17,7 @@ import {
 function valid(overrides: Partial<OnboardingInput> = {}): OnboardingInput {
   return {
     fullName: "Dana Levi",
-    phone: "050-123-4567",
+    phone: "+972541234567",
     age: "32",
     goals: ["build_muscle"],
     fitnessLevel: "intermediate",
@@ -35,17 +36,54 @@ describe("validateOnboarding - required fields", () => {
     expect(result.ok).toBe(true)
     if (result.ok) {
       expect(result.data.fullName).toBe("Dana Levi")
-      expect(result.data.phone).toBe("0501234567")
+      expect(result.data.phone).toBe("+972541234567")
       expect(result.data.goals).toEqual(["build_muscle"])
       expect(result.data.fitnessLevel).toBe("intermediate")
       expect(result.data.preferredLocation).toBe("gym")
     }
   })
 
-  it("rejects a missing name", () => {
+  it("rejects an empty name as required", () => {
+    const result = validateOnboarding(valid({ fullName: "   " }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.fullName).toBe("required")
+  })
+
+  it("rejects a too-short name as a length error", () => {
     const result = validateOnboarding(valid({ fullName: "A" }))
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.fieldErrors?.fullName).toBe("invalid")
+    if (!result.ok) expect(result.fieldErrors?.fullName).toBe("length")
+  })
+
+  it("rejects a name longer than 30 characters as a length error", () => {
+    const result = validateOnboarding(valid({ fullName: "x".repeat(31) }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.fullName).toBe("length")
+  })
+
+  it("accepts a 30-character name at the boundary", () => {
+    const name = "a".repeat(30)
+    const result = validateOnboarding(valid({ fullName: name }))
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.data.fullName).toBe(name)
+  })
+
+  it("rejects a name containing digits or symbols as a charset error", () => {
+    const digits = validateOnboarding(valid({ fullName: "John123" }))
+    const symbol = validateOnboarding(valid({ fullName: "שם!" }))
+    expect(digits.ok).toBe(false)
+    if (!digits.ok) expect(digits.fieldErrors?.fullName).toBe("chars")
+    expect(symbol.ok).toBe(false)
+    if (!symbol.ok) expect(symbol.fieldErrors?.fullName).toBe("chars")
+  })
+
+  it("accepts Hebrew letters, spaces, dots, and hyphens", () => {
+    const hebrew = validateOnboarding(valid({ fullName: "ישראל ישראלי" }))
+    const latin = validateOnboarding(valid({ fullName: "Anne-Marie O." }))
+    expect(hebrew.ok).toBe(true)
+    if (hebrew.ok) expect(hebrew.data.fullName).toBe("ישראל ישראלי")
+    expect(latin.ok).toBe(true)
+    if (latin.ok) expect(latin.data.fullName).toBe("Anne-Marie O.")
   })
 
   it("accepts a single goal", () => {
@@ -230,12 +268,94 @@ describe("validateOnboarding - optional free text", () => {
     expect(filled.ok && filled.data.notes).toBe("prefers mornings")
   })
 
-  it("allows a blank phone but rejects a too-short one", () => {
-    const blank = validateOnboarding(valid({ phone: "" }))
-    const short = validateOnboarding(valid({ phone: "123" }))
-    expect(blank.ok).toBe(true)
-    if (blank.ok) expect(blank.data.phone).toBe("")
-    expect(short.ok).toBe(false)
-    if (!short.ok) expect(short.fieldErrors?.phone).toBe("invalid")
+})
+
+describe("validateOnboarding - phone (required, E.164)", () => {
+  it("rejects a blank phone as required", () => {
+    const result = validateOnboarding(valid({ phone: "  " }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.phone).toBe("required")
+  })
+
+  it("accepts an international number with a leading plus", () => {
+    const result = validateOnboarding(valid({ phone: "+972 54-123-4567" }))
+    expect(result.ok).toBe(true)
+    // Normalized: separators stripped, leading + kept.
+    if (result.ok) expect(result.data.phone).toBe("+972541234567")
+  })
+
+  it("accepts a number without a plus that starts with a non-zero digit", () => {
+    const result = validateOnboarding(valid({ phone: "972 54-123-4567" }))
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.data.phone).toBe("972541234567")
+  })
+
+  it("rejects a number with a leading zero (not E.164)", () => {
+    // ^\+?[1-9]\d{1,14}$ forbids a 0 in the first significant position, so a
+    // local-format number like 054-... must be entered in its +country form.
+    const local = validateOnboarding(valid({ phone: "054-123-4567" }))
+    const plusZero = validateOnboarding(valid({ phone: "+0123456789" }))
+    expect(local.ok).toBe(false)
+    if (!local.ok) expect(local.fieldErrors?.phone).toBe("invalid")
+    expect(plusZero.ok).toBe(false)
+    if (!plusZero.ok) expect(plusZero.fieldErrors?.phone).toBe("invalid")
+  })
+
+  it("rejects a too-short phone", () => {
+    const result = validateOnboarding(valid({ phone: "12345" }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.phone).toBe("invalid")
+  })
+
+  it("rejects a too-long phone", () => {
+    const result = validateOnboarding(valid({ phone: "+1234567890123456" }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.phone).toBe("invalid")
+  })
+})
+
+describe("validateOnboardingStep", () => {
+  it("validates only step 0 fields, ignoring later steps", () => {
+    // Missing goals (step 1) and availableDays (step 2) must not fail step 0.
+    const errs = validateOnboardingStep(0, {
+      fullName: "Dana Levi",
+      phone: "+972541234567",
+      age: "32",
+      goals: [],
+      availableDays: [],
+    } as OnboardingInput)
+    expect(errs).toEqual({})
+  })
+
+  it("reports step 0 field errors", () => {
+    const errs = validateOnboardingStep(0, {
+      fullName: "",
+      phone: "",
+      age: "",
+      ageRange: "",
+    } as OnboardingInput)
+    expect(errs.fullName).toBe("required")
+    expect(errs.phone).toBe("required")
+    expect(errs.age).toBe("required")
+  })
+
+  it("validates only step 1 fields, ignoring name and phone", () => {
+    const errs = validateOnboardingStep(1, {
+      fullName: "",
+      phone: "",
+      goals: ["build_muscle"],
+      fitnessLevel: "beginner",
+      preferredLocation: "home",
+    } as OnboardingInput)
+    expect(errs).toEqual({})
+  })
+
+  it("requires availableDays on step 2 but ignores earlier steps", () => {
+    const errs = validateOnboardingStep(2, {
+      fullName: "",
+      availableDays: [],
+    } as OnboardingInput)
+    expect(errs.availableDays).toBe("required")
+    expect(errs.fullName).toBeUndefined()
   })
 })

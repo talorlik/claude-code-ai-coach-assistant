@@ -48,7 +48,37 @@ below, fixes each, checks it off, and squash-merges the result into local
   has an accessible name derived from its visible label (verify in the a11y tree
   or with a Testing Library `getByLabelText` query per field); no visual change.
   Added: 2026-06-07. Source: multi-select-goals UI code review (flagged
-  non-blocking follow-up).
+  non-blocking follow-up). UPDATE 2026-06-07: the checkbox-group portion
+  (`availableDays`, `equipment`, goal options) is now resolved - `CheckboxRow`
+  renders a single `role="checkbox"` row that owns the toggle and is clickable
+  across its whole width. The remaining work is the `Field` native controls
+  (fullName, phone, age, ageRange, fitnessLevel, preferredLocation) and the goal
+  Popover trigger, which still lack `htmlFor`/`id` wiring.
+
+- [ ] **Authenticated site header overflows on mobile** -
+  `components/site-header.tsx` lays the nav links and the controls cluster
+  (install/language/theme/sign-out) in two non-wrapping flex rows with no mobile
+  collapse. When signed in (My Plan/Chat/Account, plus Clients/Admin for the
+  trainer) the header is ~547px wide and overflows horizontally at the 390px
+  reference viewport, so every authenticated page scrolls sideways on a phone.
+  Fix by collapsing the nav into a hamburger/menu below the `sm` breakpoint (or
+  wrapping + condensing the controls). Acceptance: at 390px width, an
+  authenticated page (e.g. `/en/join`) has `documentElement.scrollWidth -
+  clientWidth <= 1` (extend `e2e/responsive.spec.ts` with an authenticated
+  viewport check). Added: 2026-06-07. Source: onboarding UX branch (the
+  onboarding form itself does not overflow; the shared header does).
+
+- [ ] **`my-plan` view-switch e2e is state-dependent / flaky** -
+  `e2e/my-plan.spec.ts:57` ("a client views the plan and can switch views")
+  fails against the seeded customer account depending on that account's current
+  plan state (observed failing on clean `main`, independent of any branch): it
+  either does not reach `/en/my-plan` or lands in an in-between state where
+  neither the "list" tab nor the "no active plan/onboarding" empty-state text is
+  present. Make the test deterministic by seeding/resetting the account's plan
+  state in a fixture or `beforeEach`, or by asserting on a stable post-load
+  landmark rather than branching on tab visibility. Acceptance: the test passes
+  reliably in isolation and in-suite regardless of prior plan state. Added:
+  2026-06-07. Source: onboarding UX branch verification (pre-existing failure).
 
 ## Done
 

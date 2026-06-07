@@ -64,11 +64,13 @@
       "back": "Back",
       "next": "Next",
       "saving": "Saving…",
+      "saveDetails": "Save details",
       "generating": "Building your plan…"
     },
+    "clearGoals": "Clear selection",
     "fields": {
       "fullName": "Full name",
-      "phone": "Phone (optional)",
+      "phone": "Phone",
       "age": "Age",
       "ageRange": "Or pick an age range",
       "goal": "Main goal",
@@ -80,7 +82,7 @@
       "notes": "Anything else your coach should know? (optional)"
     },
     "hints": {
-      "phone": "Used by your coach to reach you on WhatsApp.",
+      "phone": "Include your country code, e.g. +14155550123. Used by your coach to reach you on WhatsApp.",
       "age": "Enter your age, or choose a range below.",
       "goal": "You can choose more than one goal.",
       "days": "Pick at least one day.",
@@ -138,14 +140,16 @@
       }
     },
     "errors": {
-      "summary": "Please review the highlighted fields.",
       "signedOut": "Please sign in to continue.",
       "saveFailed": "We couldn't save your details. Please try again.",
       "fullName": {
-        "invalid": "Enter your name (2-120 characters)."
+        "required": "Enter your name.",
+        "length": "Name must be 2-30 characters.",
+        "chars": "Use letters, spaces, dots, or hyphens only."
       },
       "phone": {
-        "invalid": "Enter a valid phone number or leave it blank."
+        "required": "Enter your phone number.",
+        "invalid": "Enter a valid phone number, including country code."
       },
       "age": {
         "required": "Enter your age or choose an age range.",
