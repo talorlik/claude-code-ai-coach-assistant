@@ -53,3 +53,6 @@ context-practice-files/
 
 # Claude Code transient runtime artifacts (commands/skills/settings stay tracked)
 .claude/scheduled_tasks.lock
+
+# Project-local git worktrees (per-batch isolated workspaces)
+.worktrees/
