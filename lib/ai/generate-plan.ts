@@ -23,10 +23,13 @@ import {
 /**
  * The model used for plan generation, routed through the AI Gateway by passing
  * a `provider/model` string (the Gateway is the default global provider). Plan
- * generation is a structured, reasoning-heavy task, so a capable Claude model
- * is used rather than the fastest one.
+ * generation is a structured, reasoning-heavy task (and the same call backs
+ * template creation and regeneration), so a stronger general-purpose model is
+ * used here than for chat. GPT-4o is free-tier-eligible on the Gateway; the
+ * previously configured `anthropic/claude-sonnet-4-6` is a paid-tier model that
+ * the account cannot reach (see docs/AI_VERIFICATION.md).
  */
-export const PLAN_MODEL = "anthropic/claude-sonnet-4-6"
+export const PLAN_MODEL = "openai/gpt-4o"
 
 /**
  * Minimal shape of an object-generation call, matching the AI SDK's

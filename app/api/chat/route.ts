@@ -29,8 +29,15 @@ import { localeTag, routing, type Locale } from "@/i18n/routing"
 /** Allow streaming responses up to 30 seconds, matching plan generation. */
 export const maxDuration = 30
 
-/** Model used for chat, routed through the AI Gateway by `provider/model`. */
-export const CHAT_MODEL = "anthropic/claude-sonnet-4-6"
+/**
+ * Model used for chat, routed through the AI Gateway by `provider/model`. Chat
+ * is high-volume and conversational, so a fast, low-cost model is used rather
+ * than the heavier model that backs plan generation. Haiku 4.5 is
+ * free-tier-eligible on the Gateway; the previously configured
+ * `anthropic/claude-sonnet-4-6` is a paid-tier model the account cannot reach
+ * (see docs/AI_VERIFICATION.md).
+ */
+export const CHAT_MODEL = "anthropic/claude-haiku-4-5"
 
 /** Request body shape: the UI message list plus the active locale prefix. */
 interface ChatRequestBody {
