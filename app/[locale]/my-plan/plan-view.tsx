@@ -8,11 +8,11 @@ import {
   completionPercentage,
   toDateKey,
 } from "@/lib/progress/progress"
+import { completeWorkout } from "@/lib/workouts/logging-actions"
 import {
-  completeWorkout,
   DIFFICULTY_LEVELS,
   ENERGY_LEVELS,
-} from "@/lib/workouts/logging-actions"
+} from "@/lib/workouts/logging-constants"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {

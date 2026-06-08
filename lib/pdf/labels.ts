@@ -39,6 +39,20 @@ export interface PdfLabels {
   }
   /** Weekday names keyed by lowercase English weekday. */
   weekday: Record<string, string>
+  /** Labels for the client onboarding-details block at the top of the document. */
+  onboarding: {
+    heading: string
+    goals: string
+    fitnessLevel: string
+    age: string
+    availableDays: string
+    timeWindows: string
+    sessionLength: string
+    location: string
+    equipment: string
+    limitations: string
+    notes: string
+  }
   /** Footer disclaimer printed on every page. */
   safetyDisclaimer: string
   /** Shown when the plan has no sessions. */
@@ -70,6 +84,19 @@ const EN: PdfLabels = {
     saturday: "Saturday",
     sunday: "Sunday",
   },
+  onboarding: {
+    heading: "Client details",
+    goals: "Goals",
+    fitnessLevel: "Fitness level",
+    age: "Age",
+    availableDays: "Training days",
+    timeWindows: "Time windows",
+    sessionLength: "Session length",
+    location: "Location",
+    equipment: "Equipment",
+    limitations: "Limitations",
+    notes: "Notes",
+  },
   safetyDisclaimer:
     "Always warm up, use correct form, and stop if you feel pain. " +
     "Consult a professional before starting a new program.",
@@ -100,6 +127,19 @@ const HE: PdfLabels = {
     friday: "יום שישי",
     saturday: "יום שבת",
     sunday: "יום ראשון",
+  },
+  onboarding: {
+    heading: "פרטי המתאמן",
+    goals: "מטרות",
+    fitnessLevel: "רמת כושר",
+    age: "גיל",
+    availableDays: "ימי אימון",
+    timeWindows: "טווחי שעות",
+    sessionLength: "אורך אימון",
+    location: "מיקום",
+    equipment: "ציוד",
+    limitations: "מגבלות",
+    notes: "הערות",
   },
   safetyDisclaimer:
     "התחממו לפני האימון, הקפידו על טכניקה נכונה, והפסיקו אם אתם חשים כאב. " +

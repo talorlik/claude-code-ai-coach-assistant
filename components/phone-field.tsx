@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useLocale } from "next-intl"
+import { ChevronDownIcon } from "lucide-react"
 
 import {
   COUNTRIES,
@@ -141,6 +142,12 @@ export function PhoneField({
             <span className="text-muted-foreground">{selected.dialCode}</span>
             <span className="truncate">{selectedName}</span>
           </span>
+          {/* Trailing chevron for visual parity with the app's other selects;
+              justify-between pins it to the inline-end in both LTR and RTL. */}
+          <ChevronDownIcon
+            className="pointer-events-none size-4 shrink-0 text-muted-foreground"
+            aria-hidden="true"
+          />
         </PopoverTrigger>
         <PopoverContent align="start" className="w-(--anchor-width) p-0">
           <Command shouldFilter={false}>

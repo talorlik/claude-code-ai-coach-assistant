@@ -3,6 +3,7 @@ import {
   saveGeneratedPlan,
   recordGenerationEvent,
 } from "@/lib/db/plan-persistence"
+import { recordOnboardingSnapshot } from "@/lib/db/onboarding-snapshots"
 import { generateWorkoutPlan, type ObjectGenerator } from "@/lib/ai/generate-plan"
 import type { LocaleTag } from "@/i18n/routing"
 import type { WorkoutPlanRow } from "@/lib/db/types"
@@ -130,6 +131,18 @@ export async function regeneratePlanForClient(
       planId: saved.plan.id,
       reason,
     })
+    // Snapshot the details that produced this plan, FK'd to it, for the history
+    // view. Best-effort: the plan and audit event are already persisted, so a
+    // snapshot failure must not turn a successful regeneration into a failure.
+    try {
+      await recordOnboardingSnapshot({
+        client,
+        planId: saved.plan.id,
+        localeTag,
+      })
+    } catch {
+      // Swallow: history is non-critical relative to the saved plan.
+    }
     return {
       ok: true,
       plan: saved.plan,

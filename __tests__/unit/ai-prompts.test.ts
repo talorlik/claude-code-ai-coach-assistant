@@ -26,8 +26,15 @@ function client(overrides: Partial<Client> = {}): Client {
     fitnessLevel: "intermediate",
     limitations: null,
     availableDays: ["monday", "wednesday", "friday"],
+    availability: {
+      monday: [{ start: "06:00", end: "08:00" }],
+      wednesday: [{ start: "06:00", end: "08:00" }],
+      friday: [{ start: "18:00", end: "20:00" }],
+    },
+    sessionDurationMinutes: 45,
     preferredLocation: "gym",
     equipment: ["dumbbells", "bench"],
+    equipmentOther: [],
     notes: null,
     onboardedAt: "2026-06-04T00:00:00.000Z",
     createdAt: "2026-06-04T00:00:00.000Z",
@@ -85,6 +92,28 @@ describe("buildPlanUserPrompt", () => {
   it("renders no-equipment as none", () => {
     const prompt = buildPlanUserPrompt(client({ equipment: [] }), "en-US")
     expect(prompt).toMatch(/equipment: none/i)
+  })
+
+  it("renders per-day availability windows", () => {
+    const prompt = buildPlanUserPrompt(client(), "en-US")
+    expect(prompt).toContain("monday: 06:00-08:00")
+    expect(prompt).toContain("friday: 18:00-20:00")
+  })
+
+  it("includes the target session length", () => {
+    const prompt = buildPlanUserPrompt(
+      client({ sessionDurationMinutes: 60 }),
+      "en-US"
+    )
+    expect(prompt).toContain("60 minutes")
+  })
+
+  it("merges free-text Other equipment into the equipment line", () => {
+    const prompt = buildPlanUserPrompt(
+      client({ equipment: ["dumbbells"], equipmentOther: ["sled", "prowler"] }),
+      "en-US"
+    )
+    expect(prompt).toContain("dumbbells, sled, prowler")
   })
 
   it("requests English for en-US and Hebrew for he-IL", () => {

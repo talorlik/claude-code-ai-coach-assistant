@@ -86,6 +86,12 @@ function valid(overrides: Partial<OnboardingInput> = {}): OnboardingInput {
     goals: ["build_muscle"],
     fitnessLevel: "intermediate",
     availableDays: ["monday", "wednesday", "friday"],
+    availability: {
+      monday: [{ start: "06:00", end: "08:00" }],
+      wednesday: [{ start: "06:00", end: "08:00" }],
+      friday: [{ start: "18:00", end: "20:00" }],
+    },
+    sessionDurationMinutes: "45",
     preferredLocation: "gym",
     equipment: ["dumbbells", "bench"],
     limitations: "",
@@ -134,6 +140,11 @@ describe("saveOnboardingDetails", () => {
         goals: ["lose_weight"],
         fitnessLevel: "advanced",
         availableDays: ["tuesday", "thursday"],
+        // Availability must match the new day set (cross-validated).
+        availability: {
+          tuesday: [{ start: "07:00", end: "09:00" }],
+          thursday: [{ start: "19:00", end: "20:30" }],
+        },
         equipment: [],
         age: "",
         ageRange: "40_49",

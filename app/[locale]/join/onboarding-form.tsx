@@ -2,7 +2,13 @@
 
 import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
-import { CheckCircle2, Info, TriangleAlert, X } from "lucide-react"
+import {
+  CheckCircle2,
+  ChevronDownIcon,
+  Info,
+  TriangleAlert,
+  X,
+} from "lucide-react"
 
 import { useRouter } from "@/i18n/navigation"
 import {
@@ -18,10 +24,12 @@ import {
   LOCATIONS,
   validateOnboardingStep,
   WORKOUT_DAYS,
+  type Availability,
   type OnboardingInput,
   type OnboardingStep,
 } from "@/lib/validation/onboarding"
 import { PhoneField } from "@/components/phone-field"
+import { AvailabilityEditor } from "@/components/onboarding/availability-editor"
 import { combineE164 } from "@/lib/phone/phone"
 import { countryByIso2 } from "@/lib/phone/countries"
 import { Button } from "@/components/ui/button"
@@ -58,8 +66,16 @@ export interface OnboardingDefaults {
   fitnessLevel: string
   limitations: string
   availableDays: string[]
+  /** Per-day training windows, keyed by selected weekday. */
+  availability: Availability
+  /** Desired session length in minutes, as a select value string ("" = unset). */
+  sessionDurationMinutes: string
   preferredLocation: string
   equipment: string[]
+  /** Whether the "Other" equipment toggle is on (reveals the free-text field). */
+  equipmentOtherSelected: boolean
+  /** Raw comma-separated "Other" equipment text. */
+  equipmentOther: string
   notes: string
 }
 
@@ -74,8 +90,12 @@ export const EMPTY_DEFAULTS: OnboardingDefaults = {
   fitnessLevel: "",
   limitations: "",
   availableDays: [],
+  availability: {},
+  sessionDurationMinutes: "",
   preferredLocation: "",
   equipment: [],
+  equipmentOtherSelected: false,
+  equipmentOther: "",
   notes: "",
 }
 
@@ -96,7 +116,7 @@ function toggle<T extends string>(list: T[], value: T): T[] {
 }
 
 /** Maps the form's string-keyed state to the validator's input shape. */
-function toInput(values: OnboardingDefaults): OnboardingInput {
+export function toInput(values: OnboardingDefaults): OnboardingInput {
   // `values.phone` holds the national number; combine it with the selected
   // country's dial code into E.164, which the validator and save expect.
   const country = countryByIso2(values.countryIso2) ?? countryByIso2("IL")!
@@ -110,8 +130,12 @@ function toInput(values: OnboardingDefaults): OnboardingInput {
     fitnessLevel: values.fitnessLevel,
     limitations: values.limitations,
     availableDays: values.availableDays,
+    availability: values.availability,
+    sessionDurationMinutes: values.sessionDurationMinutes,
     preferredLocation: values.preferredLocation,
     equipment: values.equipment,
+    equipmentOtherSelected: values.equipmentOtherSelected,
+    equipmentOther: values.equipmentOther,
     notes: values.notes,
   }
 }
@@ -429,7 +453,7 @@ export function OnboardingForm({
   )
 }
 
-type StepProps = {
+export type StepProps = {
   t: ReturnType<typeof useTranslations<"Onboarding">>
   values: OnboardingDefaults
   set: <K extends keyof OnboardingDefaults>(
@@ -440,7 +464,7 @@ type StepProps = {
 }
 
 /** Step 1: identity and age. */
-function StepAboutYou({ t, values, set, fieldError }: StepProps) {
+export function StepAboutYou({ t, values, set, fieldError }: StepProps) {
   const nameError = fieldError("fullName")
   const phoneError = fieldError("phone")
   const countryError = fieldError("countryIso2")
@@ -529,7 +553,7 @@ function StepAboutYou({ t, values, set, fieldError }: StepProps) {
 }
 
 /** Step 2: goal, level, location. */
-function StepTraining({ t, values, set, fieldError }: StepProps) {
+export function StepTraining({ t, values, set, fieldError }: StepProps) {
   const goalError = fieldError("goals")
   const fitnessError = fieldError("fitnessLevel")
   const locationError = fieldError("preferredLocation")
@@ -559,8 +583,11 @@ function StepTraining({ t, values, set, fieldError }: StepProps) {
           </TooltipProvider>
         }
       >
-        {/* Relative wrapper so the clear-all control can sit inside the field,
-            left of the popover chevron, without nesting a button in a button. */}
+        {/* Relative wrapper so the clear control and the chevron can sit inside
+            the field. The chevron is pinned at the inline-end (end-2.5, matching
+            NativeSelect); the clear X sits just before it (end-8) so it reads
+            left-of-chevron in LTR and right-of-chevron in RTL with no dir code.
+            Both are siblings of the trigger, never nested buttons. */}
         <div className="relative">
           <Popover>
             <PopoverTrigger
@@ -570,8 +597,10 @@ function StepTraining({ t, values, set, fieldError }: StepProps) {
                   variant="outline"
                   data-testid="goal-trigger"
                   className={cn(
-                    "w-full justify-between font-normal",
-                    hasGoals && "pe-16",
+                    "w-full justify-start font-normal",
+                    // Always reserve room for the chevron; reserve more when the
+                    // clear X is also shown.
+                    hasGoals ? "pe-16" : "pe-8",
                     goalError &&
                       "border-destructive ring-3 ring-destructive/20"
                   )}
@@ -615,6 +644,12 @@ function StepTraining({ t, values, set, fieldError }: StepProps) {
               <X className="size-4" aria-hidden="true" />
             </button>
           ) : null}
+          {/* Decorative chevron matching the other selects; the trigger button
+              underneath handles the click, so this stays pointer-events-none. */}
+          <ChevronDownIcon
+            className="pointer-events-none absolute end-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
         </div>
       </Field>
 
@@ -667,10 +702,21 @@ function StepTraining({ t, values, set, fieldError }: StepProps) {
   )
 }
 
-/** Step 3: schedule, equipment, free-text. */
-function StepSchedule({ t, values, set, fieldError }: StepProps) {
+/** Step 3: schedule, availability windows, duration, equipment, free-text. */
+export function StepSchedule({ t, values, set, fieldError }: StepProps) {
   const daysError = fieldError("availableDays")
   const equipmentError = fieldError("equipment")
+  const availabilityError = fieldError("availability")
+  const durationError = fieldError("sessionDurationMinutes")
+  const equipmentOtherError = fieldError("equipmentOther")
+
+  function toggleEquipmentOther() {
+    const next = !values.equipmentOtherSelected
+    set("equipmentOtherSelected", next)
+    // Clearing the toggle drops any typed free text so it is not persisted.
+    if (!next) set("equipmentOther", "")
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <fieldset className="flex flex-col gap-3">
@@ -710,6 +756,28 @@ function StepSchedule({ t, values, set, fieldError }: StepProps) {
 
       <fieldset className="flex flex-col gap-3">
         <legend className="text-sm font-medium">
+          {t("fields.availability")}
+          <span className="ms-0.5 text-destructive" aria-hidden="true">
+            *
+          </span>
+        </legend>
+        <p className="text-sm text-muted-foreground">
+          {t("hints.availability")}
+        </p>
+        <AvailabilityEditor
+          days={values.availableDays}
+          value={values.availability}
+          onChange={(next) => set("availability", next)}
+          duration={values.sessionDurationMinutes}
+          onDurationChange={(value) => set("sessionDurationMinutes", value)}
+          error={availabilityError}
+          durationError={durationError}
+          t={t as (key: string, values?: Record<string, unknown>) => string}
+        />
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-3">
+        <legend className="text-sm font-medium">
           {t("fields.equipment")}
         </legend>
         <p className="text-sm text-muted-foreground">{t("hints.equipment")}</p>
@@ -722,6 +790,13 @@ function StepSchedule({ t, values, set, fieldError }: StepProps) {
               onToggle={() => set("equipment", toggle(values.equipment, item))}
             />
           ))}
+          {/* "Other" is a UI-only toggle: it reveals the free-text field below
+              and is never stored in the closed-set equipment array. */}
+          <CheckboxRow
+            label={t("options.equipment.other")}
+            checked={values.equipmentOtherSelected}
+            onToggle={toggleEquipmentOther}
+          />
         </div>
         {equipmentError ? (
           <p className="text-sm text-destructive" role="alert">
@@ -729,6 +804,40 @@ function StepSchedule({ t, values, set, fieldError }: StepProps) {
           </p>
         ) : null}
       </fieldset>
+
+      {values.equipmentOtherSelected ? (
+        <Field
+          label={t("fields.equipmentOther")}
+          hint={t("hints.equipmentOther")}
+          error={equipmentOtherError}
+          required
+          labelAdornment={
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      aria-label={t("hints.equipmentOther")}
+                      className="inline-flex text-muted-foreground"
+                    />
+                  }
+                >
+                  <Info className="size-4" aria-hidden="true" />
+                </TooltipTrigger>
+                <TooltipContent>{t("hints.equipmentOther")}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          }
+        >
+          <Input
+            name="equipmentOther"
+            value={values.equipmentOther}
+            onChange={(e) => set("equipmentOther", e.target.value)}
+            placeholder={t("placeholders.equipmentOther")}
+          />
+        </Field>
+      ) : null}
 
       <Field
         label={t("fields.limitations")}

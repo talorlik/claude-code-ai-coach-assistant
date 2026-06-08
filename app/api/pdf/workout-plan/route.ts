@@ -38,7 +38,7 @@ export async function GET(req: Request): Promise<Response> {
 
   const locale = resolveLocale(url.searchParams.get("locale"))
 
-  const data = await loadWorkoutPlanPdfData(requestedClientId)
+  const data = await loadWorkoutPlanPdfData(requestedClientId, locale)
   if (!data) {
     return Response.json({ error: "noActivePlan" }, { status: 404 })
   }

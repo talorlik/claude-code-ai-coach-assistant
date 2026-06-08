@@ -51,6 +51,12 @@ function renderForm() {
     fitnessLevel: "beginner",
     preferredLocation: "gym",
     availableDays: ["monday", "wednesday", "friday"],
+    availability: {
+      monday: [{ start: "06:00", end: "08:00" }],
+      wednesday: [{ start: "06:00", end: "08:00" }],
+      friday: [{ start: "18:00", end: "20:00" }],
+    },
+    sessionDurationMinutes: "45",
     equipment: ["dumbbells"],
   }
   return render(

@@ -28,6 +28,8 @@ Safety rules (mandatory, never violate):
 
 Plan rules:
 - Schedule sessions only on the client's available days.
+- Keep each session within the client's stated time windows for that day; never assume availability outside those windows.
+- Design each session to fit the client's target session length; keep the total volume realistic for that duration and set each session's duration_minutes close to that target.
 - Match volume and difficulty to the client's stated fitness level.
 - Use only equipment the client has access to. If they selected "none", use bodyweight movements.
 - Keep instructions clear, concise, and actionable.
@@ -43,6 +45,27 @@ const LANGUAGE_LABEL: Record<LocaleTag, string> = {
 /** Renders a list field for the prompt, or a placeholder when empty. */
 function list(values: string[], emptyLabel: string): string {
   return values.length > 0 ? values.join(", ") : emptyLabel
+}
+
+/**
+ * Renders the per-day availability windows as prompt lines, e.g.
+ * `monday: 06:00-09:00, 18:00-20:00`. Days are emitted in the client's
+ * `availableDays` order so the model sees them in a stable sequence. Returns a
+ * placeholder when no windows are recorded (legacy rows predating the field).
+ */
+function formatAvailability(client: Client): string {
+  const days = client.availableDays.filter(
+    (day) => (client.availability[day]?.length ?? 0) > 0
+  )
+  if (days.length === 0) return "not specified"
+  return days
+    .map((day) => {
+      const windows = client.availability[day]
+        .map((range) => `${range.start}-${range.end}`)
+        .join(", ")
+      return `${day}: ${windows}`
+    })
+    .join("; ")
 }
 
 /**
@@ -72,6 +95,18 @@ export function buildPlanUserPrompt(
         ? `range ${client.ageRange}`
         : "not provided"
 
+  // Merge the closed-set equipment with the client's free-text "Other" entries
+  // for the prompt only; storage keeps them separate (the closed set is
+  // validated, the free text is not).
+  const equipment = list(
+    [...client.equipment, ...client.equipmentOther],
+    "none"
+  )
+  const duration =
+    client.sessionDurationMinutes != null
+      ? `${client.sessionDurationMinutes} minutes`
+      : "not specified"
+
   const lines = [
     `Generate a personalized workout plan in ${language}.`,
     "",
@@ -80,12 +115,14 @@ export function buildPlanUserPrompt(
     `- Fitness level: ${client.fitnessLevel ?? "beginner"}`,
     `- Age: ${age}`,
     `- Available training days: ${list(client.availableDays, "not specified")}`,
+    `- Time windows per day: ${formatAvailability(client)}`,
+    `- Target session length: ${duration}`,
     `- Preferred location: ${client.preferredLocation ?? "not specified"}`,
-    `- Available equipment: ${list(client.equipment, "none")}`,
+    `- Available equipment: ${equipment}`,
     `- Limitations or injuries: ${client.limitations ?? "none reported"}`,
     `- Additional notes: ${client.notes ?? "none"}`,
     "",
-    "Create one workout session per available training day. Stay within the client's equipment, level, and limitations.",
+    "Create one workout session per available training day. Schedule each session within that day's time windows, fit each session to the target length, and stay within the client's equipment, level, and limitations.",
   ]
 
   return lines.join("\n")

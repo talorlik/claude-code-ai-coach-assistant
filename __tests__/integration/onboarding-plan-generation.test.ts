@@ -20,6 +20,7 @@ let savedClient: Client | null = null
 let generationResult: GenerationResult
 let savedPlans: GeneratedPlan[] = []
 let recordedEvents: Array<{ status: string; planId?: string | null }> = []
+let recordedSnapshots: Array<{ planId: string }> = []
 let saveThrows = false
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }))
@@ -52,6 +53,12 @@ vi.mock("@/lib/db/plan-persistence", () => ({
   },
 }))
 
+vi.mock("@/lib/db/onboarding-snapshots", () => ({
+  recordOnboardingSnapshot: async (input: { planId: string }) => {
+    recordedSnapshots.push({ planId: input.planId })
+  },
+}))
+
 const { generateOnboardingPlan } = await import(
   "@/lib/onboarding/onboarding-actions"
 )
@@ -69,8 +76,15 @@ function client(): Client {
     fitnessLevel: "intermediate",
     limitations: null,
     availableDays: ["monday", "wednesday", "friday"],
+    availability: {
+      monday: [{ start: "06:00", end: "08:00" }],
+      wednesday: [{ start: "06:00", end: "08:00" }],
+      friday: [{ start: "18:00", end: "20:00" }],
+    },
+    sessionDurationMinutes: 45,
     preferredLocation: "gym",
     equipment: ["dumbbells"],
+    equipmentOther: [],
     notes: null,
     onboardedAt: "2026-06-04T00:00:00.000Z",
     createdAt: "2026-06-04T00:00:00.000Z",
@@ -111,6 +125,7 @@ beforeEach(() => {
   generationResult = { ok: true, plan: plan() }
   savedPlans = []
   recordedEvents = []
+  recordedSnapshots = []
   saveThrows = false
 })
 
@@ -124,6 +139,17 @@ describe("generateOnboardingPlan", () => {
       status: "succeeded",
       planId: "plan-1",
     })
+  })
+
+  it("records a baseline onboarding snapshot FK'd to the new plan", async () => {
+    await generateOnboardingPlan("en")
+    expect(recordedSnapshots).toEqual([{ planId: "plan-1" }])
+  })
+
+  it("records no snapshot when generation fails", async () => {
+    generationResult = { ok: false, reason: "ai_error" }
+    await generateOnboardingPlan("en")
+    expect(recordedSnapshots).toEqual([])
   })
 
   it("saves nothing visible and reports failure when AI output is invalid", async () => {

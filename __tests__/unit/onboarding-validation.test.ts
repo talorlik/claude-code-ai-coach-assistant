@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  parseEquipmentOther,
   validateOnboarding,
   validateOnboardingStep,
   type OnboardingInput,
@@ -23,6 +24,12 @@ function valid(overrides: Partial<OnboardingInput> = {}): OnboardingInput {
     goals: ["build_muscle"],
     fitnessLevel: "intermediate",
     availableDays: ["monday", "wednesday", "friday"],
+    availability: {
+      monday: [{ start: "06:00", end: "08:00" }],
+      wednesday: [{ start: "06:00", end: "08:00" }],
+      friday: [{ start: "18:00", end: "20:00" }],
+    },
+    sessionDurationMinutes: "45",
     preferredLocation: "gym",
     equipment: ["dumbbells", "bench"],
     limitations: "",
@@ -204,7 +211,14 @@ describe("validateOnboarding - available days", () => {
   })
 
   it("accepts a single valid day", () => {
-    const result = validateOnboarding(valid({ availableDays: ["sunday"] }))
+    const result = validateOnboarding(
+      valid({
+        availableDays: ["sunday"],
+        // Availability is cross-validated against the selected days, so the
+        // window map must match the overridden day set.
+        availability: { sunday: [{ start: "09:00", end: "11:00" }] },
+      })
+    )
     expect(result.ok).toBe(true)
     if (result.ok) expect(result.data.availableDays).toEqual(["sunday"])
   })
@@ -404,5 +418,217 @@ describe("validateOnboardingStep - step 0 country", () => {
   it("flags an unknown country on step 0", () => {
     const errs = validateOnboardingStep(0, valid({ countryIso2: "ZZ" }))
     expect(errs.countryIso2).toBe("invalid")
+  })
+})
+
+describe("availability windows", () => {
+  it("accepts a window per selected day and normalizes order", () => {
+    const result = validateOnboarding(
+      valid({
+        availableDays: ["monday"],
+        availability: {
+          monday: [
+            { start: "18:00", end: "20:00" },
+            { start: "06:00", end: "08:00" },
+          ],
+        },
+      })
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      // Windows are returned sorted by start time.
+      expect(result.data.availability.monday).toEqual([
+        { start: "06:00", end: "08:00" },
+        { start: "18:00", end: "20:00" },
+      ])
+    }
+  })
+
+  it("requires a window for every selected day", () => {
+    const result = validateOnboarding(
+      valid({
+        availableDays: ["monday", "tuesday"],
+        availability: { monday: [{ start: "06:00", end: "08:00" }] },
+      })
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.availability).toBe("required")
+  })
+
+  it("rejects a window for a day the client did not select", () => {
+    const result = validateOnboarding(
+      valid({
+        availableDays: ["monday"],
+        availability: {
+          monday: [{ start: "06:00", end: "08:00" }],
+          tuesday: [{ start: "06:00", end: "08:00" }],
+        },
+      })
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.availability).toBe("invalid")
+  })
+
+  it("rejects a malformed HH:MM time", () => {
+    const result = validateOnboarding(
+      valid({
+        availableDays: ["monday"],
+        availability: { monday: [{ start: "6:00", end: "08:00" }] },
+      })
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.availability).toBe("invalid")
+  })
+
+  it("rejects start at or after end", () => {
+    const result = validateOnboarding(
+      valid({
+        availableDays: ["monday"],
+        availability: { monday: [{ start: "08:00", end: "08:00" }] },
+      })
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.availability).toBe("invalid")
+  })
+
+  it("rejects overlapping windows on the same day", () => {
+    const result = validateOnboarding(
+      valid({
+        availableDays: ["monday"],
+        availability: {
+          monday: [
+            { start: "06:00", end: "09:00" },
+            { start: "08:00", end: "10:00" },
+          ],
+        },
+      })
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.availability).toBe("overlap")
+  })
+
+  it("rejects more than the per-day window cap", () => {
+    const result = validateOnboarding(
+      valid({
+        availableDays: ["monday"],
+        availability: {
+          monday: [
+            { start: "06:00", end: "07:00" },
+            { start: "08:00", end: "09:00" },
+            { start: "10:00", end: "11:00" },
+            { start: "12:00", end: "13:00" },
+            { start: "14:00", end: "15:00" },
+          ],
+        },
+      })
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.availability).toBe("invalid")
+  })
+})
+
+describe("session duration", () => {
+  it("requires a duration", () => {
+    const result = validateOnboarding(valid({ sessionDurationMinutes: "" }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.fieldErrors?.sessionDurationMinutes).toBe("required")
+    }
+  })
+
+  it("rejects a value that is not a multiple of 15", () => {
+    const result = validateOnboarding(valid({ sessionDurationMinutes: "50" }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.fieldErrors?.sessionDurationMinutes).toBe("invalid")
+    }
+  })
+
+  it("rejects a value below the minimum or above the maximum", () => {
+    const low = validateOnboarding(valid({ sessionDurationMinutes: "0" }))
+    expect(low.ok).toBe(false)
+    if (!low.ok) expect(low.fieldErrors?.sessionDurationMinutes).toBe("range")
+    const high = validateOnboarding(valid({ sessionDurationMinutes: "195" }))
+    expect(high.ok).toBe(false)
+    if (!high.ok) {
+      expect(high.fieldErrors?.sessionDurationMinutes).toBe("range")
+    }
+  })
+
+  it("accepts a valid 15-minute multiple and returns a number", () => {
+    const result = validateOnboarding(valid({ sessionDurationMinutes: "90" }))
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.data.sessionDurationMinutes).toBe(90)
+  })
+})
+
+describe("parseEquipmentOther", () => {
+  it("returns an empty list when not selected and blank", () => {
+    expect(parseEquipmentOther({ fullName: "" })).toEqual({ value: [] })
+  })
+
+  it("requires text when the Other toggle is on", () => {
+    expect(
+      parseEquipmentOther({
+        fullName: "",
+        equipmentOtherSelected: true,
+        equipmentOther: "   ",
+      })
+    ).toEqual({ value: [], error: "required" })
+  })
+
+  it("splits, trims, and dedupes case-insensitively", () => {
+    expect(
+      parseEquipmentOther({
+        fullName: "",
+        equipmentOther: " Sled , battle ropes ,SLED, ",
+      })
+    ).toEqual({ value: ["Sled", "battle ropes"] })
+  })
+
+  it("rejects an item that exceeds the length cap", () => {
+    const long = "x".repeat(41)
+    expect(
+      parseEquipmentOther({ fullName: "", equipmentOther: long })
+    ).toEqual({ value: [], error: "length" })
+  })
+
+  it("rejects more items than the count cap", () => {
+    const many = Array.from({ length: 11 }, (_, i) => `item${i}`).join(",")
+    expect(
+      parseEquipmentOther({ fullName: "", equipmentOther: many })
+    ).toEqual({ value: [], error: "length" })
+  })
+
+  it("feeds the parsed list into the full validator result", () => {
+    const result = validateOnboarding(
+      valid({ equipmentOtherSelected: true, equipmentOther: "sled, prowler" })
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.data.equipmentOther).toEqual(["sled", "prowler"])
+    }
+  })
+})
+
+describe("new equipment members", () => {
+  it("accepts a newly added closed-set equipment value", () => {
+    const result = validateOnboarding(
+      valid({ equipment: ["dumbbells", "rowing_machine", "trx"] })
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.data.equipment).toEqual([
+        "dumbbells",
+        "rowing_machine",
+        "trx",
+      ])
+    }
+  })
+
+  it("still rejects an unknown equipment value", () => {
+    const result = validateOnboarding(valid({ equipment: ["spaceship"] }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors?.equipment).toBe("invalid")
   })
 })

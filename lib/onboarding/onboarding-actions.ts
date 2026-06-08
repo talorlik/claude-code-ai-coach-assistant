@@ -15,11 +15,13 @@ import {
 import type { ActionResult } from "@/lib/types/action-result"
 import { fail, ok } from "@/lib/types/action-result"
 import {
+  parseEquipmentOther,
   validateOnboarding,
   validateOnboardingStep,
   type OnboardingInput,
   type OnboardingStep,
 } from "@/lib/validation/onboarding"
+import { recordOnboardingSnapshot } from "@/lib/db/onboarding-snapshots"
 
 /** Payload returned to the client after a successful onboarding save. */
 export interface OnboardingSaveResult {
@@ -86,10 +88,25 @@ function stepUpsertInput(
       preferredLocation: input.preferredLocation ?? null,
     }
   }
+  // Step 2 passed validateOnboardingStep, so re-derive the cleaned values the
+  // same way the full validator does: coerce the duration to a number and parse
+  // the "Other" equipment free text to a list. Availability is already
+  // structured; the validator has confirmed its shape.
+  const duration =
+    input.sessionDurationMinutes === "" ||
+    input.sessionDurationMinutes === null ||
+    input.sessionDurationMinutes === undefined
+      ? null
+      : Number(input.sessionDurationMinutes)
   return {
     userId,
     availableDays: input.availableDays ?? [],
+    availability: input.availability ?? {},
+    sessionDurationMinutes: Number.isInteger(duration)
+      ? (duration as number)
+      : null,
     equipment: input.equipment ?? [],
+    equipmentOther: parseEquipmentOther(input).value,
     limitations: (input.limitations ?? "").trim() || null,
     notes: (input.notes ?? "").trim() || null,
   }
@@ -174,8 +191,11 @@ export async function saveOnboardingDetails(
       fitnessLevel: data.fitnessLevel,
       limitations: data.limitations,
       availableDays: data.availableDays,
+      availability: data.availability,
+      sessionDurationMinutes: data.sessionDurationMinutes,
       preferredLocation: data.preferredLocation,
       equipment: data.equipment,
+      equipmentOther: data.equipmentOther,
       notes: data.notes,
       // Stamp completion on the final save and on every subsequent edit; an ISO
       // string keeps the column a real timestamptz.
@@ -248,6 +268,18 @@ export async function generateOnboardingPlan(
       status: "succeeded",
       planId: saved.plan.id,
     })
+    // Capture the baseline onboarding snapshot for the history view, FK'd to the
+    // first plan. Best-effort: the plan and audit event are already persisted,
+    // so a snapshot failure must not fail the generation.
+    try {
+      await recordOnboardingSnapshot({
+        client,
+        planId: saved.plan.id,
+        localeTag,
+      })
+    } catch {
+      // Swallow: history is non-critical relative to the saved plan.
+    }
     // Surface the new plan on the plan view's cached render.
     revalidatePath("/[locale]/my-plan", "page")
     return ok({ planGenerated: true })

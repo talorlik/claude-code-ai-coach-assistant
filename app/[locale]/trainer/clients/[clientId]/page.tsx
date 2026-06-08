@@ -13,6 +13,10 @@ import {
 } from "@/components/ui/empty"
 import { requireTrainerAdmin } from "@/lib/auth/require-user"
 import { getTrainerClientDetail } from "@/lib/db/trainer-client-detail"
+import { listOnboardingSnapshots } from "@/lib/db/onboarding-snapshots"
+import { clientToDefaults } from "@/components/onboarding/onboarding-details-form"
+import { OnboardingHistory } from "@/components/onboarding/onboarding-history"
+import { ClientOnboardingEditor } from "./client-onboarding-editor"
 import {
   completedWorkoutIds,
   completionPercentage,
@@ -121,6 +125,12 @@ export default async function TrainerClientDashboardPage({
   const { client, activePlan, recentLogs, chatMessages, notes, pushStatus } =
     detail
   const reference = new Date()
+
+  // Onboarding edit defaults + history for this client. RLS scopes the snapshot
+  // read to the trainer-admin policy (the page guard is the primary check).
+  const onboardingDefaults = clientToDefaults(client)
+  const snapshots = await listOnboardingSnapshots(clientId)
+  const tAccount = await getTranslations("AccountOnboarding")
 
   // Profile fields, in display order; empty values fall back to "not provided".
   const profileFields: ProfileField[] = [
@@ -324,7 +334,36 @@ export default async function TrainerClientDashboardPage({
     editor,
   }
 
-  return <ClientDashboard data={data} />
+  return (
+    <div className="flex flex-col gap-10">
+      <ClientDashboard data={data} />
+
+      <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4">
+        <header className="flex flex-col gap-1">
+          <h2 className="text-xl font-medium">
+            {tAccount("onboardingTitle")}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {tAccount("onboardingDescription")}
+          </p>
+        </header>
+        <ClientOnboardingEditor
+          clientId={clientId}
+          defaults={onboardingDefaults}
+        />
+      </section>
+
+      <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4">
+        <header className="flex flex-col gap-1">
+          <h2 className="text-xl font-medium">{tAccount("historyTitle")}</h2>
+          <p className="text-sm text-muted-foreground">
+            {tAccount("historyDescription")}
+          </p>
+        </header>
+        <OnboardingHistory snapshots={snapshots} />
+      </section>
+    </div>
+  )
 }
 
 /** Localized full-page empty/error state shared by the not-found and error paths. */

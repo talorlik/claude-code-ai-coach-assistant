@@ -48,6 +48,13 @@ export const workoutSchema = z.object({
   focus: z.string().max(120).nullable(),
   /** Session-level coaching notes in the plan's locale. */
   notes: z.string().max(2000).nullable(),
+  /**
+   * The session's intended length in minutes, the model's best fit to the
+   * client's target duration. Optional and nullable: it is advisory (echoed back
+   * so the prompt's target is acknowledged) and not persisted, so older or
+   * minimal generations that omit it still validate.
+   */
+  duration_minutes: z.number().int().min(5).max(360).nullable().optional(),
   /** Ordered exercises; at least one per session. */
   exercises: z.array(exerciseSchema).min(1).max(20),
 })

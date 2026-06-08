@@ -5,6 +5,15 @@ import { createClient } from "@/lib/supabase/server"
 import { ensureProfile } from "@/lib/profile/profile-actions"
 import { resolveAccountMessage } from "@/lib/profile/resolve-account-message"
 import { requireClient } from "@/lib/auth/require-user"
+import { getClient } from "@/lib/db/clients"
+import { listOnboardingSnapshots } from "@/lib/db/onboarding-snapshots"
+import { saveOnboardingDetails } from "@/lib/onboarding/onboarding-actions"
+import {
+  OnboardingDetailsForm,
+  clientToDefaults,
+} from "@/components/onboarding/onboarding-details-form"
+import { OnboardingHistory } from "@/components/onboarding/onboarding-history"
+import { RegenerateMyPlan } from "@/app/[locale]/my-plan/regenerate-my-plan"
 import { AccountForms } from "./account-forms"
 
 export const metadata: Metadata = {
@@ -50,11 +59,17 @@ export default async function ProfilePage({
     .eq("user_id", user.id)
     .maybeSingle()
 
+  // Onboarding details + history. A client who has not onboarded yet has no row;
+  // the section is hidden in that case (they complete onboarding via /join).
+  const client = await getClient(user.id)
+  const snapshots = client ? await listOnboardingSnapshots(user.id) : []
+
   // Resolve the post-submit feedback code (set by the form actions' redirect)
   // to localized copy. Only allowlisted codes resolve, so a forged query param
   // renders nothing.
   const sp = await searchParams
   const t = await getTranslations("Account")
+  const tOnboarding = await getTranslations("AccountOnboarding")
   const notice = resolveAccountMessage(t, sp.notice)
   const error = resolveAccountMessage(t, sp.error)
 
@@ -82,6 +97,38 @@ export default async function ProfilePage({
         initialCountryIso2={profile?.country_iso2 ?? ""}
         email={user.email ?? ""}
       />
+
+      {client ? (
+        <>
+          <section className="flex flex-col gap-4">
+            <header className="flex flex-col gap-1">
+              <h2 className="text-xl font-medium">
+                {tOnboarding("onboardingTitle")}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {tOnboarding("onboardingDescription")}
+              </p>
+            </header>
+            <OnboardingDetailsForm
+              defaults={clientToDefaults(client)}
+              onSave={saveOnboardingDetails}
+              regenerateSlot={<RegenerateMyPlan />}
+            />
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <header className="flex flex-col gap-1">
+              <h2 className="text-xl font-medium">
+                {tOnboarding("historyTitle")}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {tOnboarding("historyDescription")}
+              </p>
+            </header>
+            <OnboardingHistory snapshots={snapshots} />
+          </section>
+        </>
+      ) : null}
     </div>
   )
 }

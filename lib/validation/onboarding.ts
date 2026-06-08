@@ -52,7 +52,13 @@ export const WORKOUT_DAYS = [
   "sunday",
 ] as const
 
-/** Equipment the client has access to (multi-select, may be empty). */
+/**
+ * Equipment the client has access to (multi-select, may be empty). The closed
+ * set covers common home and gym kit; anything not listed is captured as free
+ * text via the UI's "Other" field and stored separately in `equipmentOther`
+ * (see {@link parseEquipmentOther}). `"other"` is therefore NOT a member here -
+ * it is a UI-only toggle, never a stored equipment value.
+ */
 export const EQUIPMENT = [
   "none",
   "dumbbells",
@@ -63,6 +69,16 @@ export const EQUIPMENT = [
   "bench",
   "cardio_machine",
   "full_gym",
+  "jump_rope",
+  "medicine_ball",
+  "yoga_mat",
+  "stability_ball",
+  "foam_roller",
+  "trx",
+  "squat_rack",
+  "treadmill",
+  "stationary_bike",
+  "rowing_machine",
 ] as const
 
 export type Goal = (typeof GOALS)[number]
@@ -71,6 +87,41 @@ export type AgeRange = (typeof AGE_RANGES)[number]
 export type WorkoutLocation = (typeof LOCATIONS)[number]
 export type WorkoutDay = (typeof WORKOUT_DAYS)[number]
 export type Equipment = (typeof EQUIPMENT)[number]
+
+/**
+ * Availability rules. Each selected training day must carry at least one time
+ * window; windows are 24h `HH:MM` strings with `start < end` and must not
+ * overlap within a day. {@link MAX_RANGES_PER_DAY} caps how many windows a day
+ * may hold, keeping the editor and the AI prompt bounded.
+ */
+export const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/
+export const MAX_RANGES_PER_DAY = 4
+
+/** A single training window within a day (24h `HH:MM`). */
+export interface TimeRange {
+  start: string
+  end: string
+}
+
+/** Per-day training windows, keyed by weekday (a subset of `availableDays`). */
+export type Availability = Record<string, TimeRange[]>
+
+/**
+ * Session-duration rules. The client picks a single desired session length that
+ * applies to every training day, in {@link DURATION_STEP}-minute increments
+ * between {@link MIN_DURATION} and {@link MAX_DURATION}.
+ */
+export const DURATION_STEP = 15
+export const MIN_DURATION = 15
+export const MAX_DURATION = 180
+
+/**
+ * Free-text "Other" equipment rules. The raw comma-separated string is parsed
+ * into a deduplicated list; each item is length-capped and the list is
+ * count-capped so a tampered or runaway input cannot bloat the row or prompt.
+ */
+export const EQUIPMENT_OTHER_MAX_ITEMS = 10
+export const EQUIPMENT_OTHER_ITEM_MAX = 40
 
 /** Lower/upper bounds for an exact age, when given instead of a range. */
 export const MIN_AGE = 13
@@ -104,7 +155,15 @@ export const PHONE_RE = /^\+[1-9]\d{7,14}$/
 export const STEP_FIELDS = {
   0: ["fullName", "phone", "countryIso2", "age", "ageRange"],
   1: ["goals", "fitnessLevel", "preferredLocation"],
-  2: ["availableDays", "equipment", "limitations", "notes"],
+  2: [
+    "availableDays",
+    "availability",
+    "sessionDurationMinutes",
+    "equipment",
+    "equipmentOther",
+    "limitations",
+    "notes",
+  ],
 } as const
 
 /** A wizard step index. */
@@ -121,8 +180,16 @@ export interface OnboardingInput {
   fitnessLevel?: string | null
   limitations?: string | null
   availableDays?: string[]
+  /** Per-day windows; keys should match {@link availableDays}. */
+  availability?: Availability
+  /** Desired session length in minutes; string from a form, number from code. */
+  sessionDurationMinutes?: string | number | null
   preferredLocation?: string | null
   equipment?: string[]
+  /** Whether the UI's "Other" equipment toggle is on (gates `equipmentOther`). */
+  equipmentOtherSelected?: boolean
+  /** Raw comma-separated "Other" equipment text, parsed by the validator. */
+  equipmentOther?: string
   notes?: string | null
 }
 
@@ -141,8 +208,11 @@ export interface ValidatedOnboarding {
   fitnessLevel: FitnessLevel
   limitations: string | null
   availableDays: WorkoutDay[]
+  availability: Availability
+  sessionDurationMinutes: number
   preferredLocation: WorkoutLocation
   equipment: Equipment[]
+  equipmentOther: string[]
   notes: string | null
 }
 
@@ -314,6 +384,143 @@ function checkEquipment(input: OnboardingInput): {
 }
 
 /**
+ * Per-day availability windows. Compulsory: every selected training day must
+ * carry at least one valid, non-overlapping window. Validates against the
+ * already-cleaned `availableDays` so the two stay consistent (a window for an
+ * unselected day, or a missing window for a selected day, both fail).
+ *
+ * Error codes: `required` (a selected day has no window, or none given at all),
+ * `invalid` (malformed `HH:MM`, `start >= end`, an extra/unknown day, or too
+ * many windows), `overlap` (two windows on the same day intersect).
+ *
+ * @param input - The raw payload (reads `availability`).
+ * @param days - The cleaned set of selected training days from
+ *   {@link checkAvailableDays}; windows are validated against exactly this set.
+ */
+function checkAvailability(
+  input: OnboardingInput,
+  days: WorkoutDay[]
+): { value: Availability; error?: string } {
+  const raw = input.availability ?? {}
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return { value: {}, error: "invalid" }
+  }
+
+  const daySet = new Set<string>(days)
+  // A window keyed to a day the client did not select is a mismatch.
+  for (const key of Object.keys(raw)) {
+    if (!daySet.has(key)) return { value: {}, error: "invalid" }
+  }
+
+  const cleaned: Availability = {}
+  for (const day of days) {
+    const ranges = raw[day]
+    if (!Array.isArray(ranges) || ranges.length === 0) {
+      return { value: {}, error: "required" }
+    }
+    if (ranges.length > MAX_RANGES_PER_DAY) {
+      return { value: {}, error: "invalid" }
+    }
+
+    const normalized: TimeRange[] = []
+    for (const range of ranges) {
+      const start = typeof range?.start === "string" ? range.start : ""
+      const end = typeof range?.end === "string" ? range.end : ""
+      if (!TIME_RE.test(start) || !TIME_RE.test(end)) {
+        return { value: {}, error: "invalid" }
+      }
+      // Zero-padded HH:MM compares correctly as strings.
+      if (start >= end) return { value: {}, error: "invalid" }
+      normalized.push({ start, end })
+    }
+
+    // Reject overlaps: sort by start, assert each window ends at or before the
+    // next one begins.
+    const sorted = [...normalized].sort((a, b) => a.start.localeCompare(b.start))
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].start < sorted[i - 1].end) {
+        return { value: {}, error: "overlap" }
+      }
+    }
+
+    cleaned[day] = sorted
+  }
+
+  return { value: cleaned }
+}
+
+/**
+ * Desired session length. Compulsory: a single integer number of minutes that
+ * is a multiple of {@link DURATION_STEP} within
+ * {@link MIN_DURATION}-{@link MAX_DURATION}. Accepts a string (from a form) or a
+ * number. Error codes: `required`, `invalid` (non-numeric or off-step),
+ * `range` (out of bounds).
+ */
+function checkSessionDuration(input: OnboardingInput): {
+  value: number | null
+  error?: string
+} {
+  const raw = input.sessionDurationMinutes
+  if (raw === "" || raw === null || raw === undefined) {
+    return { value: null, error: "required" }
+  }
+  const value = Number(raw)
+  if (!Number.isInteger(value) || value % DURATION_STEP !== 0) {
+    return { value: null, error: "invalid" }
+  }
+  if (value < MIN_DURATION || value > MAX_DURATION) {
+    return { value: null, error: "range" }
+  }
+  return { value }
+}
+
+/**
+ * Parses the free-text "Other" equipment field into a cleaned list: split on
+ * commas, trim, drop empties, and dedupe case-insensitively (keeping the first
+ * casing seen). Rejects an item longer than {@link EQUIPMENT_OTHER_ITEM_MAX} or
+ * a list longer than {@link EQUIPMENT_OTHER_MAX_ITEMS}. When the UI's "Other"
+ * toggle is on ({@link OnboardingInput.equipmentOtherSelected}), the list must
+ * be non-empty. Exported for reuse and direct unit testing.
+ *
+ * @param input - The raw payload (reads `equipmentOther` and the toggle).
+ * @returns The cleaned list plus an optional error (`required`, `length`).
+ */
+export function parseEquipmentOther(input: OnboardingInput): {
+  value: string[]
+  error?: string
+} {
+  const raw = (input.equipmentOther ?? "").trim()
+  const selected = input.equipmentOtherSelected === true
+
+  if (raw.length === 0) {
+    return selected ? { value: [], error: "required" } : { value: [] }
+  }
+
+  const seen = new Set<string>()
+  const value: string[] = []
+  for (const part of raw.split(",")) {
+    const item = part.trim()
+    if (item.length === 0) continue
+    if (item.length > EQUIPMENT_OTHER_ITEM_MAX) {
+      return { value: [], error: "length" }
+    }
+    const key = item.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    value.push(item)
+  }
+
+  if (value.length === 0) {
+    // Only separators/spaces were supplied.
+    return selected ? { value: [], error: "required" } : { value: [] }
+  }
+  if (value.length > EQUIPMENT_OTHER_MAX_ITEMS) {
+    return { value: [], error: "length" }
+  }
+  return { value }
+}
+
+/**
  * Validates the fields owned by a single wizard step and returns a field-keyed
  * error map (empty when the step is valid). The client form calls this to gate
  * "Next" and before a per-step save, so the user is stopped on the same step
@@ -349,8 +556,17 @@ export function validateOnboardingStep(
   } else {
     const days = checkAvailableDays(input)
     if (days.error) errors.availableDays = days.error
+    // Availability is validated against the cleaned day set; when days are
+    // themselves invalid, validate against an empty set so the user fixes the
+    // day selection first rather than seeing a confusing window error.
+    const availability = checkAvailability(input, days.error ? [] : days.value)
+    if (availability.error) errors.availability = availability.error
+    const duration = checkSessionDuration(input)
+    if (duration.error) errors.sessionDurationMinutes = duration.error
     const equip = checkEquipment(input)
     if (equip.error) errors.equipment = equip.error
+    const equipOther = parseEquipmentOther(input)
+    if (equipOther.error) errors.equipmentOther = equipOther.error
   }
 
   return errors
@@ -410,6 +626,19 @@ export function validateOnboarding(
   const daysResult = checkAvailableDays(input)
   if (daysResult.error) fieldErrors.availableDays = daysResult.error
 
+  const availabilityResult = checkAvailability(
+    input,
+    daysResult.error ? [] : daysResult.value
+  )
+  if (availabilityResult.error) {
+    fieldErrors.availability = availabilityResult.error
+  }
+
+  const durationResult = checkSessionDuration(input)
+  if (durationResult.error) {
+    fieldErrors.sessionDurationMinutes = durationResult.error
+  }
+
   const locationResult = checkPreferredLocation(input)
   if (locationResult.error) {
     fieldErrors.preferredLocation = locationResult.error
@@ -417,6 +646,11 @@ export function validateOnboarding(
 
   const equipmentResult = checkEquipment(input)
   if (equipmentResult.error) fieldErrors.equipment = equipmentResult.error
+
+  const equipmentOtherResult = parseEquipmentOther(input)
+  if (equipmentOtherResult.error) {
+    fieldErrors.equipmentOther = equipmentOtherResult.error
+  }
 
   const limitations = (input.limitations ?? "").trim() || null
   const notes = (input.notes ?? "").trim() || null
@@ -437,8 +671,11 @@ export function validateOnboarding(
     fitnessLevel: fitnessResult.value!,
     limitations,
     availableDays: daysResult.value,
+    availability: availabilityResult.value,
+    sessionDurationMinutes: durationResult.value!,
     preferredLocation: locationResult.value!,
     equipment: equipmentResult.value,
+    equipmentOther: equipmentOtherResult.value,
     notes,
   })
 }

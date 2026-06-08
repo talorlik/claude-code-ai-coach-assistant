@@ -44,12 +44,34 @@ export interface PdfWorkout {
   exercises: PdfExercise[]
 }
 
+/**
+ * The client's onboarding details as printed at the top of the PDF. All values
+ * are pre-localized, display-ready strings (the loader resolves option keys and
+ * formats the per-day windows), so the builder only lays them out. A field is
+ * omitted from the printed block when its string is empty/null.
+ */
+export interface PdfOnboarding {
+  goals: string | null
+  fitnessLevel: string | null
+  age: string | null
+  availableDays: string | null
+  /** Per-day windows, pre-formatted, e.g. "Mon: 06:00-08:00; Wed: 18:00-20:00". */
+  timeWindows: string | null
+  sessionLength: string | null
+  location: string | null
+  equipment: string | null
+  limitations: string | null
+  notes: string | null
+}
+
 /** The full, serializable input the PDF builder renders. */
 export interface WorkoutPlanPdfData {
   clientName: string | null
   planTitle: string | null
   /** ISO date the document is generated for; formatted per locale. */
   generatedAt: Date
+  /** The client's onboarding details printed at the top; omitted when absent. */
+  onboarding: PdfOnboarding | null
   workouts: PdfWorkout[]
 }
 
@@ -130,6 +152,7 @@ export async function buildWorkoutPlanPdf(
   }
 
   drawHeader(doc, cursor, data, labels, font, rtl)
+  drawOnboardingDetails(doc, cursor, data, labels, font, rtl)
   drawSchedule(doc, cursor, data, labels, font, rtl)
   drawWorkouts(doc, cursor, data, labels, font, rtl)
   stampFooter(doc, labels, font, rtl)
@@ -255,6 +278,46 @@ function drawHeader(
   drawText(doc, cursor, `${labels.generated}: ${date}`, font, 11, rtl, {
     color: MUTED,
   })
+  drawRule(doc, cursor)
+}
+
+/**
+ * Client onboarding details block, printed under the header. Renders a section
+ * heading followed by one `label: value` line per non-empty detail, so the
+ * printed plan leads with the inputs it was generated from. Skipped entirely
+ * when no onboarding block is supplied (e.g. a legacy client without details).
+ */
+function drawOnboardingDetails(
+  doc: PDFDocument,
+  cursor: Cursor,
+  data: WorkoutPlanPdfData,
+  labels: PdfLabels,
+  font: PDFFont,
+  rtl: boolean
+): void {
+  const o = data.onboarding
+  if (!o) return
+
+  const rows: Array<[string, string | null]> = [
+    [labels.onboarding.goals, o.goals],
+    [labels.onboarding.fitnessLevel, o.fitnessLevel],
+    [labels.onboarding.age, o.age],
+    [labels.onboarding.availableDays, o.availableDays],
+    [labels.onboarding.timeWindows, o.timeWindows],
+    [labels.onboarding.sessionLength, o.sessionLength],
+    [labels.onboarding.location, o.location],
+    [labels.onboarding.equipment, o.equipment],
+    [labels.onboarding.limitations, o.limitations],
+    [labels.onboarding.notes, o.notes],
+  ]
+  const present = rows.filter(([, value]) => value && value.trim() !== "")
+  if (present.length === 0) return
+
+  drawText(doc, cursor, labels.onboarding.heading, font, 14, rtl)
+  cursor.y -= 2
+  for (const [label, value] of present) {
+    drawText(doc, cursor, `${label}: ${value}`, font, 11, rtl, { color: MUTED })
+  }
   drawRule(doc, cursor)
 }
 

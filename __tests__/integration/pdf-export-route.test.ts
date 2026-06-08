@@ -38,6 +38,7 @@ const SAMPLE: WorkoutPlanPdfData = {
   clientName: "Dana Levi",
   planTitle: "Strength Builder",
   generatedAt: new Date("2026-06-05T00:00:00.000Z"),
+  onboarding: null,
   workouts: [
     {
       dayOfWeek: "monday",

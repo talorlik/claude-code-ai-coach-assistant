@@ -18,6 +18,18 @@ const SAMPLE: WorkoutPlanPdfData = {
   clientName: "Dana Levi",
   planTitle: "Strength Builder",
   generatedAt: new Date("2026-06-05T00:00:00.000Z"),
+  onboarding: {
+    goals: "Build muscle",
+    fitnessLevel: "Intermediate",
+    age: "32",
+    availableDays: "Monday, Wednesday",
+    timeWindows: "Monday: 06:00-08:00; Wednesday: 18:00-20:00",
+    sessionLength: "45 min",
+    location: "At a gym",
+    equipment: "Dumbbells, sled",
+    limitations: null,
+    notes: null,
+  },
   workouts: [
     {
       dayOfWeek: "monday",

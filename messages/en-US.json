@@ -77,7 +77,10 @@
       "fitnessLevel": "Fitness level",
       "preferredLocation": "Where will you train?",
       "availableDays": "Which days can you train?",
+      "availability": "When can you train on those days?",
+      "sessionDuration": "How long do you want to train?",
       "equipment": "What equipment do you have?",
+      "equipmentOther": "Other equipment",
       "limitations": "Injuries or limitations (optional)",
       "notes": "Anything else your coach should know? (optional)"
     },
@@ -86,12 +89,23 @@
       "age": "Enter your age, or choose a range below.",
       "goal": "You can choose more than one goal.",
       "days": "Pick at least one day.",
+      "availability": "For each day you picked, add at least one time range you're available.",
+      "sessionDuration": "Pick your preferred session length, in 15-minute steps.",
       "equipment": "Choose all that apply, or leave blank.",
+      "equipmentOther": "Enter a comma-separated list, e.g. sled, prowler, climbing rope.",
       "limitations": "Tell us about any injuries we should plan around.",
       "notes": "Preferences, dislikes, or goals beyond the basics."
     },
+    "availability": {
+      "start": "Start time",
+      "end": "End time",
+      "addRange": "Add time range",
+      "removeRange": "Remove time range",
+      "minutes": "{minutes} minutes"
+    },
     "placeholders": {
-      "countrySearch": "Search country or code…"
+      "countrySearch": "Search country or code…",
+      "equipmentOther": "e.g. sled, prowler, climbing rope"
     },
     "empty": {
       "countrySearch": "No matching country"
@@ -142,7 +156,18 @@
         "pull_up_bar": "Pull-up bar",
         "bench": "Bench",
         "cardio_machine": "Cardio machine",
-        "full_gym": "Full gym"
+        "full_gym": "Full gym",
+        "jump_rope": "Jump rope",
+        "medicine_ball": "Medicine ball",
+        "yoga_mat": "Yoga mat",
+        "stability_ball": "Stability ball",
+        "foam_roller": "Foam roller",
+        "trx": "TRX / suspension trainer",
+        "squat_rack": "Squat rack",
+        "treadmill": "Treadmill",
+        "stationary_bike": "Stationary bike",
+        "rowing_machine": "Rowing machine",
+        "other": "Other"
       }
     },
     "errors": {
@@ -184,8 +209,22 @@
         "required": "Pick at least one training day.",
         "invalid": "Choose valid training days."
       },
+      "availability": {
+        "required": "Add at least one time range for every day you picked.",
+        "invalid": "Check your time ranges: each needs a valid start before its end.",
+        "overlap": "Time ranges on the same day can't overlap."
+      },
+      "sessionDurationMinutes": {
+        "required": "Choose how long you want to train.",
+        "invalid": "Pick a length in 15-minute steps.",
+        "range": "Choose a length between 15 and 180 minutes."
+      },
       "equipment": {
         "invalid": "Choose valid equipment."
+      },
+      "equipmentOther": {
+        "required": "List your other equipment, or untick \"Other\".",
+        "length": "Keep each item short and the list under 10 items."
       }
     },
     "success": {
@@ -231,6 +270,20 @@
     "emailUpdateFailed": "Could not update your email.",
     "passwordUpdateFailed": "Could not update your password.",
     "signedOut": "You must be signed in."
+  },
+  "AccountOnboarding": {
+    "saving": "Saving…",
+    "saveDetails": "Save details",
+    "detailsSaved": "Details saved.",
+    "saveFailed": "Could not save your details.",
+    "onboardingTitle": "Training details",
+    "onboardingDescription": "Update your details, then regenerate your plan to reflect the changes.",
+    "historyTitle": "History",
+    "historyDescription": "Past detail snapshots and the plans they produced.",
+    "historyEmpty": "No history yet. Regenerate a plan to start one.",
+    "historyCurrent": "Current",
+    "historyArchived": "Archived",
+    "historyDate": "Saved {date}"
   },
   "MyPlan": {
     "title": "My Plan",

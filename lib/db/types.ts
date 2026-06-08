@@ -25,6 +25,19 @@ export type GenerationStatus = "succeeded" | "failed"
 /** Role of a chat message author. */
 export type ChatRole = "user" | "assistant"
 
+/** A single training window within a day, as 24h `HH:MM` strings. */
+export interface TimeRange {
+  start: string
+  end: string
+}
+
+/**
+ * Per-day training windows. Keys are weekday names (a subset of
+ * `available_days`); each listed day has one or more {@link TimeRange}s. Stored
+ * as `clients.availability` jsonb; an empty object means none recorded yet.
+ */
+export type Availability = Record<string, TimeRange[]>
+
 /** A client's onboarding profile. Keyed by the auth user id. */
 export interface ClientRow {
   user_id: string
@@ -37,12 +50,43 @@ export interface ClientRow {
   fitness_level: string | null
   limitations: string | null
   available_days: string[]
+  availability: Availability | null
+  session_duration_minutes: number | null
   preferred_location: string | null
   equipment: string[]
+  equipment_other: string[] | null
   notes: string | null
   onboarded_at: string | null
   created_at: string
   updated_at: string
+}
+
+/**
+ * An immutable snapshot of the onboarding details used to produce one plan.
+ * Mirrors `supabase/migrations/0006_onboarding_snapshots.sql`. `plan_id` is the
+ * plan generated from these details (null only if that plan was later deleted).
+ */
+export interface OnboardingSnapshotRow {
+  id: string
+  client_id: string
+  plan_id: string | null
+  full_name: string | null
+  phone: string | null
+  country_iso2: string | null
+  age: number | null
+  age_range: string | null
+  goals: string[] | null
+  fitness_level: string | null
+  limitations: string | null
+  available_days: string[]
+  availability: Availability | null
+  session_duration_minutes: number | null
+  preferred_location: string | null
+  equipment: string[]
+  equipment_other: string[] | null
+  notes: string | null
+  locale: string | null
+  created_at: string
 }
 
 /** A generated or assigned workout plan owned by a client. */

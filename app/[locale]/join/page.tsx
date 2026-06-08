@@ -3,8 +3,10 @@ import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { requireClient } from "@/lib/auth/require-user"
 import { getClient } from "@/lib/db/clients"
-import { splitE164 } from "@/lib/phone/phone"
 import type { Locale } from "@/i18n/routing"
+import {
+  clientToDefaults,
+} from "@/components/onboarding/onboarding-details-form"
 import {
   EMPTY_DEFAULTS,
   OnboardingForm,
@@ -43,26 +45,11 @@ export default async function JoinPage({
   const userId = await requireClient()
 
   const existing = await getClient(userId)
-  // The stored phone is full E.164; split it back into the national number and
-  // country so the form's separate phone and country fields prefill correctly.
-  const split = existing
-    ? splitE164(existing.phone ?? "", existing.countryIso2 ?? null)
-    : null
+  // Any existing row prefills the form (the page doubles as "edit my
+  // onboarding"); the client -> form mapping is shared with My Account and the
+  // trainer editor via clientToDefaults.
   const defaults: OnboardingDefaults = existing
-    ? {
-        fullName: existing.fullName ?? "",
-        phone: split!.national,
-        countryIso2: split!.country.iso2,
-        age: existing.age != null ? String(existing.age) : "",
-        ageRange: existing.ageRange ?? "",
-        goals: existing.goals ?? [],
-        fitnessLevel: existing.fitnessLevel ?? "",
-        limitations: existing.limitations ?? "",
-        availableDays: existing.availableDays,
-        preferredLocation: existing.preferredLocation ?? "",
-        equipment: existing.equipment,
-        notes: existing.notes ?? "",
-      }
+    ? clientToDefaults(existing)
     : EMPTY_DEFAULTS
 
   const t = await getTranslations("Onboarding")
