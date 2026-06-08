@@ -1453,3 +1453,44 @@ conversion moment. Also: the locale layout `<body>` is now `flex min-h-svh
 flex-col` so the shared `SiteFooter` (rendered after `{children}`) sits at the
 bottom via `mt-auto`; the page no longer owns the `min-h-svh` wrapper or an
 inline footer.
+
+### 2026-06-08 - Batch 28 - Contact Form Email Via Supabase Edge Function
+
+The Contact form delivers real email through a new Supabase Edge Function named
+`contact` (`supabase/functions/contact/index.ts`), invoked from the
+`submitContactForm` server action via the secret-key admin client
+(`createAdminClient().functions.invoke("contact", { body })`). The function
+sends over Gmail SMTP using `denomailer`, to `CONTACT_TO` (default
+`talorlik@gmail.com`). The server action degrades gracefully: a transport error,
+a non-OK response, or an unconfigured-secrets failure is logged and turned into a
+localized `send_failed` notice - it never throws to the request, so the build and
+test gate stay green without any secrets in CI.
+
+Deploy and configure (run once, out of CI, from the repo root with the project
+linked - `supabase link --project-ref vgluuhbztwzrekkexkqk`):
+
+```bash
+supabase functions deploy contact
+supabase secrets set \
+  SMTP_HOST=smtp.gmail.com \
+  SMTP_PORT=465 \
+  SMTP_USERNAME=<gmail-address> \
+  SMTP_PASSWORD=<gmail-app-password> \
+  SMTP_FROM=<gmail-address> \
+  CONTACT_TO=talorlik@gmail.com
+```
+
+`SMTP_PASSWORD` must be a Gmail **App Password** (Google account -> Security ->
+2-Step Verification -> App passwords), not the account login password; Gmail
+rejects the account password over SMTP. Port 465 uses implicit TLS; 587 would use
+STARTTLS (the function picks TLS-on-465 automatically).
+
+**Why:** there was no email-sending code in the project, and SMTP credentials
+must never reach the browser or the Next.js bundle. An Edge Function keeps the
+secrets server-side as function secrets and isolates the Deno SMTP dependency
+from the Next build. `supabase/functions/**` is excluded from `tsconfig.json` and
+`eslint.config.mjs` because the function targets the Deno runtime (remote
+`https://deno.land/x/...` imports and `Deno.*` globals) and would otherwise break
+`tsc`/`next build`, which only understand the Node/Next module graph. The
+function is the only Batch 28 deliverable that needs manual follow-up; the pages,
+form, and graceful-degradation path all ship and pass gates without it.

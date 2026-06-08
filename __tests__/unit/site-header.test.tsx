@@ -71,6 +71,45 @@ beforeEach(() => {
 
 const adminLabel = enMessages.Nav.admin
 const clientsLabel = enMessages.Nav.clients
+const aboutLabel = enMessages.Nav.about
+const contactLabel = enMessages.Nav.contact
+
+describe("SiteHeader public links", () => {
+  it("shows About and Contact to a signed-out visitor", async () => {
+    currentUser = null
+    await renderHeader()
+    expect(
+      screen.getByRole("link", { name: aboutLabel })
+    ).toHaveAttribute("href", "/en/about")
+    expect(
+      screen.getByRole("link", { name: contactLabel })
+    ).toHaveAttribute("href", "/en/contact")
+  })
+
+  it("shows About and Contact to a signed-in non-admin", async () => {
+    currentUser = { id: "user-1" }
+    adminFlag = false
+    await renderHeader()
+    expect(
+      screen.getByRole("link", { name: aboutLabel })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: contactLabel })
+    ).toBeInTheDocument()
+  })
+
+  it("shows About and Contact to a signed-in admin", async () => {
+    currentUser = { id: "admin-1" }
+    adminFlag = true
+    await renderHeader()
+    expect(
+      screen.getByRole("link", { name: aboutLabel })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: contactLabel })
+    ).toBeInTheDocument()
+  })
+})
 
 describe("SiteHeader My Plan link", () => {
   it("shows the My Plan link to a signed-in non-admin", async () => {

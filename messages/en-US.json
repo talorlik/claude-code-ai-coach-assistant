@@ -27,7 +27,9 @@
     "clients": "Clients",
     "admin": "Admin",
     "signIn": "Sign in",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "about": "About",
+    "contact": "Contact"
   },
   "Footer": {
     "tagline": "Studio Itai AI Coach Assistant",
@@ -251,6 +253,16 @@
       "siteName": "Studio Itai",
       "title": "Studio Itai - AI Fitness Coach",
       "description": "Personalized AI workout plans, progress tracking, and a virtual trainer that answers your questions. Train smarter with Studio Itai."
+    },
+    "about": {
+      "siteName": "Studio Itai",
+      "title": "About Studio Itai - Professional AI Coaching",
+      "description": "Studio Itai combines professional personal training with AI-powered support: personalized plans, honest tracking, and human attention between sessions."
+    },
+    "contact": {
+      "siteName": "Studio Itai",
+      "title": "Contact Studio Itai",
+      "description": "Get in touch with Studio Itai. Questions about training, plans, or getting started - send us a message and we'll get back to you."
     }
   },
   "AuthMessages": {
@@ -711,6 +723,73 @@
       "missing": "That item no longer exists.",
       "loadError": "Could not load the plan. Please try again.",
       "saveError": "Could not save your change. Please try again."
+    }
+  },
+  "About": {
+    "heroImageAlt": "Trainer coaching a client through a strength session",
+    "philosophyImageAlt": "Athlete focused mid-workout in the studio",
+    "missionImageAlt": "Client and trainer reviewing progress together",
+    "introTitle": "Built for people who want more than another workout plan",
+    "introLead": "Studio Itai was created for people who are ready to train with purpose, structure, and accountability. Not just to sweat for an hour. Not just to follow random exercises. Not just to “try again” every few months.",
+    "introBody": "The studio was built around a simple belief: real progress happens when professional training, personal attention, and consistent guidance work together. A good trainer does not only count repetitions - a good trainer understands the person behind the goal: the schedule, the habits, the injuries, the doubts, the motivation, and the life happening outside the gym. That is the foundation of Studio Itai.",
+    "storyTitle": "The story",
+    "storyBody1": "Before Studio Itai became a training platform, it started with one trainer, one notebook, and a pattern that kept repeating. Clients would arrive motivated - some wanted strength, some weight loss, some to move without pain, some confidence, some were returning after years away. Others had already tried programs, apps, gyms, and diets that looked good on paper but failed in real life.",
+    "storyBody2": "The problem was rarely effort. The problem was that most people were given plans without context. A generic plan does not know that someone works late three nights a week, has knee discomfort, limited equipment, or only thirty minutes between work and family. It does not notice when someone disappears for two weeks, and it does not adjust when life changes.",
+    "storyBody3": "Itai saw that the strongest results came from a different kind of coaching: clear structure, careful personalization, honest tracking, and direct support between sessions. So Studio Itai evolved - what began as personal coaching became a smarter training experience that combines the discipline of professional coaching with the accessibility of AI-powered support.",
+    "whatTitle": "What we do",
+    "whatBody": "Studio Itai helps clients build personalized workout routines based on their goals, fitness level, schedule, limitations, preferred training location, and available equipment. Each client receives a structured plan designed around real constraints, not ideal conditions. The platform helps clients follow the plan, track completed workouts, write notes after training, and get immediate answers from an AI virtual trainer when they need guidance. The trainer sees progress, the client receives clarity, the plan stays visible, and the work becomes measurable.",
+    "philosophyTitle": "Our training philosophy",
+    "philosophyLead": "Training should be serious, but not confusing. A strong plan should tell the client exactly what to do, why it matters, and how to perform it safely - with the right amount of challenge, enough recovery, and enough flexibility to survive real life. Studio Itai is built around five principles.",
+    "principle1Title": "Personalization",
+    "principle1Body": "Every client starts with onboarding that captures goals, current fitness level, physical limitations, available days, preferred workout environment, equipment, and personal notes. The plan is built from the person outward, not from a template downward.",
+    "principle2Title": "Professional structure",
+    "principle2Body": "Workouts are organized clearly: exercises, sets, repetitions or duration, rest times, instructions, and safety notes. Clients should never feel lost when opening their plan.",
+    "principle3Title": "Accountability",
+    "principle3Body": "Progress is tracked. Completed workouts are logged. Notes are saved. Consistency becomes visible, both to the client and to the trainer.",
+    "principle4Title": "Human attention",
+    "principle4Body": "Technology supports the coach - it does not replace the coach. Itai can monitor client progress, review workout logs, read training notes, check AI chat history, and contact clients directly when personal guidance is needed.",
+    "principle5Title": "Safe progress",
+    "principle5Body": "The platform respects limitations and injuries. It does not pretend to diagnose medical issues; when pain, injury, or medical concerns appear, the guidance stays responsible and encourages professional care when needed.",
+    "aiTitle": "Why AI is part of the experience",
+    "aiBody": "AI is used to make coaching faster, clearer, and more responsive. It helps generate structured workout plans from onboarding data, answer client questions between sessions, explain exercises, and suggest safer alternatives. But AI is not treated as magic: every AI-generated plan must follow a predictable structure, and every answer is based on the client's goal, fitness level, current plan, and known limitations. The purpose is simple - give clients faster help while keeping the trainer informed.",
+    "differentTitle": "What makes Studio Itai different",
+    "differentBody": "Studio Itai is not a generic fitness app. It is a coaching system built around one professional trainer's standard of care. Clients are not left alone with a static PDF - they receive a living training experience: onboarding, plan generation, workout tracking, feedback, AI chat, reminders, and trainer oversight. Itai can see who is training consistently, who is slowing down, who needs support, and which plans need adjustment. That creates a tighter feedback loop between intention and action.",
+    "forClientsTitle": "For clients",
+    "forClientsBody": "Studio Itai gives you a clear path. You know what to train, when to train, and how to perform the exercises. You can track your progress, ask questions, and receive a plan that fits your life instead of fighting against it.",
+    "forTrainerTitle": "For the trainer",
+    "forTrainerBody": "Studio Itai gives the trainer operational visibility. Itai can monitor clients, review progress, inspect logs, read workout notes, review AI conversations, create and edit plans, duplicate templates, regenerate plans when circumstances change, and keep private trainer notes. This lets the coaching relationship stay personal even as the number of clients grows.",
+    "missionTitle": "The mission",
+    "missionBody": "The mission of Studio Itai is to make personal training more structured, more intelligent, and more human. Fitness does not change people because of one perfect workout - it changes people through repeated action, clear guidance, trust, and attention. Studio Itai exists to make that process easier to follow, easier to measure, and harder to abandon.",
+    "missionPillars": "Professional coaching. Personal attention. Smart support. Consistent progress."
+  },
+  "Contact": {
+    "heading": "Get in touch",
+    "intro": "Questions about training, plans, or getting started? Send a message and we'll get back to you. You can also reach the studio directly using the details below.",
+    "sideImageAlt": "Studio Itai training space",
+    "detailsHeading": "Studio details",
+    "addressLabel": "Address",
+    "addressValue": "Rothschild Blvd 22, Tel Aviv-Yafo 6688218",
+    "phoneLabel": "Phone",
+    "phoneValue": "+972 3-555-0192",
+    "emailLabel": "Email",
+    "emailValue": "hello@studioitai.example",
+    "hoursLabel": "Hours",
+    "hoursValue": "Sun-Thu 06:00-22:00, Fri 06:00-14:00",
+    "mapLabel": "Open in Google Maps",
+    "formHeading": "Send a message",
+    "nameLabel": "Your name",
+    "namePlaceholder": "Jane Doe",
+    "emailFieldLabel": "Your email",
+    "emailPlaceholder": "you@example.com",
+    "messageLabel": "Message",
+    "messagePlaceholder": "How can we help?",
+    "submitLabel": "Send message",
+    "submitting": "Sending…",
+    "messages": {
+      "contactSent": "Thanks for reaching out - your message was sent. We'll reply by email soon.",
+      "missingFields": "Please fill in your name, email, and message.",
+      "invalidEmail": "Please enter a valid email address.",
+      "sendFailed": "We couldn't send your message right now. Please try again, or email us directly."
     }
   }
 }

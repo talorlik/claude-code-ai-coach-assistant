@@ -11,7 +11,9 @@ import { Button, buttonVariants } from "@/components/ui/button"
 
 /**
  * Global top navigation, server-rendered so it reflects the current auth and
- * admin state on every page. Signed-out visitors see a Sign in link; signed-in
+ * admin state on every page. The About and Contact links are public and show
+ * for every visitor (signed-in or out). Signed-out visitors see a Sign in link;
+ * signed-in
  * non-admin clients see a My Plan link (their single client entry point, since
  * the empty `/my-plan` state routes to onboarding) alongside chat and account
  * plus a sign-out control; admins also see Clients (the trainer console) and
@@ -54,6 +56,12 @@ export async function SiteHeader() {
               priority
               className="hidden h-8 w-auto dark:block"
             />
+          </Link>
+          <Link href="/about" className="hover:underline">
+            {t("about")}
+          </Link>
+          <Link href="/contact" className="hover:underline">
+            {t("contact")}
           </Link>
           {user && !admin ? (
             <Link href="/my-plan" className="hover:underline">

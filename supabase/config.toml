@@ -1,0 +1,11 @@
+# Supabase CLI project configuration. `project_id` is the project ref used by
+# `supabase link` / `supabase functions deploy`. Only the Edge Functions section
+# is required by Batch 28; the rest of the stack is managed remotely.
+project_id = "vgluuhbztwzrekkexkqk"
+
+# Contact-form email sender. `verify_jwt = true` requires a valid bearer on
+# invoke; the server action calls it through the secret-key admin client, which
+# satisfies that. SMTP credentials are function secrets, never committed - set
+# them with `supabase secrets set` (see docs/DECISIONS.md).
+[functions.contact]
+verify_jwt = true
