@@ -35,9 +35,13 @@ Current baseline already completed by the product owner:
   tokens/fonts/logo/favicons; Batch 27 restyled the home page, added curated
   imagery under `public/images/`, and added a shared `components/site-footer.tsx`
   rendered by `app/[locale]/layout.tsx`.
-- `docs/content/ABOUT.md` is the English-only source copy for the About page. It
-  must be TRANSLATED to Hebrew for `he-IL` (the `messages-parity` test is a hard
-  gate - every leaf needs both locales).
+- `docs/content/ABOUT_EN.md` (English) and `docs/content/ABOUT_HE.md` (Hebrew)
+  are the hand-authored source copy for the About page, one file per locale. Use
+  each verbatim as the source for its locale's `About` namespace; do NOT
+  machine-translate the English into Hebrew - the Hebrew copy is authored. The
+  two files share the same section structure, so the `About` leaf keys map
+  one-to-one across locales (the `messages-parity` test is a hard gate - every
+  leaf needs both locales).
 - SEO uses `lib/seo/metadata.ts` `buildLocaleMetadata(locale, key)` reading the
   `Metadata` namespace (currently only `Metadata.home`).
 - Imagery for these pages was downloaded in Batch 27:
@@ -55,7 +59,8 @@ Current baseline already completed by the product owner:
   green without secrets configured in CI.
 
 Before editing, inspect the current code structure and explain the files you
-will touch. Read `docs/content/ABOUT.md`, `docs/design/DESIGN.md`,
+will touch. Read `docs/content/ABOUT_EN.md`, `docs/content/ABOUT_HE.md`,
+`docs/design/DESIGN.md`,
 `app/[locale]/page.tsx` (as the page pattern), `lib/seo/metadata.ts`,
 `lib/supabase/server.ts`, `lib/auth/validation.ts`,
 `lib/auth/resolve-auth-message.ts`, `components/site-header.tsx`,
@@ -82,12 +87,14 @@ links and metadata-key support.
    `<section>`s, and `next/image` section images (`about-hero.jpg`,
    `about-philosophy.jpg`, `about-mission.jpg`) with localized `alt`. All copy
    from a new `About` namespace. TSDoc on the page. Mirror the long-form
-   structure of `docs/content/ABOUT.md`: intro, story, what we do, training
+   structure of `docs/content/ABOUT_EN.md` (and its Hebrew counterpart
+   `docs/content/ABOUT_HE.md`): intro, story, what we do, training
    philosophy (the five principles: personalization, professional structure,
    accountability, human attention, safe progress), why AI, what makes us
    different, for clients, for the trainer, and the mission.
-2. Add the `About` namespace to BOTH `messages/en-US.json` (from ABOUT.md) and
-   `messages/he-IL.json` (Hebrew translation), plus `Metadata.about` (title,
+2. Add the `About` namespace to BOTH `messages/en-US.json` (from `ABOUT_EN.md`)
+   and `messages/he-IL.json` (from `ABOUT_HE.md`, used verbatim - the Hebrew is
+   hand-authored, not machine-translated), plus `Metadata.about` (title,
    description, siteName) matching the `Metadata.home` shape.
 3. Create `app/[locale]/contact/page.tsx`: a server component rendering the
    contact details (a MADE-UP Tel Aviv address, email, phone, hours), a
