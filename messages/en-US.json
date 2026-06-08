@@ -29,6 +29,13 @@
     "signIn": "Sign in",
     "signOut": "Sign out"
   },
+  "Footer": {
+    "tagline": "Studio Itai AI Coach Assistant",
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact",
+    "rights": "© {year} Studio Itai. All rights reserved."
+  },
   "Home": {
     "badge": "AI-powered personal training",
     "title": "Studio Itai - your AI fitness coach",
@@ -42,6 +49,8 @@
     "feature2Body": "Receive a structured weekly plan tailored to you, reviewed and refined by your coach.",
     "feature3Title": "Train and track",
     "feature3Body": "Log every workout, watch your progress, and ask your AI trainer anything, anytime.",
+    "bandHeading": "Your strongest season starts here",
+    "bandCta": "Start training today",
     "footer": "Studio Itai AI Coach Assistant"
   },
   "Onboarding": {

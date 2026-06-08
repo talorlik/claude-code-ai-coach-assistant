@@ -1417,3 +1417,39 @@ keeps the guard honest (it reads the real file) without booting the next-intl
 runtime. Note `new URL(..., import.meta.url)` cannot resolve a path containing
 `[locale]` (square brackets break URL parsing), so the test uses
 `path.resolve(process.cwd(), ...)` instead.
+
+### 2026-06-08 - Batch 27 - Home restyle, imagery, and shared footer
+
+Four decisions worth recording:
+
+1. Unsplash photographer attribution could not be machine-resolved at download
+   time. The public `napi` search and the per-photo page/oEmbed endpoints all
+   now return `Authorization required` without an API key. `public/images/CREDITS.md`
+   therefore records each file's exact canonical `images.unsplash.com/photo-<id>`
+   source URL plus the Unsplash License terms, and explicitly states why the
+   photographer column is empty rather than inventing names.
+2. Pill CTAs are scoped, not global. The home hero/band CTAs get `rounded-full`
+   layered on top of `buttonVariants(...)` via `cn(...)`; the shared `Button`
+   and `buttonVariants` keep their `rounded-lg`. A module-level `HERO_CTA`
+   constant holds the override.
+3. The accent-band overlay uses a token scrim (`bg-background/60`), never an
+   rgba literal, so overlay-text contrast holds in both themes automatically:
+   `bg-background` resolves to the active theme's background token.
+4. The accent band needed its own copy keys (`Home.bandHeading`,
+   `Home.bandCta`) instead of reusing `title`/`primaryCta`.
+
+**Why:** (1) honesty over a fabricated credit; the License does not require
+attribution, so the images are compliant as committed, and the source URL
+uniquely identifies each photo for a later API-based lookup. (2) Per the batch
+constraint, the shared button component backs the entire app and must not become
+pill-shaped everywhere; only the marketing-home CTAs are pills. (3) DESIGN.md
+forbids raw rgba/hex in implementation code and requires guaranteed contrast in
+both themes; a token-opacity scrim is the only way to get both. (4) The original
+hero CTA and the band CTA both pointed at `/register`; reusing `primaryCta` for
+both produced two links with identical accessible names, which made the existing
+`homepage.test.tsx` `getByRole("link", { name: primaryCta })` throw on multiple
+matches. Distinct band copy removes the collision and reads as a separate
+conversion moment. Also: the locale layout `<body>` is now `flex min-h-svh
+flex-col` so the shared `SiteFooter` (rendered after `{children}`) sits at the
+bottom via `mt-auto`; the page no longer owns the `min-h-svh` wrapper or an
+inline footer.

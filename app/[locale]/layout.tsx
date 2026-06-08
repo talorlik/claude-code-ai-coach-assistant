@@ -6,6 +6,7 @@ import { notFound } from "next/navigation"
 
 import { ThemeProvider } from "@/components/theme-provider"
 import { SiteHeader } from "@/components/site-header"
+import { SiteFooter } from "@/components/site-footer"
 import { ServiceWorkerRegister } from "@/components/service-worker-register"
 import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
@@ -119,12 +120,13 @@ export default async function LocaleLayout({
         fontMono.variable
       )}
     >
-      <body>
+      <body className="flex min-h-svh flex-col">
         <NextIntlClientProvider>
           <ThemeProvider>
             <ServiceWorkerRegister />
             <SiteHeader />
             {children}
+            <SiteFooter />
             <Toaster />
           </ThemeProvider>
         </NextIntlClientProvider>
