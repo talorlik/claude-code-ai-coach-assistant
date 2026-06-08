@@ -1494,3 +1494,32 @@ from the Next build. `supabase/functions/**` is excluded from `tsconfig.json` an
 `tsc`/`next build`, which only understand the Node/Next module graph. The
 function is the only Batch 28 deliverable that needs manual follow-up; the pages,
 form, and graceful-degradation path all ship and pass gates without it.
+
+## 2026-06-09 - Server-component data mappers must not live in "use client" modules
+
+`clientToDefaults` (the Client -> onboarding-form-defaults mapper) lived in
+`components/onboarding/onboarding-details-form.tsx`, which carries `"use client"`.
+The three server components that prefill the form (`/[locale]/profile`,
+`/[locale]/join`, `/[locale]/trainer/clients/[clientId]`) imported and *called*
+it during render. That 500s at runtime: "Attempted to call clientToDefaults()
+from the server but clientToDefaults is on the client." An RSC may render a
+client-module export as a component or pass it as a prop, but cannot invoke a
+client export as a plain function. `/profile` always hit it (it calls the mapper
+whenever a client row exists); `/join` and the trainer editor were latently
+broken (guarded behind `existing ?`).
+
+**Decision:** pure data-transform helpers shared between server and client live
+in a server-safe module, never in a `"use client"` file. `clientToDefaults` now
+sits in `lib/onboarding/client-to-defaults.ts`. Its only runtime dependency,
+`splitE164`, is itself server-safe; `OnboardingDefaults` is a type (erased), so
+the type-only import of it from the client form module is fine. Note this class
+of bug is invisible to `tsc`/`lint`/`next build` - it only surfaces at request
+time for an authenticated user, so it needs a render-path check (the e2e
+session-injection harness), not just the static gates.
+
+**Also:** the account nav label and the profile page heading/tab title now read
+"My Profile" / "הפרופיל שלי" (was "My Account" / "החשבון שלי"). Added an
+`Account.title` message key and a `generateMetadata` so the tab title is
+localized. `title` is deliberately NOT in `ACCOUNT_MESSAGE_CODES`, so a forged
+`?notice=title` still cannot reflect it; the localization guard test was updated
+to treat `title` as an allowed non-code key.
