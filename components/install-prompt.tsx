@@ -18,6 +18,7 @@ import {
   isStandalone,
   readInstallGlobals,
 } from "@/lib/pwa/install"
+import { cn } from "@/lib/utils"
 
 /**
  * The `beforeinstallprompt` event shape (not in the standard DOM lib). Chromium
@@ -31,6 +32,12 @@ interface BeforeInstallPromptEvent extends Event {
 
 /** Which affordance to render once client-side detection resolves. */
 type Mode = "hidden" | "prompt" | "ios"
+
+/** Props for the PWA install affordance. */
+interface InstallPromptProps {
+  /** Optional layout classes supplied by the shell that renders the affordance. */
+  className?: string
+}
 
 /**
  * Dismissible "Install app" affordance shown in the header. Behavior, decided
@@ -52,7 +59,7 @@ type Mode = "hidden" | "prompt" | "ios"
  *
  * @returns The install control, or `null` when it should not be shown.
  */
-export function InstallPrompt() {
+export function InstallPrompt({ className }: InstallPromptProps = {}) {
   const t = useTranslations("Pwa.install")
   const [mode, setMode] = useState<Mode>("hidden")
   const [dismissed, setDismissed] = useState(false)
@@ -123,7 +130,7 @@ export function InstallPrompt() {
   if (mode === "ios") {
     return (
       <Dialog>
-        <div className="flex items-center gap-1">
+        <div className={cn("flex items-center gap-1", className)}>
           <DialogTrigger
             render={
               <Button variant="outline" size="sm">
@@ -161,7 +168,7 @@ export function InstallPrompt() {
 
   // mode === "prompt"
   return (
-    <div className="flex items-center gap-1">
+    <div className={cn("flex items-center gap-1", className)}>
       <Button variant="outline" size="sm" onClick={onInstallClick}>
         <Download aria-hidden className="size-4" />
         {t("button")}

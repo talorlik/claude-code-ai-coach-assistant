@@ -29,7 +29,9 @@
     "signIn": "Sign in",
     "signOut": "Sign out",
     "about": "About",
-    "contact": "Contact"
+    "contact": "Contact",
+    "mainNavigation": "Main navigation",
+    "openMenu": "Open navigation menu"
   },
   "Footer": {
     "tagline": "Studio Itai AI Coach Assistant",

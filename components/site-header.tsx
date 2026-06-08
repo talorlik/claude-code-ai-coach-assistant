@@ -1,5 +1,6 @@
 import Image from "next/image"
 import { getTranslations } from "next-intl/server"
+import { Menu } from "lucide-react"
 
 import { Link } from "@/i18n/navigation"
 import { createClient } from "@/lib/supabase/server"
@@ -8,6 +9,13 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { InstallPrompt } from "@/components/install-prompt"
 import { Button, buttonVariants } from "@/components/ui/button"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 
 /**
  * Global top navigation, server-rendered so it reflects the current auth and
@@ -33,65 +41,57 @@ export async function SiteHeader() {
   const admin = user ? await isAdmin(user.id) : false
   const t = await getTranslations("Nav")
   const common = await getTranslations("Common")
+  const navLinks = [
+    { href: "/about", label: t("about") },
+    { href: "/contact", label: t("contact") },
+    ...(user && !admin ? [{ href: "/my-plan", label: t("myPlan") }] : []),
+    ...(user ? [{ href: "/chat", label: t("chat") }] : []),
+    ...(user ? [{ href: "/profile", label: t("account") }] : []),
+    ...(admin ? [{ href: "/trainer", label: t("clients") }] : []),
+    ...(admin ? [{ href: "/admin", label: t("admin") }] : []),
+  ]
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/" className="flex shrink-0 items-center">
-            <Image
-              src="/logo-light.png"
-              alt={common("appName")}
-              width={144}
-              height={48}
-              priority
-              className="h-8 w-auto dark:hidden"
-            />
-            <Image
-              src="/logo-dark.png"
-              alt=""
-              aria-hidden
-              width={144}
-              height={48}
-              priority
-              className="hidden h-8 w-auto dark:block"
-            />
-          </Link>
-          <Link href="/about" className="hover:underline">
-            {t("about")}
-          </Link>
-          <Link href="/contact" className="hover:underline">
-            {t("contact")}
-          </Link>
-          {user && !admin ? (
-            <Link href="/my-plan" className="hover:underline">
-              {t("myPlan")}
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-3">
+        <Link href="/" className="order-1 flex shrink-0 items-center">
+          <Image
+            src="/logo-light.png"
+            alt={common("appName")}
+            width={144}
+            height={48}
+            priority
+            className="h-8 w-auto dark:hidden"
+          />
+          <Image
+            src="/logo-dark.png"
+            alt=""
+            aria-hidden
+            width={144}
+            height={48}
+            priority
+            className="hidden h-8 w-auto dark:block"
+          />
+        </Link>
+
+        <nav
+          aria-label={t("mainNavigation")}
+          className="order-3 hidden min-w-0 flex-1 items-center gap-4 text-sm md:order-2 md:flex"
+        >
+          {navLinks.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-md px-1 py-0.5 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {item.label}
             </Link>
-          ) : null}
-          {user ? (
-            <Link href="/chat" className="hover:underline">
-              {t("chat")}
-            </Link>
-          ) : null}
-          {user ? (
-            <Link href="/profile" className="hover:underline">
-              {t("account")}
-            </Link>
-          ) : null}
-          {admin ? (
-            <Link href="/trainer" className="hover:underline">
-              {t("clients")}
-            </Link>
-          ) : null}
-          {admin ? (
-            <Link href="/admin" className="hover:underline">
-              {t("admin")}
-            </Link>
-          ) : null}
+          ))}
         </nav>
 
-        <div className="flex items-center gap-2">
-          <InstallPrompt />
+        <InstallPrompt className="order-3 flex basis-full items-center justify-start sm:basis-auto" />
+
+        <div className="order-2 ms-auto flex items-center gap-2 md:order-4">
           <LanguageSwitcher />
           <ModeToggle />
           {user ? (
@@ -108,6 +108,35 @@ export async function SiteHeader() {
               {t("signIn")}
             </Link>
           )}
+          <Sheet>
+            <SheetTrigger
+              render={
+                <Button variant="outline" size="icon" className="md:hidden">
+                  <Menu aria-hidden />
+                  <span className="sr-only">{t("openMenu")}</span>
+                </Button>
+              }
+            />
+            <SheetContent side="right">
+              <SheetHeader>
+                <SheetTitle>{t("mainNavigation")}</SheetTitle>
+              </SheetHeader>
+              <nav
+                aria-label={t("mainNavigation")}
+                className="flex flex-col gap-1 px-4 pb-4 text-sm"
+              >
+                {navLinks.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="rounded-md px-2 py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>

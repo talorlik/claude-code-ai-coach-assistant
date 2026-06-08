@@ -29,7 +29,9 @@
     "signIn": "התחברות",
     "signOut": "התנתקות",
     "about": "אודות",
-    "contact": "צור קשר"
+    "contact": "צור קשר",
+    "mainNavigation": "ניווט ראשי",
+    "openMenu": "פתיחת תפריט ניווט"
   },
   "Footer": {
     "tagline": "סטודיו איתי - עוזר אימון מבוסס AI",

@@ -52,7 +52,11 @@ vi.mock("@/components/mode-toggle", () => ({ ModeToggle: () => null }))
 vi.mock("@/components/language-switcher", () => ({
   LanguageSwitcher: () => null,
 }))
-vi.mock("@/components/install-prompt", () => ({ InstallPrompt: () => null }))
+vi.mock("@/components/install-prompt", () => ({
+  InstallPrompt: ({ className }: { className?: string }) => (
+    <div data-testid="install-prompt" className={className} />
+  ),
+}))
 
 import { SiteHeader } from "@/components/site-header"
 
@@ -73,6 +77,8 @@ const adminLabel = enMessages.Nav.admin
 const clientsLabel = enMessages.Nav.clients
 const aboutLabel = enMessages.Nav.about
 const contactLabel = enMessages.Nav.contact
+const mainNavLabel = "Main navigation"
+const menuLabel = "Open navigation menu"
 
 describe("SiteHeader public links", () => {
   it("shows About and Contact to a signed-out visitor", async () => {
@@ -108,6 +114,33 @@ describe("SiteHeader public links", () => {
     expect(
       screen.getByRole("link", { name: contactLabel })
     ).toBeInTheDocument()
+  })
+})
+
+describe("SiteHeader responsive navigation", () => {
+  it("keeps the top-level menu in desktop navigation and exposes a mobile menu trigger", async () => {
+    await renderHeader()
+
+    const desktopNav = screen.getByRole("navigation", { name: mainNavLabel })
+    const menuTrigger = screen.getByRole("button", { name: menuLabel })
+
+    expect(desktopNav).toHaveClass("hidden", "md:flex")
+    expect(menuTrigger).toHaveClass("md:hidden")
+    expect(
+      screen.getByRole("link", { name: aboutLabel })
+    ).toHaveAttribute("href", "/en/about")
+    expect(
+      screen.getByRole("link", { name: contactLabel })
+    ).toHaveAttribute("href", "/en/contact")
+  })
+})
+
+describe("SiteHeader install prompt placement", () => {
+  it("places the install prompt in a mobile row below the main header controls", async () => {
+    await renderHeader()
+    const prompt = screen.getByTestId("install-prompt")
+
+    expect(prompt).toHaveClass("order-3", "basis-full", "sm:basis-auto")
   })
 })
 

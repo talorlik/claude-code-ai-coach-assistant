@@ -61,6 +61,19 @@ test.describe("PWA document wiring", () => {
     }
   })
 
+  test("loads the browser favicon fallback", async ({ page }) => {
+    const response = await page.goto("/favicon.ico")
+    if (!response) {
+      throw new Error("/favicon.ico did not produce a browser response")
+    }
+
+    expect(response.ok()).toBeTruthy()
+    expect(response.headers()["content-type"] ?? "").toMatch(
+      /^image\/(x-icon|vnd\.microsoft\.icon)/
+    )
+    expect((await response.body()).byteLength).toBeGreaterThan(0)
+  })
+
   test("renders the install affordance or gracefully omits it", async ({
     page,
   }) => {
