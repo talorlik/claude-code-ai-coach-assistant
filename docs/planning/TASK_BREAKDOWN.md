@@ -97,6 +97,9 @@ If scripts are missing, add them in the relevant tooling batch.
 |    23 | `docs/prompts/23_TRAINER_DASHBOARD_AND_NAVIGATION.md`        | `/trainer` trainer-specific dashboard reached from `/admin`; links to client list and plan templates | Unit + integration + e2e        | `Add trainer dashboard and admin navigation` |
 |    24 | `docs/prompts/24_TRAINER_CLIENT_DASHBOARD_COMPLETENESS.md`   | Full plan detail on dashboard, PDF export button, per-client push-reminder status | Unit + integration + e2e        | `Render full plan detail, PDF export, and push status on client dashboard` |
 |    25 | `docs/prompts/25_TRAINER_PLAN_AUTHORING.md`                  | AI-assisted template creation UI; safe in-place live-plan editor over workouts/exercises | Unit + integration + e2e        | `Add AI template authoring and safe live-plan editor` |
+|    26 | `docs/prompts/26_DESIGN_SYSTEM_FOUNDATION.md`               | DESIGN.md tokens into globals.css, Oswald/Poppins fonts, explicit `.light`/`.dark` classes, scheme-aware favicons, theme-aware brand logo, asset copies | Unit                            | `Apply design system tokens, fonts, favicons, and brand logo` |
+|    27 | `docs/prompts/27_HOME_RESTYLE_IMAGERY_AND_FOOTER.md`        | Editorial poster home (left-aligned display, banner, pill CTAs), curated Unsplash imagery in `public/images/`, shared localized `SiteFooter` | Unit                            | `Restyle home page with editorial layout, imagery, and footer` |
+|    28 | `docs/prompts/28_ABOUT_CONTACT_PAGES_AND_EMAIL.md`          | Localized About + Contact pages, nav/footer links, contact form delivering real email via a Supabase `contact` Edge Function | Unit + integration              | `Add localized About and Contact pages with working contact form` |
 
 ## 5. Detailed Batch Breakdown
 

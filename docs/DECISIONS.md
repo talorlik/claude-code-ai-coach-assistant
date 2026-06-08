@@ -1321,3 +1321,73 @@ reconstructs E.164 from the `phone-national` + `countryIso2` fields via
 `combineE164` server-side and ignores the hidden (JS-only) `phone` input, so the
 typed number survives a no-JS submit; onboarding stays JS-orchestrated (it is a
 React multi-step wizard) per the per-surface no-JS bar.
+
+### 2026-06-08 - Tooling - Node 22.16.0 for gates via explicit nvm path
+
+The verification gate (`npm run lint && npm run typecheck && npm run build &&
+npm run test`) must run under Node `22.16.0`, pinned in `.nvmrc`. On this machine
+Node resolution is ambiguous across contexts: an interactive login shell lands on
+Homebrew's Node 26 (`/opt/homebrew/bin/node`), while a non-interactive shell
+lands on nvm's stale v18.17.1 - and v18 breaks vitest/rolldown. The intended
+v22.16.0 is installed at `~/.nvm/versions/node/v22.16.0` but is not active in any
+default context. Verified under v22.16.0: `npm run typecheck` and a `vitest run`
+smoke both pass; npm is 11.11.0.
+
+The durable fix is to prefix gate commands with the explicit nvm bin so they are
+independent of shell state and of the Homebrew/nvm PATH ordering:
+
+```bash
+PATH="$HOME/.nvm/versions/node/v22.16.0/bin:$PATH" npm run build
+```
+
+**Why:** the user does not want to repin nvm's `default` alias or alter Homebrew
+(both are system-wide changes). `.nvmrc` declares intent but a non-interactive
+shell (how `/run-batch` runs gates) does not auto-`nvm use` it, so the PATH prefix
+is what actually guarantees the right toolchain. `/run-batch` and any manual gate
+run in this repo should use that prefix until the host's default Node is itself
+22.x.
+
+### 2026-06-08 - Batches 26-28 - Look and feel overhaul: four locked choices
+
+The design/content overhaul (prompts `26_DESIGN_SYSTEM_FOUNDATION.md`,
+`27_HOME_RESTYLE_IMAGERY_AND_FOOTER.md`,
+`28_ABOUT_CONTACT_PAGES_AND_EMAIL.md`) was planned with the user, who locked four
+choices that the batches encode:
+
+1. **Theme classes: explicit `.light` + `.dark`, default `system`.** next-themes
+   gets `value={{ light: "light", dark: "dark" }}` so light mode emits a real
+   `.light` class; `:root` holds common tokens only, `.dark` and `.light` own
+   their palettes (verbatim DESIGN.md hex). `defaultTheme="system"` stays, so OS
+   preference and a persisted choice are both honored.
+2. **Contact email: real delivery via a Supabase `contact` Edge Function**,
+   invoked from the contact server action through `createAdminClient()`
+   (`SUPABASE_SECRET_KEY`). Recipient `talorlik@gmail.com` (overridable via a
+   `CONTACT_TO` function secret); Gmail SMTP creds live as function secrets. The
+   server action degrades gracefully (validate + return success, log on invoke
+   failure) so the gate stays green without secrets in CI.
+3. **Imagery: download a curated Unsplash gym/personal-training set into
+   `public/images/`** with a `CREDITS.md`. No hotlinking, no
+   `images.remotePatterns` - local, committed, offline/PWA-safe.
+4. **Contact form: real `<form action={serverAction}>` with progressive
+   enhancement** (label-for, `type="submit"`, honeypot, works with JS disabled).
+   Not mailto; consistent with the repo's existing form pattern and the
+   forms-progressive-enhancement bar.
+
+**Why:** (1) DESIGN.md is explicit that theme classes own all palette values
+("do not place theme-specific colors in `:root`") and CLAUDE.md says apply
+`.dark`/`.light` at the root - option (b) is design-faithful where putting light
+on bare `:root` would not be; `system` default avoids overriding OS preference.
+(2) There is no email-sending code in the repo and Supabase's SMTP setting only
+powers Supabase Auth mail, so a real sender had to be added; the user chose an
+Edge Function (secrets stay in Supabase) over adding `nodemailer` to the app, and
+graceful degradation keeps CI deterministic. (3) Local images remove a runtime
+third-party dependency, survive the service worker's offline shell, and need no
+`next.config` change. (4) mailto is not progressive-enhancement friendly (needs a
+mail client, no validation, scrapes the address); a server action matches the
+forgot-password/login pattern already in the codebase.
+
+**Reference:** before running batches 26-28, load the full technical design into
+context: `~/.claude/plans/i-want-to-focus-expressive-kernighan.md`. It holds the
+per-batch file lists, the globals.css token/`@theme inline` merge details, the
+favicon/logo/Edge-Function specifics, and the verification steps that the prompt
+files summarize.
