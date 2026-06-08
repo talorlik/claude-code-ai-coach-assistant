@@ -461,10 +461,25 @@ export type StepProps = {
     value: OnboardingDefaults[K]
   ) => void
   fieldError: (name: string) => string | null
+  /**
+   * Hide the full-name and phone fields. The onboarding wizard (`/join`) leaves
+   * this unset so they show and are required. The single-page editors (My
+   * Account, trainer client editor) set it: name and phone are account-identity,
+   * edited once under "Contact details", so showing them here too would be a
+   * duplicate editable pair. The persisted values are still carried into the
+   * save by {@link OnboardingDetailsForm}, so the `clients` row stays valid.
+   */
+  hideContact?: boolean
 }
 
 /** Step 1: identity and age. */
-export function StepAboutYou({ t, values, set, fieldError }: StepProps) {
+export function StepAboutYou({
+  t,
+  values,
+  set,
+  fieldError,
+  hideContact,
+}: StepProps) {
   const nameError = fieldError("fullName")
   const phoneError = fieldError("phone")
   const countryError = fieldError("countryIso2")
@@ -472,38 +487,42 @@ export function StepAboutYou({ t, values, set, fieldError }: StepProps) {
   const ageRangeError = fieldError("ageRange")
   return (
     <div className="flex flex-col gap-5">
-      <Field
-        label={t("fields.fullName")}
-        error={nameError}
-        required
-      >
-        <Input
-          name="fullName"
-          value={values.fullName}
-          onChange={(e) => set("fullName", e.target.value)}
-          aria-invalid={nameError ? true : undefined}
-          required
-          autoComplete="name"
-        />
-      </Field>
+      {hideContact ? null : (
+        <>
+          <Field
+            label={t("fields.fullName")}
+            error={nameError}
+            required
+          >
+            <Input
+              name="fullName"
+              value={values.fullName}
+              onChange={(e) => set("fullName", e.target.value)}
+              aria-invalid={nameError ? true : undefined}
+              required
+              autoComplete="name"
+            />
+          </Field>
 
-      <Field
-        label={t("fields.phone")}
-        hint={t("hints.phone")}
-        error={phoneError ?? countryError}
-        required
-      >
-        <PhoneField
-          countryIso2={values.countryIso2}
-          national={values.phone}
-          onCountryChange={(iso2) => set("countryIso2", iso2)}
-          onNationalChange={(n) => set("phone", n)}
-          searchPlaceholder={t("placeholders.countrySearch")}
-          emptyText={t("empty.countrySearch")}
-          invalid={!!(phoneError || countryError)}
-          required
-        />
-      </Field>
+          <Field
+            label={t("fields.phone")}
+            hint={t("hints.phone")}
+            error={phoneError ?? countryError}
+            required
+          >
+            <PhoneField
+              countryIso2={values.countryIso2}
+              national={values.phone}
+              onCountryChange={(iso2) => set("countryIso2", iso2)}
+              onNationalChange={(n) => set("phone", n)}
+              searchPlaceholder={t("placeholders.countrySearch")}
+              emptyText={t("empty.countrySearch")}
+              invalid={!!(phoneError || countryError)}
+              required
+            />
+          </Field>
+        </>
+      )}
 
       {/* items-start keeps the two controls top-aligned; the reserved error
           slot in Field means an error under one never shifts the other. */}

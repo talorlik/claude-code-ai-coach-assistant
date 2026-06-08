@@ -1,4 +1,5 @@
 import * as React from "react"
+import { getTranslations } from "next-intl/server"
 
 import {
   updateProfileForm,
@@ -39,10 +40,14 @@ function SettingsSection({
  * JavaScript disabled - the action redirects back to `/profile` with a
  * `?notice`/`?error` code that the page renders as a localized banner. With
  * JavaScript present React re-runs the same action over fetch, and the
- * {@link SubmitButton} adds a pending affordance. This is a Server Component;
- * the only client island is the submit button.
+ * {@link SubmitButton} adds a pending affordance. This is an async Server
+ * Component; the only client island is the submit button.
+ *
+ * All user-facing copy is resolved server-side from the `Account` message
+ * namespace via {@link getTranslations}, so the forms render in the active
+ * locale (English/Hebrew, RTL-aware) rather than a hardcoded language.
  */
-export function AccountForms({
+export async function AccountForms({
   initialFullName,
   initialPhone,
   initialCountryIso2,
@@ -53,15 +58,16 @@ export function AccountForms({
   initialCountryIso2: string
   email: string
 }) {
+  const t = await getTranslations("Account")
   return (
     <div className="flex flex-col gap-8">
       <SettingsSection
-        title="Contact details"
-        description="Your name and phone number."
+        title={t("contactTitle")}
+        description={t("contactDescription")}
       >
         <form action={updateProfileForm} className="flex flex-col gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="fullName">Full name</Label>
+            <Label htmlFor="fullName">{t("fullNameLabel")}</Label>
             <Input
               id="fullName"
               name="fullName"
@@ -71,26 +77,26 @@ export function AccountForms({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="phone-national">Phone</Label>
+            <Label htmlFor="phone-national">{t("phoneLabel")}</Label>
             <PhoneFieldUncontrolled
               id="phone-national"
               initialPhone={initialPhone}
               initialCountryIso2={initialCountryIso2}
-              searchPlaceholder="Search country…"
-              emptyText="No matching country"
+              searchPlaceholder={t("countrySearchPlaceholder")}
+              emptyText={t("countrySearchEmpty")}
             />
           </div>
-          <SubmitButton label="Save details" pendingLabel="Saving…" />
+          <SubmitButton label={t("saveDetails")} pendingLabel={t("saving")} />
         </form>
       </SettingsSection>
 
       <SettingsSection
-        title="Email"
-        description="Changing your email requires confirmation via a link."
+        title={t("emailTitle")}
+        description={t("emailDescription")}
       >
         <form action={updateEmailForm} className="flex flex-col gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="email">Email address</Label>
+            <Label htmlFor="email">{t("emailLabel")}</Label>
             <Input
               id="email"
               name="email"
@@ -99,17 +105,20 @@ export function AccountForms({
               required
             />
           </div>
-          <SubmitButton label="Update email" pendingLabel="Updating…" />
+          <SubmitButton
+            label={t("updateEmail")}
+            pendingLabel={t("updatingEmail")}
+          />
         </form>
       </SettingsSection>
 
       <SettingsSection
-        title="Password"
-        description="Choose a new password for your account."
+        title={t("passwordTitle")}
+        description={t("passwordDescription")}
       >
         <form action={updatePasswordForm} className="flex flex-col gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="password">New password</Label>
+            <Label htmlFor="password">{t("newPasswordLabel")}</Label>
             <Input
               id="password"
               name="password"
@@ -117,11 +126,13 @@ export function AccountForms({
               autoComplete="new-password"
               required
               minLength={8}
-              placeholder="At least 8 characters"
+              placeholder={t("passwordPlaceholder")}
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="confirmPassword">Confirm new password</Label>
+            <Label htmlFor="confirmPassword">
+              {t("confirmPasswordLabel")}
+            </Label>
             <Input
               id="confirmPassword"
               name="confirmPassword"
@@ -129,10 +140,13 @@ export function AccountForms({
               autoComplete="new-password"
               required
               minLength={8}
-              placeholder="At least 8 characters"
+              placeholder={t("passwordPlaceholder")}
             />
           </div>
-          <SubmitButton label="Update password" pendingLabel="Updating…" />
+          <SubmitButton
+            label={t("updatePassword")}
+            pendingLabel={t("updatingPassword")}
+          />
         </form>
       </SettingsSection>
     </div>

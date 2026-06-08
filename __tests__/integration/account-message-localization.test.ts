@@ -38,10 +38,34 @@ describe("account message localization", () => {
   it("adds no extra keys to the Account namespace", () => {
     // Non-code keys that legitimately live in the Account namespace: page copy
     // that is never resolved through resolveAccountMessage. `title` is the
-    // localized page heading / tab title; keeping it out of
-    // ACCOUNT_MESSAGE_CODES is what prevents a forged `?notice=title` from
-    // reflecting it. The guard still catches any *unexpected* key drift.
-    const NON_CODE_KEYS = ["title"] as const
+    // localized page heading / tab title; the rest are the localized labels,
+    // section titles, placeholders, and button copy rendered directly by
+    // AccountForms. Keeping them out of ACCOUNT_MESSAGE_CODES is what prevents a
+    // forged `?notice=<key>` from reflecting them. The guard still catches any
+    // *unexpected* key drift.
+    const NON_CODE_KEYS = [
+      "title",
+      "contactTitle",
+      "contactDescription",
+      "fullNameLabel",
+      "phoneLabel",
+      "countrySearchPlaceholder",
+      "countrySearchEmpty",
+      "saveDetails",
+      "saving",
+      "emailTitle",
+      "emailDescription",
+      "emailLabel",
+      "updateEmail",
+      "updatingEmail",
+      "passwordTitle",
+      "passwordDescription",
+      "newPasswordLabel",
+      "confirmPasswordLabel",
+      "passwordPlaceholder",
+      "updatePassword",
+      "updatingPassword",
+    ] as const
     const allowed = new Set<string>([...ACCOUNT_MESSAGE_CODES, ...NON_CODE_KEYS])
     for (const key of Object.keys(en.Account)) {
       expect(allowed.has(key), `unexpected en key ${key}`).toBe(true)

@@ -78,9 +78,19 @@ export function OnboardingDetailsForm({
     event.preventDefault()
     setError(null)
 
+    // Name, phone, and country are edited once under "Contact details" (the
+    // profiles row), not here, so this form hides those fields. The clients row
+    // still requires a valid name/phone, so carry the values loaded into
+    // `defaults` through the save unchanged - the row stays valid without
+    // surfacing a duplicate editable pair.
+    const input = toInput({
+      ...values,
+      fullName: defaults.fullName,
+      phone: defaults.phone,
+      countryIso2: defaults.countryIso2,
+    })
     // Client-side validation mirrors the server's, so the user sees inline
     // errors without a round trip; the server re-validates regardless.
-    const input = toInput(values)
     const validation = validateOnboarding(input)
     if (!validation.ok) {
       setFieldErrors(validation.fieldErrors ?? {})
@@ -103,7 +113,10 @@ export function OnboardingDetailsForm({
     setSaved(true)
   }
 
-  const stepProps = { t, values, set, fieldError }
+  // hideContact removes the name/phone fields from StepAboutYou: this form is
+  // only ever an editor (My Account, trainer client editor) where those live
+  // under "Contact details", so showing them here too would duplicate them.
+  const stepProps = { t, values, set, fieldError, hideContact: true }
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-8">
