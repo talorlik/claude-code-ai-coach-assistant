@@ -4,9 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server"
 import { requireClient } from "@/lib/auth/require-user"
 import { getClient } from "@/lib/db/clients"
 import type { Locale } from "@/i18n/routing"
-import {
-  clientToDefaults,
-} from "@/components/onboarding/onboarding-details-form"
+import { clientToDefaults } from "@/lib/onboarding/client-to-defaults"
 import {
   EMPTY_DEFAULTS,
   OnboardingForm,

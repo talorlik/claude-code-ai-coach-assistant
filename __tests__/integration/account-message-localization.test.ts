@@ -36,7 +36,13 @@ describe("account message localization", () => {
   })
 
   it("adds no extra keys to the Account namespace", () => {
-    const allowed = new Set<string>(ACCOUNT_MESSAGE_CODES)
+    // Non-code keys that legitimately live in the Account namespace: page copy
+    // that is never resolved through resolveAccountMessage. `title` is the
+    // localized page heading / tab title; keeping it out of
+    // ACCOUNT_MESSAGE_CODES is what prevents a forged `?notice=title` from
+    // reflecting it. The guard still catches any *unexpected* key drift.
+    const NON_CODE_KEYS = ["title"] as const
+    const allowed = new Set<string>([...ACCOUNT_MESSAGE_CODES, ...NON_CODE_KEYS])
     for (const key of Object.keys(en.Account)) {
       expect(allowed.has(key), `unexpected en key ${key}`).toBe(true)
     }

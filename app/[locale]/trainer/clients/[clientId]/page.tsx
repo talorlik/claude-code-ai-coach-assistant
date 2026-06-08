@@ -14,7 +14,7 @@ import {
 import { requireTrainerAdmin } from "@/lib/auth/require-user"
 import { getTrainerClientDetail } from "@/lib/db/trainer-client-detail"
 import { listOnboardingSnapshots } from "@/lib/db/onboarding-snapshots"
-import { clientToDefaults } from "@/components/onboarding/onboarding-details-form"
+import { clientToDefaults } from "@/lib/onboarding/client-to-defaults"
 import { OnboardingHistory } from "@/components/onboarding/onboarding-history"
 import { ClientOnboardingEditor } from "./client-onboarding-editor"
 import {

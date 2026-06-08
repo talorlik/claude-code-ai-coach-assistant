@@ -14,41 +14,7 @@ import {
 import { validateOnboarding } from "@/lib/validation/onboarding"
 import type { OnboardingInput } from "@/lib/validation/onboarding"
 import type { ActionResult } from "@/lib/types/action-result"
-import type { Client } from "@/lib/db/mappers"
-import { splitE164 } from "@/lib/phone/phone"
 import { Button } from "@/components/ui/button"
-
-/**
- * Maps a persisted {@link Client} to the form's string-keyed defaults. Shared by
- * the onboarding wizard page, My Account, and the trainer client editor so the
- * client -> form mapping lives in one place. The national phone number and
- * country are split back out of the stored E.164 value, and the "Other"
- * equipment list is re-joined into the comma-separated free-text field.
- */
-export function clientToDefaults(client: Client): OnboardingDefaults {
-  const split = splitE164(client.phone ?? "", client.countryIso2 ?? null)
-  return {
-    fullName: client.fullName ?? "",
-    phone: split.national,
-    countryIso2: split.country.iso2,
-    age: client.age != null ? String(client.age) : "",
-    ageRange: client.ageRange ?? "",
-    goals: client.goals,
-    fitnessLevel: client.fitnessLevel ?? "",
-    limitations: client.limitations ?? "",
-    availableDays: client.availableDays,
-    availability: client.availability,
-    sessionDurationMinutes:
-      client.sessionDurationMinutes != null
-        ? String(client.sessionDurationMinutes)
-        : "",
-    preferredLocation: client.preferredLocation ?? "",
-    equipment: client.equipment,
-    equipmentOtherSelected: client.equipmentOther.length > 0,
-    equipmentOther: client.equipmentOther.join(", "),
-    notes: client.notes ?? "",
-  }
-}
 
 /**
  * The translator key type for the `Onboarding` namespace; runtime-composed error

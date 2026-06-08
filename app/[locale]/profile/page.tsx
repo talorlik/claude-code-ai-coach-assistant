@@ -8,17 +8,25 @@ import { requireClient } from "@/lib/auth/require-user"
 import { getClient } from "@/lib/db/clients"
 import { listOnboardingSnapshots } from "@/lib/db/onboarding-snapshots"
 import { saveOnboardingDetails } from "@/lib/onboarding/onboarding-actions"
-import {
-  OnboardingDetailsForm,
-  clientToDefaults,
-} from "@/components/onboarding/onboarding-details-form"
+import { OnboardingDetailsForm } from "@/components/onboarding/onboarding-details-form"
+import { clientToDefaults } from "@/lib/onboarding/client-to-defaults"
 import { OnboardingHistory } from "@/components/onboarding/onboarding-history"
 import { RegenerateMyPlan } from "@/app/[locale]/my-plan/regenerate-my-plan"
 import { AccountForms } from "./account-forms"
 
-export const metadata: Metadata = {
-  title: "My Account",
-  robots: { index: false, follow: false },
+/**
+ * Localized, private metadata for the account page. The tab title comes from the
+ * `Account.title` key so it matches the nav label and the page heading in each
+ * locale; `robots` stays noindex/nofollow because this is an authenticated page.
+ *
+ * @param params - Route params (a Promise in Next 16); carries the active locale.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("Account")
+  return {
+    title: t("title"),
+    robots: { index: false, follow: false },
+  }
 }
 
 /**
@@ -76,7 +84,7 @@ export default async function ProfilePage({
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-12">
       <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-medium">My Account</h1>
+        <h1 className="text-3xl font-medium">{t("title")}</h1>
         <p className="text-sm text-muted-foreground">{user.email}</p>
       </header>
 

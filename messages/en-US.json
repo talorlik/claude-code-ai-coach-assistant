@@ -23,7 +23,7 @@
     "home": "Home",
     "myPlan": "My Plan",
     "chat": "Chat",
-    "account": "My Account",
+    "account": "My Profile",
     "clients": "Clients",
     "admin": "Admin",
     "signIn": "Sign in",
@@ -283,6 +283,7 @@
     "passwordUpdated": "Password updated, please sign in."
   },
   "Account": {
+    "title": "My Profile",
     "detailsSaved": "Details saved.",
     "emailConfirmSent": "Check your inbox to confirm the new email address.",
     "passwordUpdated": "Password updated.",
