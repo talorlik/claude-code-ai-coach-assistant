@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Geist_Mono, Inter } from "next/font/google"
+import { Geist_Mono, Oswald, Poppins } from "next/font/google"
 import { hasLocale, NextIntlClientProvider } from "next-intl"
 import { setRequestLocale } from "next-intl/server"
 import { notFound } from "next/navigation"
@@ -31,6 +31,11 @@ export const metadata: Metadata = {
     title: "Studio Itai",
   },
   icons: {
+    icon: [
+      { url: "/favicon-default-dark.ico", sizes: "any" },
+      { url: "/favicon-light.ico", media: "(prefers-color-scheme: light)" },
+      { url: "/favicon-dark.ico", media: "(prefers-color-scheme: dark)" },
+    ],
     apple: "/icons/apple-touch-icon-180.png",
   },
 }
@@ -43,7 +48,29 @@ export const viewport: Viewport = {
   themeColor: THEME_COLOR,
 }
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
+/**
+ * Display face for headings and poster moments. `next/font` emits the
+ * `--font-family-display` custom property that `@theme inline` maps onto the
+ * `--font-display`/`--font-heading` Tailwind utilities. Oswald carries no
+ * Hebrew glyphs by design, so Hebrew headings fall through to the system sans
+ * declared in the `--font-family-display` fallback stack.
+ */
+const fontDisplay = Oswald({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-family-display",
+})
+
+/**
+ * Body face for forms, navigation, and app chrome. Emits
+ * `--font-family-sans`, which `@theme inline` maps onto `--font-sans`. Hebrew
+ * falls through to the system sans fallback (Poppins has no Hebrew glyphs).
+ */
+const fontSans = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-family-sans",
+})
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -86,9 +113,10 @@ export default async function LocaleLayout({
       suppressHydrationWarning
       className={cn(
         "antialiased",
-        fontMono.variable,
         "font-sans",
-        inter.variable
+        fontDisplay.variable,
+        fontSans.variable,
+        fontMono.variable
       )}
     >
       <body>

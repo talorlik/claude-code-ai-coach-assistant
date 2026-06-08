@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react"
+import Image from "next/image"
 import { getTranslations } from "next-intl/server"
 
 import { Link } from "@/i18n/navigation"
@@ -36,12 +36,24 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
         <nav className="flex items-center gap-4 text-sm">
-          <Link
-            href="/"
-            className="flex shrink-0 items-center gap-2 font-semibold"
-          >
-            <Sparkles className="h-5 w-5 text-primary" />
-            {common("appName")}
+          <Link href="/" className="flex shrink-0 items-center">
+            <Image
+              src="/logo-light.png"
+              alt={common("appName")}
+              width={144}
+              height={48}
+              priority
+              className="h-8 w-auto dark:hidden"
+            />
+            <Image
+              src="/logo-dark.png"
+              alt=""
+              aria-hidden
+              width={144}
+              height={48}
+              priority
+              className="hidden h-8 w-auto dark:block"
+            />
           </Link>
           {user && !admin ? (
             <Link href="/my-plan" className="hover:underline">

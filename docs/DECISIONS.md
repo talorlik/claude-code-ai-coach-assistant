@@ -1391,3 +1391,29 @@ context: `~/.claude/plans/i-want-to-focus-expressive-kernighan.md`. It holds the
 per-batch file lists, the globals.css token/`@theme inline` merge details, the
 favicon/logo/Edge-Function specifics, and the verification steps that the prompt
 files summarize.
+
+### 2026-06-08 - Batch 26 - Design System Foundation Reconciliations
+
+Three non-obvious choices while applying the DESIGN.md token system:
+
+1. Kept `--font-heading` in the merged `@theme inline` (DESIGN.md's block omits
+   it) and pointed it at the display face (`var(--font-family-display)`).
+2. Added `--color-destructive-foreground` to the merged `@theme inline` (the
+   original stock block lacked it).
+3. The batch-26 unit test asserts the favicon metadata and `.light`/`.dark`
+   token blocks by reading the source text of `app/[locale]/layout.tsx` and
+   `app/globals.css`, not by importing the layout module.
+
+**Why:** (1) `font-heading` is consumed across the shadcn component library
+(`card`, `dialog`, `sheet`, `drawer`, `alert-dialog`, `empty`, and the offline
+page); dropping the mapping would silently break every component title. Pointing
+it at the display face also gives those titles the brand voice for free, matching
+DESIGN.md's "display type is the primary brand voice." (2) `.dark`/`.light` both
+define `--destructive-foreground` and DESIGN.md's `@theme inline` maps it, so the
+Tailwind utility must exist or `text-destructive-foreground` resolves to nothing.
+(3) Importing `app/[locale]/layout.tsx` pulls in the next-intl navigation client,
+which fails to resolve `next/navigation` under jsdom; asserting the source text
+keeps the guard honest (it reads the real file) without booting the next-intl
+runtime. Note `new URL(..., import.meta.url)` cannot resolve a path containing
+`[locale]` (square brackets break URL parsing), so the test uses
+`path.resolve(process.cwd(), ...)` instead.

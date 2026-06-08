@@ -4,14 +4,15 @@ import type { MetadataRoute } from "next"
  * PWA installability constants shared by the manifest route and the service
  * worker / metadata wiring.
  *
- * `THEME_COLOR` mirrors the light-theme background token (`oklch(1 0 0)` =
- * white) so the OS chrome around the installed app matches the default surface.
- * `BACKGROUND_COLOR` is the splash background shown before first paint; it uses
- * the brand placeholder teal so the launch screen reads as the app, not a blank
- * white flash. Manifest colors must be CSS hex/rgb, not `oklch`, so these are
- * resolved to hex here rather than referenced from the CSS custom properties.
+ * `THEME_COLOR` mirrors the light-theme background token (`--background` =
+ * `#e8ebed`, the stone-gray canvas) so the OS chrome around the installed app
+ * matches the default surface. `BACKGROUND_COLOR` is the splash background shown
+ * before first paint; it uses the brand placeholder teal so the launch screen
+ * reads as the app, not a blank white flash. Manifest colors must be CSS
+ * hex/rgb, so these are resolved to hex here rather than referenced from the CSS
+ * custom properties.
  */
-export const THEME_COLOR = "#ffffff"
+export const THEME_COLOR = "#e8ebed"
 
 /** Splash/background color shown while the installed app boots. */
 export const BACKGROUND_COLOR = "#0f766e"
