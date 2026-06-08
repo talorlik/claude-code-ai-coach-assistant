@@ -1,6 +1,6 @@
 ---
-description: Execute one AI Coach build batch (00-19) end to end - worktree, prompt, gates, self-correction, squash-merge. Usage:/run-batch <NN>
-argument-hint: <batch number 00-19>
+description: Execute one AI Coach build batch (00-n, sequential) end to end - worktree, prompt, gates, self-correction, squash-merge. Usage:/run-batch <NN>
+argument-hint: <batch number, 00-n>
 ---
 
 You are executing ONE batch of the Studio Itai AI Coach Assistant build, fully
@@ -13,8 +13,15 @@ to stop - this runs unattended (often from a phone).
 
 ## Step 0 - Load context
 
-1. Normalize the batch number to two digits (e.g. `7` -> `07`). Call it `NN`.
-   If `$ARGUMENTS` is empty or not in 00-19, STOP and report the valid range.
+1. Normalize the batch number to (at least) two digits (e.g. `7` -> `07`,
+   `103` -> `103`). Call it `NN`. Batch numbers are open-ended: the valid range
+   is `00-n` (00 up to however many batches exist), NOT a fixed 00-19/00-20.
+   The batch is valid only if BOTH hold: `$ARGUMENTS` is a non-negative integer,
+   AND a matching prompt file `docs/prompts/NN_*.md` exists. If `$ARGUMENTS` is
+   empty, not a non-negative integer, or has no matching prompt file, STOP and
+   report - list the prompt files that DO exist (`ls docs/prompts/`) so the user
+   sees the available batches. Do not assume an upper bound; new batches are
+   appended over time.
 2. Read the runbook: `/Users/talo/.claude/plans/review-the-project-s-sleepy-castle.md`.
    It is the authority on git workflow, gates, and batch order.
 3. Read the batch's prompt file: `docs/prompts/NN_*.md`. This is the canonical

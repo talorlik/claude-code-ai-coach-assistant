@@ -54,15 +54,22 @@ npm run build`. Add `npm run test` / `npm run test:e2e` for behavior changes.
 - `__tests__/unit/`, `__tests__/integration/` - Vitest. `playwright.config.ts`
   for e2e.
 - `docs/planning/` (PRD, TECHNICAL_REQUIREMENTS, TASK_BREAKDOWN),
-  `docs/prompts/` (00-20 + PROMPT_INDEX).
+  `docs/prompts/` (00-n + PROMPT_INDEX).
 
 ## Building this project: the batch system
 
-The build runs as 21 sequential batches (00-20), one prompt file each under
-`docs/prompts/`, sequenced by `docs/planning/TASK_BREAKDOWN.md`. Batch 20 (PWA
-installability) was added after the original 00-19 plan; it ships a user-facing
-feature after batch 19's deployment verification, so re-run the batch-19 smoke
-after 20 merges.
+The build runs as an OPEN-ENDED sequence of batches (`00-n`), one prompt file
+each under `docs/prompts/`, sequenced by `docs/planning/TASK_BREAKDOWN.md`. The
+original plan was 00-19; PWA installability (20) was appended after batch 19, and
+batches 21-28 were appended after that (signup-journey wiring, admin/trainer
+surfaces, design-system foundation, home restyle, About/Contact pages). There is
+NO fixed upper bound: a batch `NN` is runnable as soon as its `docs/prompts/NN_*.md`
+prompt exists, and new batches may be added over time. As of 2026-06-08, batches
+00-27 have run and are squash-merged on local `main`; batch 28 is next. The
+current batch number = count of squash batch-commits on `main`. Batches are
+strictly sequential - never skip a gap. (Batch 20 ships a user-facing feature
+after batch 19's deployment verification, so re-run the batch-19 smoke after 20
+merges.)
 
 **To run a batch, use the `/run-batch` command.** When the user says "run batch
 N", "do batch N", "execute batch N", or anything equivalent - including plain
