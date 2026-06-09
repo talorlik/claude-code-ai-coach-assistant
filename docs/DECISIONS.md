@@ -1523,3 +1523,47 @@ session-injection harness), not just the static gates.
 localized. `title` is deliberately NOT in `ACCOUNT_MESSAGE_CODES`, so a forged
 `?notice=title` still cannot reflect it; the localization guard test was updated
 to treat `title` as an allowed non-code key.
+
+## 2026-06-10 - Trainer client-list row actions (explicit edit/delete + plan toggle)
+
+**Context:** the trainer client list (`app/[locale]/trainer/trainer-clients.tsx`)
+put `cursor-pointer` on the whole desktop row but only the name was a `<Link>`,
+so clicking the obvious target did nothing. There was no delete and no way to
+flip a plan active/inactive from the list.
+
+**Decision:** explicit row actions, "only icons act" (the row is no longer
+clickable, the name is plain text). A trailing actions column holds an edit
+pencil (links to the existing `/trainer/clients/[clientId]` dashboard - that is
+the edit surface, no new edit form) and a delete trash behind an AlertDialog
+confirm. The Plan column became an inline toggle reflecting state in colour AND
+word. Kept the responsive table + mobile-card layout (no grid rewrite); it
+already collapsed without side-scroll and keeps semantic table headers.
+
+**Delete semantics:** `deleteClientAction` (new `lib/db/trainer-clients-actions.ts`)
+uses the admin client to delete the `clients` row (FK `on delete cascade` clears
+plans/workouts/logs/notes) AND `auth.admin.deleteUser` so the email frees up.
+Note `profiles` and `user_roles` reference `auth.users`, NOT `clients`, so the
+auth-user delete is what cleans those - data-before-auth ordering is necessary,
+not just convenient.
+
+**Plan toggle semantics:** `setPlanActiveAction` deactivate archives the active
+plan; activate restores the most-recently-archived plan and is DISABLED when the
+client has never had a plan (new `hasAnyPlan` flag on the list query, computed
+with an existence check only for clients lacking an active plan). The activate
+path is non-atomic and the one-active-plan invariant is NOT DB-enforced
+(`workout_plans_active_idx` is a non-unique partial index) - logged in TECH_DEBT
+(durable fix: transactional RPC or partial-unique index).
+
+**UI library:** this repo is Base UI, not Radix. Dialog/Switch use the `render`
+prop, not `asChild`; style a `Link`-as-button with `buttonVariants(...)`. Base UI
+`Switch` signals disabled via `aria-disabled` (not native `disabled`) and checked
+via `aria-checked` + `data-checked`, so tests assert those attributes, not
+`toBeDisabled()`/`toBeChecked()`. The "on" switch track is `bg-primary` (brand
+orange) by design - kept, since the green status dot + word already carry the
+active/inactive semantic the user asked for.
+
+**Verification:** beyond unit/integration tests, a throwaway Playwright spec used
+the e2e `injectSession` admin-session bypass (captcha blocks the form login) to
+screenshot the real authenticated `/en/trainer`, `/he/trainer`, and a 390px
+mobile viewport, confirming the actions column placement, no horizontal
+overflow, and correct RTL mirroring. Temp spec removed after the check.
