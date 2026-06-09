@@ -11,6 +11,7 @@ import { InstallPrompt } from "@/components/install-prompt"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -126,13 +127,17 @@ export async function SiteHeader() {
                 className="flex flex-col gap-1 px-4 pb-4 text-sm"
               >
                 {navLinks.map((item) => (
-                  <Link
+                  <SheetClose
                     key={item.href}
-                    href={item.href}
-                    className="rounded-md px-2 py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    {item.label}
-                  </Link>
+                    render={
+                      <Link
+                        href={item.href}
+                        className="rounded-md px-2 py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        {item.label}
+                      </Link>
+                    }
+                  />
                 ))}
               </nav>
             </SheetContent>
