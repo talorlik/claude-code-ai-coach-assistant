@@ -26,6 +26,8 @@ export interface ClientWithActivity {
   client: Client
   /** Whether the client has an active workout plan. */
   hasActivePlan: boolean
+  /** Whether the client has any plan at all (active or archived). */
+  hasAnyPlan: boolean
   /** The active plan's title, or `null` when there is no active plan. */
   activePlanTitle: string | null
   /**
@@ -44,9 +46,10 @@ export interface ClientWithActivity {
  * The reads are issued as a small number of set-based queries rather than one
  * query per client, so the page scales to many clients without an N+1: one
  * query each for clients, their active plans, those plans' workouts, and this
- * month's completion logs. Each stays under its own RLS policy. Completion is
- * computed in memory from the fetched rows via the pure progress helpers, so
- * the threshold logic has a single tested definition.
+ * month's completion logs, plus an existence check for archived plans (clients
+ * without an active plan) so `hasAnyPlan` is known. Each stays under its own
+ * RLS policy. Completion is computed in memory from the fetched rows via the
+ * pure progress helpers, so the threshold logic has a single tested definition.
  *
  * @param reference - The instant defining "this month" (typically now);
  *   injectable so tests are deterministic.
@@ -75,7 +78,7 @@ export async function listClientsWithActivity(
   // Active plans for the listed clients (at most one per client).
   const { data: planData, error: planError } = await supabase
     .from("workout_plans")
-    .select("id, client_id, title")
+    .select("id, client_id, title, status")
     .in("client_id", clientIds)
     .eq("status", "active")
 
@@ -83,12 +86,46 @@ export async function listClientsWithActivity(
     throw new Error(`Failed to load active plans: ${planError.message}`)
   }
 
-  const activePlans = (planData as Pick<
-    WorkoutPlanRow,
-    "id" | "client_id" | "title"
-  >[]) ?? []
+  // Filter active plans in memory as well as via .eq above: the integration
+  // test's fake query builder treats .eq as a no-op, so this guard keeps
+  // hasActivePlan correct under that fake. Against real RLS it is a redundant
+  // safety net, not dead code.
+  const activePlans = (
+    (planData as Pick<
+      WorkoutPlanRow,
+      "id" | "client_id" | "title" | "status"
+    >[]) ?? []
+  ).filter((p) => p.status === "active")
   const planByClient = new Map(activePlans.map((p) => [p.client_id, p]))
   const planIds = activePlans.map((p) => p.id)
+
+  // A client with an active plan trivially has a plan; only clients without one
+  // need an existence check against their archived history. Querying just that
+  // minority avoids transferring full plan history for every client on each load.
+  const clientsWithoutActivePlan = clientIds.filter((id) => !planByClient.has(id))
+
+  let archivedClientIds = new Set<string>()
+  if (clientsWithoutActivePlan.length > 0) {
+    const { data: archivedData, error: archivedError } = await supabase
+      .from("workout_plans")
+      .select("client_id")
+      .in("client_id", clientsWithoutActivePlan)
+
+    if (archivedError) {
+      throw new Error(`Failed to load plans: ${archivedError.message}`)
+    }
+
+    archivedClientIds = new Set(
+      ((archivedData as Pick<WorkoutPlanRow, "client_id">[]) ?? []).map(
+        (p) => p.client_id
+      )
+    )
+  }
+
+  const clientsWithAnyPlan = new Set([
+    ...planByClient.keys(),
+    ...archivedClientIds,
+  ])
 
   // Workout ids per active plan, to count plan size and map logs back to a plan.
   const workoutsByPlan = new Map<string, string[]>()
@@ -148,6 +185,7 @@ export async function listClientsWithActivity(
       return {
         client,
         hasActivePlan: false,
+        hasAnyPlan: clientsWithAnyPlan.has(client.userId),
         activePlanTitle: null,
         monthCompletionPercent: 0,
       }
@@ -161,6 +199,7 @@ export async function listClientsWithActivity(
     return {
       client,
       hasActivePlan: true,
+      hasAnyPlan: clientsWithAnyPlan.has(client.userId),
       activePlanTitle: plan.title,
       monthCompletionPercent: completionPercentage(
         workoutIds.length,

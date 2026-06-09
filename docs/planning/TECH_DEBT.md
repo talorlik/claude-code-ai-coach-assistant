@@ -88,6 +88,38 @@ below, fixes each, checks it off, and squash-merges the result into local
   reliably in isolation and in-suite regardless of prior plan state. Added:
   2026-06-07. Source: onboarding UX branch verification (pre-existing failure).
 
+- [ ] **`setPlanActiveAction` activate path is non-atomic; one-active-plan
+  invariant is not DB-enforced** - In `lib/db/trainer-clients-actions.ts`, the
+  activate branch of `setPlanActiveAction` issues three independently-committed
+  statements (find candidate, archive any active plan, activate candidate) with
+  no transaction. A failure between the archive and activate writes leaves the
+  client with zero active plans (caller gets `plan.updateError`; a retry
+  recovers). Concurrent activate calls can also race and leave two
+  `status='active'` rows, because `supabase/migrations/0002_app_schema.sql`'s
+  `workout_plans_active_idx` is a non-unique partial index, so the DB does not
+  reject a second active row. Tolerable today because this is a single-actor
+  trainer-admin action and the toggle is normally disabled client-side. Durable
+  fix: move the archive-then-activate into one atomic step - either a
+  `security definer` Postgres RPC, or convert the partial index to a partial
+  UNIQUE index (`unique (client_id) where status = 'active'`) so the DB enforces
+  the invariant. Acceptance: two concurrent `setPlanActiveAction(c, true)` calls
+  can never leave two active plans for the same client (DB rejects or the RPC
+  serializes), and a mid-sequence failure cannot strand the client with zero
+  active plans. Added: 2026-06-10. Source: trainer client-row-actions feature,
+  Task 3 code review.
+
+- [ ] **`notes-actions.ts` returns raw English strings instead of i18n keys** -
+  `lib/trainer/notes-actions.ts` returns full human-readable English in its
+  `fail(...)` calls (e.g. `"Could not save the note. Please try again."`),
+  unlike the newer `lib/db/trainer-clients-actions.ts` which returns localizable
+  message keys (`"plan.updateError"`) that the client toasts via
+  `t(result.error)`. Reconcile notes-actions to the key-based pattern so its
+  error toasts localize under `/he`. Acceptance: every `fail(...)` in
+  notes-actions returns a `TrainerNotes`/`TrainerClients`-namespace message key
+  that resolves in both `en-US.json` and `he-IL.json`, and the notes panel
+  toasts the localized string. Added: 2026-06-10. Source: trainer
+  client-row-actions feature, Task 3 code review.
+
 ## Done
 
 - [x] **Associate form labels with their controls (onboarding native fields)** -

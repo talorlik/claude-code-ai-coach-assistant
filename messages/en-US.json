@@ -428,11 +428,31 @@
       "joinDate": "Joined",
       "plan": "Plan",
       "completion": "This month",
-      "activity": "Activity"
+      "activity": "Activity",
+      "actions": "Actions"
     },
     "plan": {
       "active": "Active plan",
-      "none": "No active plan"
+      "none": "No active plan",
+      "toggleLabel": "Toggle plan for {name}",
+      "activate": "Activate plan",
+      "deactivate": "Deactivate plan",
+      "noPlanToActivate": "This client has no plan to activate.",
+      "updateError": "Couldn't update the plan. Please try again."
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "editLabel": "Edit {name}",
+      "deleteLabel": "Delete {name}"
+    },
+    "delete": {
+      "confirmTitle": "Delete client?",
+      "confirmDescription": "This permanently removes {name} and all their plans, logs, and notes. This cannot be undone.",
+      "confirmCta": "Delete client",
+      "cancel": "Cancel",
+      "success": "Client deleted.",
+      "error": "Couldn't delete the client. Please try again."
     },
     "activity": {
       "active": "On track",

@@ -428,11 +428,31 @@
       "joinDate": "הצטרף",
       "plan": "תוכנית",
       "completion": "החודש",
-      "activity": "פעילות"
+      "activity": "פעילות",
+      "actions": "פעולות"
     },
     "plan": {
       "active": "תוכנית פעילה",
-      "none": "אין תוכנית פעילה"
+      "none": "אין תוכנית פעילה",
+      "toggleLabel": "החלפת מצב תוכנית עבור {name}",
+      "activate": "הפעלת תוכנית",
+      "deactivate": "השבתת תוכנית",
+      "noPlanToActivate": "ללקוח זה אין תוכנית להפעלה.",
+      "updateError": "עדכון התוכנית נכשל. נסה שוב."
+    },
+    "actions": {
+      "edit": "עריכה",
+      "delete": "מחיקה",
+      "editLabel": "עריכת {name}",
+      "deleteLabel": "מחיקת {name}"
+    },
+    "delete": {
+      "confirmTitle": "למחוק את הלקוח?",
+      "confirmDescription": "פעולה זו תמחק לצמיתות את {name} ואת כל התוכניות, היומנים וההערות שלו. לא ניתן לבטל.",
+      "confirmCta": "מחיקת לקוח",
+      "cancel": "ביטול",
+      "success": "הלקוח נמחק.",
+      "error": "מחיקת הלקוח נכשלה. נסה שוב."
     },
     "activity": {
       "active": "בכיוון הנכון",

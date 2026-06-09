@@ -76,23 +76,26 @@ export default async function TrainerPage({
   let rows: TrainerClientRow[]
   try {
     const clients = await listClientsWithActivity()
-    rows = clients.map(({ client, hasActivePlan, monthCompletionPercent }) => {
-      const { level, color } = activityIndicator(monthCompletionPercent)
-      return {
-        userId: client.userId,
-        fullName: client.fullName,
-        goals: client.goals,
-        joinDate: client.onboardedAt ?? client.createdAt,
-        joinDateLabel: format.dateTime(
-          new Date(client.onboardedAt ?? client.createdAt),
-          { dateStyle: "medium" }
-        ),
-        hasActivePlan,
-        completionPercent: monthCompletionPercent,
-        activityLevel: level,
-        activityColor: color,
+    rows = clients.map(
+      ({ client, hasActivePlan, hasAnyPlan, monthCompletionPercent }) => {
+        const { level, color } = activityIndicator(monthCompletionPercent)
+        return {
+          userId: client.userId,
+          fullName: client.fullName,
+          goals: client.goals,
+          joinDate: client.onboardedAt ?? client.createdAt,
+          joinDateLabel: format.dateTime(
+            new Date(client.onboardedAt ?? client.createdAt),
+            { dateStyle: "medium" }
+          ),
+          hasActivePlan,
+          hasAnyPlan,
+          completionPercent: monthCompletionPercent,
+          activityLevel: level,
+          activityColor: color,
+        }
       }
-    })
+    )
   } catch {
     // Fail visibly with a localized error rather than a blank crash; the
     // underlying cause is logged by the data layer's thrown Error.

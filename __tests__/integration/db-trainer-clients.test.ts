@@ -146,4 +146,40 @@ describe("listClientsWithActivity (non-admin RLS scope)", () => {
     expect(result[0].client.userId).toBe("self")
     expect(result[0].hasActivePlan).toBe(false)
   })
+
+  it("sets hasAnyPlan true for clients with only archived plans", async () => {
+    tables.clients = [clientRow("c-archived", "Archie")]
+    tables.workout_plans = [
+      {
+        id: "p-archived",
+        client_id: "c-archived",
+        title: "Old plan",
+        status: "archived",
+      },
+    ]
+    tables.workouts = []
+    tables.workout_logs = []
+
+    const result = await listClientsWithActivity(reference)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].hasActivePlan).toBe(false)
+    expect(result[0].hasAnyPlan).toBe(true)
+  })
+
+  it("sets both flags true for a client with active and archived plans", async () => {
+    tables.clients = [clientRow("c-both", "Bo")]
+    tables.workout_plans = [
+      { id: "p-active", client_id: "c-both", title: "Current", status: "active" },
+      { id: "p-old", client_id: "c-both", title: "Old", status: "archived" },
+    ]
+    tables.workouts = []
+    tables.workout_logs = []
+
+    const result = await listClientsWithActivity(reference)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].hasActivePlan).toBe(true)
+    expect(result[0].hasAnyPlan).toBe(true)
+  })
 })
