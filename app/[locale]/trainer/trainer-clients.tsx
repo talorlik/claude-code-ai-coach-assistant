@@ -83,10 +83,14 @@ const DOT_CLASS: Record<ActivityColor, string> = {
 
 /**
  * Inline plan active/inactive toggle. Reflects state in both colour and word:
- * an active plan shows an emerald indicator and the active label; an inactive
- * plan a muted indicator and the inactive label. Disabled when the client has
- * no plan at all, since there is nothing to activate. Optimistically flips,
- * calls {@link setPlanActiveAction}, and reverts with a toast on failure.
+ * an active plan shows an emerald indicator, an emerald switch track, and the
+ * active label; an inactive plan shows a rose indicator, a rose switch track,
+ * and the inactive label. The track colours override the shared Switch's
+ * default primary/input tokens for this domain-specific active/inactive
+ * semantic. Disabled when the client has no plan at all, since there is nothing
+ * to activate (the dimming opacity from the disabled state mutes the rose track
+ * so it does not read as an actionable error). Optimistically flips, calls
+ * {@link setPlanActiveAction}, and reverts with a toast on failure.
  */
 function PlanToggle({
   clientId,
@@ -122,7 +126,7 @@ function PlanToggle({
         aria-hidden
         className={cn(
           "size-2.5 rounded-full",
-          active ? "bg-emerald-500" : "bg-muted-foreground/40"
+          active ? "bg-emerald-500" : "bg-rose-500"
         )}
       />
       <Switch
@@ -130,6 +134,7 @@ function PlanToggle({
         disabled={disabled}
         onCheckedChange={onChange}
         aria-label={t("plan.toggleLabel", { name })}
+        className="data-checked:bg-emerald-600 data-unchecked:bg-rose-500 dark:data-unchecked:bg-rose-500"
       />
       <span className={cn("text-sm", !active && "text-muted-foreground")}>
         {active ? t("plan.active") : t("plan.none")}
