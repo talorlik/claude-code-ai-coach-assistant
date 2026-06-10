@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en" class="dark" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studio Itai AI Coach Assistant | AI Fitness Coaching Platform</title>
+    <meta
+      name="description"
+      content="Studio Itai AI Coach Assistant is a bilingual Next.js and Supabase fitness coaching platform with AI workout plans, workout logging, trainer dashboards, PDF export, push reminders, and English/Hebrew support."
+    />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Tal Orlik" />
+    <meta name="theme-color" content="#1c1917" />
+    <link
+      rel="canonical"
+      href="https://talorlik.github.io/claude-code-ai-coach-assistant/"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Studio Itai AI Coach Assistant" />
+    <meta
+      property="og:title"
+      content="Studio Itai AI Coach Assistant | AI Fitness Coaching Platform"
+    />
+    <meta
+      property="og:description"
+      content="A localized AI coaching product for clients and trainers, built with Next.js, Supabase, Vercel AI Gateway, RLS, push reminders, PDF export, and automated verification."
+    />
+    <meta
+      property="og:url"
+      content="https://talorlik.github.io/claude-code-ai-coach-assistant/"
+    />
+    <meta
+      property="og:image"
+      content="https://talorlik.github.io/claude-code-ai-coach-assistant/design/header_banner.png"
+    />
+    <meta property="og:image:width" content="1024" />
+    <meta property="og:image:height" content="576" />
+    <meta
+      property="og:image:alt"
+      content="Trainer coaching an athlete with Train With Purpose headline"
+    />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Studio Itai AI Coach Assistant | AI Fitness Coaching Platform"
+    />
+    <meta
+      name="twitter:description"
+      content="Bilingual AI fitness coaching with onboarding, plan generation, workout logging, trainer oversight, push reminders, and PDF export."
+    />
+    <meta
+      name="twitter:image"
+      content="https://talorlik.github.io/claude-code-ai-coach-assistant/design/header_banner.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="Trainer coaching an athlete with Train With Purpose headline"
+    />
+    <link
+      rel="alternate"
+      hreflang="en"
+      href="https://talorlik.github.io/claude-code-ai-coach-assistant/"
+    />
+    <link id="favicon" rel="icon" href="./design/favicon_dark.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="./styles.css" />
+    <script>
+      ;(function () {
+        try {
+          var stored = window.localStorage.getItem("studio-itai-docs-theme")
+          var prefersLight = window.matchMedia(
+            "(prefers-color-scheme: light)"
+          ).matches
+          var theme = stored || (prefersLight ? "light" : "dark")
+          document.documentElement.classList.remove("dark", "light")
+          document.documentElement.classList.add(theme)
+          document.documentElement.setAttribute("data-theme", theme)
+        } catch (error) {
+          document.documentElement.classList.add("dark")
+          document.documentElement.setAttribute("data-theme", "dark")
+        }
+      })()
+    </script>
+    <script src="./main.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <header class="site-nav" aria-label="Page navigation">
+      <a class="brand" href="#main" aria-label="Studio Itai home">
+        <img
+          class="brand__logo brand__logo--light"
+          src="./design/logo_light.png"
+          width="1024"
+          height="341"
+          alt=""
+          decoding="async"
+        />
+        <img
+          class="brand__logo brand__logo--dark"
+          src="./design/logo_dark.png"
+          width="1024"
+          height="341"
+          alt=""
+          decoding="async"
+        />
+        <span class="sr-only">Studio Itai AI Coach Assistant</span>
+      </a>
+      <nav class="nav-links" aria-label="Section links">
+        <a href="#features">Features</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#journey">Journey</a>
+        <a href="#docs">Docs</a>
+      </nav>
+      <button
+        class="theme-toggle"
+        type="button"
+        data-theme-toggle
+        aria-label="Switch to light theme"
+      >
+        <span class="theme-toggle__icon" aria-hidden="true"></span>
+        <span data-theme-label>Dark</span>
+      </button>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <section class="hero" aria-labelledby="hero-heading">
+        <div class="hero__grid">
+          <div class="hero__copy">
+            <p class="eyebrow">Next.js coaching platform &middot; AI plans</p>
+            <h1 id="hero-heading">Train with purpose, coach with context.</h1>
+            <p class="tagline">
+              Studio Itai turns onboarding, workout planning, training logs, AI
+              guidance, and trainer oversight into one bilingual product for
+              clients and their coach.
+            </p>
+            <div class="hero-actions" aria-label="Primary links">
+              <a class="button button--primary" href="#journey">
+                View product flow
+              </a>
+              <a
+                class="button button--secondary"
+                href="https://github.com/talorlik/claude-code-ai-coach-assistant"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Open repository
+              </a>
+            </div>
+          </div>
+          <div class="hero__media">
+            <img
+              class="hero-banner"
+              src="./design/header_banner.png"
+              width="1024"
+              height="576"
+              alt="Trainer coaching an athlete during a core stability exercise"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </div>
+        </div>
+      </section>
+
+      <div class="wrap">
+        <section class="intro-section" aria-labelledby="overview-heading">
+          <div>
+            <p class="section-kicker">Project overview</p>
+            <h2 id="overview-heading">
+              A full-stack assistant for Studio Itai clients and trainer admin.
+            </h2>
+          </div>
+          <p class="intro">
+            The platform replaces manual intro calls, spreadsheet-style plan
+            tracking, and repeated technique explanations with a structured
+            client journey. Clients onboard, receive validated AI-generated
+            workout plans, log sessions, ask the AI trainer questions, and
+            export plans. The trainer monitors progress, reviews chat history,
+            edits plans, manages templates, and contacts clients through
+            WhatsApp.
+          </p>
+        </section>
+
+        <section class="metrics" aria-label="Project highlights">
+          <div class="metric-card">
+            <span class="metric-card__value">2</span>
+            <span class="metric-card__label">Locales with LTR and RTL</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-card__value">12</span>
+            <span class="metric-card__label">RLS-protected app tables</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-card__value">28</span>
+            <span class="metric-card__label"
+              >Implementation batches planned</span
+            >
+          </div>
+          <div class="metric-card">
+            <span class="metric-card__value">440+</span>
+            <span class="metric-card__label">Unit and integration tests</span>
+          </div>
+        </section>
+
+        <section id="features" aria-labelledby="features-heading">
+          <p class="section-kicker">What it does</p>
+          <h2 id="features-heading">Client product and trainer control room</h2>
+          <div class="card-grid">
+            <article class="card">
+              <h3>Localized onboarding</h3>
+              <p>
+                English and Hebrew routes guide clients through goals,
+                availability, constraints, and training context with
+                locale-aware copy and RTL support.
+              </p>
+            </article>
+            <article class="card">
+              <h3>AI workout plans</h3>
+              <p>
+                Server-side Vercel AI Gateway calls generate structured plans
+                from onboarding data, then validate output before saving to
+                Supabase.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Plan view and logging</h3>
+              <p>
+                Clients review weekly workouts, open exercise instructions, mark
+                sessions complete, submit notes, and track progress over time.
+              </p>
+            </article>
+            <article class="card">
+              <h3>AI virtual trainer chat</h3>
+              <p>
+                Authenticated clients ask workout questions in a context-aware
+                chat route while API keys and model calls stay server-side.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Trainer dashboard</h3>
+              <p>
+                The admin can review clients, plans, progress charts, logs, chat
+                history, push readiness, WhatsApp links, and private notes.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Plan operations</h3>
+              <p>
+                Trainer tools cover templates, manual authoring, AI-assisted
+                creation, live-plan edits, duplication, regeneration, and PDF
+                export.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="architecture" aria-labelledby="architecture-heading">
+          <p class="section-kicker">How it is built</p>
+          <h2 id="architecture-heading">
+            Production-shaped app router architecture
+          </h2>
+          <div class="architecture-panel">
+            <ol class="flow-list">
+              <li>
+                <span>Client browser</span>
+                <p>
+                  Localized pages, theme-aware UI, onboarding, plan views,
+                  workout logs, chat, and trainer workflows.
+                </p>
+              </li>
+              <li>
+                <span>Next.js 16</span>
+                <p>
+                  App Router, Server Components, Server Actions, route handlers,
+                  root proxy locale handling, and protected layouts.
+                </p>
+              </li>
+              <li>
+                <span>Supabase and AI</span>
+                <p>
+                  Auth, Postgres, RLS, SSR clients, push subscriptions, Vercel
+                  AI Gateway, and structured model validation.
+                </p>
+              </li>
+              <li>
+                <span>Verification</span>
+                <p>
+                  ESLint, TypeScript, Next build, Vitest, mocked AI integration
+                  tests, and Playwright browser coverage.
+                </p>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <section class="tech-stack" aria-labelledby="tech-stack-heading">
+          <p class="section-kicker">Stack</p>
+          <h2 id="tech-stack-heading">Core technologies</h2>
+          <div class="tech-stack__grid">
+            <div class="tech-stack__category">
+              <h3>Frontend</h3>
+              <p>
+                Next.js 16.1.7, React 19.2.4, TypeScript 5.9.3, Tailwind CSS 4,
+                shadcn/ui, Base UI, Recharts, and next-themes.
+              </p>
+            </div>
+            <div class="tech-stack__category">
+              <h3>Data and Auth</h3>
+              <p>
+                Supabase Auth, Postgres, row-level security, SSR helpers,
+                secret-key admin access, and role-gated trainer routes.
+              </p>
+            </div>
+            <div class="tech-stack__category">
+              <h3>AI and Output</h3>
+              <p>
+                Vercel AI SDK v6, Vercel AI Gateway, Anthropic Claude models,
+                structured plan validation, chat, and PDF generation.
+              </p>
+            </div>
+            <div class="tech-stack__category">
+              <h3>Quality</h3>
+              <p>
+                Vitest, Testing Library, Playwright, ESLint 9, Prettier, strict
+                TypeScript, deployment smoke checks, and CI-safe test splits.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="journey" aria-labelledby="journey-heading">
+          <p class="section-kicker">Walkthrough</p>
+          <h2 id="journey-heading">From first signup to trainer follow-up</h2>
+          <div class="timeline" data-reveal-group>
+            <article class="timeline-item">
+              <span class="timeline-item__step">01</span>
+              <h3>Join and onboard</h3>
+              <p>
+                A client registers, chooses the localized experience, and
+                completes a structured onboarding profile.
+              </p>
+            </article>
+            <article class="timeline-item">
+              <span class="timeline-item__step">02</span>
+              <h3>Generate the plan</h3>
+              <p>
+                The server builds a validated AI workout plan and persists the
+                complete weekly structure without saving partial output.
+              </p>
+            </article>
+            <article class="timeline-item">
+              <span class="timeline-item__step">03</span>
+              <h3>Train and ask</h3>
+              <p>
+                The client follows workouts, logs completion, leaves feedback,
+                receives reminders, and uses the AI trainer chat.
+              </p>
+            </article>
+            <article class="timeline-item">
+              <span class="timeline-item__step">04</span>
+              <h3>Review and adjust</h3>
+              <p>
+                Itai opens the trainer dashboard, checks progress, edits plans,
+                regenerates when needed, exports PDFs, and follows up.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="docs" aria-labelledby="docs-heading">
+          <p class="section-kicker">Project documents</p>
+          <h2 id="docs-heading">Read the project package</h2>
+          <div class="link-grid">
+            <a class="resource-card" href="./planning/PRD.md">
+              <span>Product Requirements</span>
+              <small>Problem, goals, users, roles, and feature scope.</small>
+            </a>
+            <a
+              class="resource-card"
+              href="./planning/TECHNICAL_REQUIREMENTS.md"
+            >
+              <span>Technical Requirements</span>
+              <small
+                >Architecture, stack, routing, data, AI, and testing.</small
+              >
+            </a>
+            <a class="resource-card" href="./planning/TASK_BREAKDOWN.md">
+              <span>Task Breakdown</span>
+              <small
+                >Batch sequence, verification gates, and commit plan.</small
+              >
+            </a>
+            <a class="resource-card" href="./TESTING.md">
+              <span>Testing Guide</span>
+              <small
+                >Unit, integration, e2e, AI mocks, and credential gates.</small
+              >
+            </a>
+            <a class="resource-card" href="./DEPLOYMENT_VERIFICATION.md">
+              <span>Deployment Verification</span>
+              <small
+                >Local gates, remote pipeline, Supabase, and smoke
+                checks.</small
+              >
+            </a>
+            <a class="resource-card" href="./design/DESIGN.md">
+              <span>Design Guide</span>
+              <small>Theme-aware sports broadside visual system.</small>
+            </a>
+          </div>
+        </section>
+
+        <section aria-labelledby="connect-heading">
+          <p class="section-kicker">Repository</p>
+          <h2 id="connect-heading">Explore the implementation</h2>
+          <div class="connect">
+            <a
+              href="https://github.com/talorlik/claude-code-ai-coach-assistant"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              GitHub repository
+            </a>
+            <span class="connect__sep" aria-hidden="true">|</span>
+            <a
+              href="https://github.com/talorlik/claude-code-ai-coach-assistant/blob/main/README.md"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              README
+            </a>
+            <span class="connect__sep" aria-hidden="true">|</span>
+            <a
+              href="https://github.com/talorlik/claude-code-ai-coach-assistant/tree/main/docs"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Docs
+            </a>
+          </div>
+        </section>
+
+        <footer>
+          <p>
+            Studio Itai AI Coach Assistant is a portfolio-grade fitness coaching
+            platform built with Next.js, Supabase, AI, localization, trainer
+            operations, and automated verification.
+          </p>
+        </footer>
+      </div>
+    </main>
+  </body>
+</html>
