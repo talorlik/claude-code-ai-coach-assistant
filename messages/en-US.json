@@ -503,6 +503,7 @@
       "exportPdf": "Export PDF"
     },
     "charts": {
+      "title": "Activity",
       "weeklyTitle": "Weekly activity",
       "weeklySubtitle": "Completed workouts per week (last 12 weeks).",
       "monthlyTitle": "Monthly activity",

@@ -17,6 +17,7 @@ import { listOnboardingSnapshots } from "@/lib/db/onboarding-snapshots"
 import { clientToDefaults } from "@/lib/onboarding/client-to-defaults"
 import { OnboardingHistory } from "@/components/onboarding/onboarding-history"
 import { ClientOnboardingEditor } from "./client-onboarding-editor"
+import { CollapsibleSection } from "./collapsible-section"
 import {
   completedWorkoutIds,
   completionPercentage,
@@ -338,30 +339,30 @@ export default async function TrainerClientDashboardPage({
     <div className="flex flex-col gap-10">
       <ClientDashboard data={data} />
 
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4">
-        <header className="flex flex-col gap-1">
-          <h2 className="text-xl font-medium">
-            {tAccount("onboardingTitle")}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {tAccount("onboardingDescription")}
-          </p>
-        </header>
-        <ClientOnboardingEditor
-          clientId={clientId}
-          defaults={onboardingDefaults}
-        />
-      </section>
+      <div className="mx-auto w-full max-w-5xl px-4">
+        <CollapsibleSection
+          title={tAccount("onboardingTitle")}
+          storageKey="trainer-section:training-details"
+          data-testid="section-training-details"
+          subtitle={tAccount("onboardingDescription")}
+        >
+          <ClientOnboardingEditor
+            clientId={clientId}
+            defaults={onboardingDefaults}
+          />
+        </CollapsibleSection>
+      </div>
 
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4">
-        <header className="flex flex-col gap-1">
-          <h2 className="text-xl font-medium">{tAccount("historyTitle")}</h2>
-          <p className="text-sm text-muted-foreground">
-            {tAccount("historyDescription")}
-          </p>
-        </header>
-        <OnboardingHistory snapshots={snapshots} />
-      </section>
+      <div className="mx-auto w-full max-w-5xl px-4">
+        <CollapsibleSection
+          title={tAccount("historyTitle")}
+          storageKey="trainer-section:history"
+          data-testid="section-history"
+          subtitle={tAccount("historyDescription")}
+        >
+          <OnboardingHistory snapshots={snapshots} />
+        </CollapsibleSection>
+      </div>
     </div>
   )
 }

@@ -26,6 +26,7 @@ import { ProgressCharts, type ProgressDatum } from "./progress-charts"
 import { TrainerNotesPanel, type TrainerNoteItem } from "./trainer-notes-panel"
 import { RegenerateClientPlan } from "./regenerate-client-plan"
 import { PlanEditor, type PlanEditorData } from "./plan-editor"
+import { CollapsibleSection } from "./collapsible-section"
 
 /** The label keys available under the `TrainerDashboard.profile` namespace. */
 export type ProfileFieldKey =
@@ -179,7 +180,13 @@ export function ClientDashboard({ data }: { data: ClientDashboardData }) {
 
       {data.editor ? <PlanEditor data={data.editor} /> : null}
 
-      <ProgressCharts weekly={data.weekly} monthly={data.monthly} />
+      <CollapsibleSection
+        title={t("charts.title")}
+        storageKey="trainer-section:activity"
+        data-testid="section-activity"
+      >
+        <ProgressCharts weekly={data.weekly} monthly={data.monthly} />
+      </CollapsibleSection>
 
       <WorkoutLog logs={data.logs} />
 
@@ -326,15 +333,21 @@ function PlanDetail({ workouts }: { workouts: PlanDetailWorkout[] | null }) {
   const t = useTranslations("TrainerDashboard.planDetail")
   if (!workouts || workouts.length === 0) {
     return (
-      <section className="rounded-lg border bg-card p-4 text-card-foreground">
-        <h2 className="mb-2 text-lg font-medium">{t("title")}</h2>
+      <CollapsibleSection
+        title={t("title")}
+        storageKey="trainer-section:plan-detail"
+        data-testid="section-plan-detail"
+      >
         <p className="text-sm text-muted-foreground">{t("empty")}</p>
-      </section>
+      </CollapsibleSection>
     )
   }
   return (
-    <section className="rounded-lg border bg-card p-4 text-card-foreground">
-      <h2 className="mb-3 text-lg font-medium">{t("title")}</h2>
+    <CollapsibleSection
+      title={t("title")}
+      storageKey="trainer-section:plan-detail"
+      data-testid="section-plan-detail"
+    >
       <ol className="flex flex-col gap-4">
         {workouts.map((workout) => (
           <li
@@ -420,7 +433,7 @@ function PlanDetail({ workouts }: { workouts: PlanDetailWorkout[] | null }) {
           </li>
         ))}
       </ol>
-    </section>
+    </CollapsibleSection>
   )
 }
 
@@ -512,15 +525,21 @@ function ChatTranscript({ chat }: { chat: ChatEntry[] }) {
   const t = useTranslations("TrainerDashboard.chat")
   if (chat.length === 0) {
     return (
-      <section className="rounded-lg border bg-card p-4 text-card-foreground">
-        <h2 className="mb-2 text-lg font-medium">{t("title")}</h2>
+      <CollapsibleSection
+        title={t("title")}
+        storageKey="trainer-section:ai-chat"
+        data-testid="section-ai-chat"
+      >
         <p className="text-sm text-muted-foreground">{t("empty")}</p>
-      </section>
+      </CollapsibleSection>
     )
   }
   return (
-    <section className="rounded-lg border bg-card p-4 text-card-foreground">
-      <h2 className="mb-3 text-lg font-medium">{t("title")}</h2>
+    <CollapsibleSection
+      title={t("title")}
+      storageKey="trainer-section:ai-chat"
+      data-testid="section-ai-chat"
+    >
       <ul className="flex flex-col gap-3">
         {chat.map((message) => (
           <li
@@ -548,6 +567,6 @@ function ChatTranscript({ chat }: { chat: ChatEntry[] }) {
           </li>
         ))}
       </ul>
-    </section>
+    </CollapsibleSection>
   )
 }

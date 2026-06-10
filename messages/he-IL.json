@@ -503,6 +503,7 @@
       "exportPdf": "ייצוא PDF"
     },
     "charts": {
+      "title": "פעילות",
       "weeklyTitle": "פעילות שבועית",
       "weeklySubtitle": "אימונים שהושלמו בשבוע (12 השבועות האחרונים).",
       "monthlyTitle": "פעילות חודשית",

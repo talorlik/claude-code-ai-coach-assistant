@@ -20,6 +20,7 @@ import {
   type WorkoutInput,
 } from "@/lib/trainer/plan-edit-actions"
 import type { ActionResult } from "@/lib/types/action-result"
+import { CollapsibleSection } from "./collapsible-section"
 
 /** One editable exercise as the editor receives it from the server. */
 export interface EditableExercise {
@@ -287,12 +288,12 @@ export function PlanEditor({ data }: { data: PlanEditorData }) {
   }
 
   return (
-    <section
-      className="rounded-lg border bg-card p-4 text-card-foreground"
-      data-testid="plan-editor"
-    >
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-medium">{t("title")}</h2>
+    <CollapsibleSection
+      title={t("title")}
+      storageKey="trainer-section:edit-live-plan"
+      data-testid="section-edit-live-plan"
+      subtitle={t("intro")}
+      headerAction={
         <Button
           type="button"
           size="sm"
@@ -304,9 +305,8 @@ export function PlanEditor({ data }: { data: PlanEditorData }) {
           <Plus className="size-4" />
           {t("addWorkout")}
         </Button>
-      </div>
-
-      <p className="mb-3 text-sm text-muted-foreground">{t("intro")}</p>
+      }
+    >
 
       {data.hasLimitations ? (
         <p className="mb-3 text-sm text-amber-700 dark:text-amber-500">
@@ -550,7 +550,7 @@ export function PlanEditor({ data }: { data: PlanEditorData }) {
           </li>
         ))}
       </ol>
-    </section>
+    </CollapsibleSection>
   )
 }
 

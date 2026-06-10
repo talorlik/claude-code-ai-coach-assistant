@@ -12,6 +12,7 @@ import {
   updateTrainerNoteAction,
   deleteTrainerNoteAction,
 } from "@/lib/trainer/notes-actions"
+import { CollapsibleSection } from "./collapsible-section"
 
 /**
  * A plain, serializable trainer note for the client list. The page maps the
@@ -133,11 +134,12 @@ export function TrainerNotesPanel({
   }
 
   return (
-    <section className="rounded-lg border bg-card p-4 text-card-foreground">
-      <header className="mb-3 flex flex-col gap-1">
-        <h2 className="text-lg font-medium">{t("title")}</h2>
-        <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
-      </header>
+    <CollapsibleSection
+      title={t("title")}
+      storageKey="trainer-section:private-notes"
+      data-testid="section-private-notes"
+      subtitle={t("subtitle")}
+    >
 
       <form onSubmit={onAdd} className="flex flex-col gap-2">
         {/* Visually-hidden but real <label htmlFor> so the control has an
@@ -244,6 +246,6 @@ export function TrainerNotesPanel({
           ))
         )}
       </ul>
-    </section>
+    </CollapsibleSection>
   )
 }

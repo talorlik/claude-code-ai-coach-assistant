@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { NextIntlClientProvider } from "next-intl"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import enMessages from "../../messages/en-US.json"
 import heMessages from "../../messages/he-IL.json"
@@ -52,6 +53,10 @@ vi.mock("@/i18n/navigation", () => ({
     </a>
   ),
 }))
+
+beforeEach(() => {
+  window.localStorage.clear()
+})
 
 const CLIENT_ID = "client-123"
 
@@ -126,8 +131,15 @@ function renderDashboard(
 }
 
 describe("ClientDashboard plan detail", () => {
-  it("renders every workout and exercise field (en)", () => {
+  it("renders every workout and exercise field (en)", async () => {
     renderDashboard("en")
+
+    const user = userEvent.setup()
+    await user.click(
+      screen.getByRole("button", {
+        name: enMessages.TrainerDashboard.planDetail.title,
+      })
+    )
 
     const pd = enMessages.TrainerDashboard.planDetail
     // Section header and the full-session workout.
@@ -159,8 +171,14 @@ describe("ClientDashboard plan detail", () => {
     expect(screen.getByText(pd.restDay)).toBeInTheDocument()
   })
 
-  it("renders the plan detail under /he (RTL catalog)", () => {
+  it("renders the plan detail under /he (RTL catalog)", async () => {
     renderDashboard("he")
+    const user = userEvent.setup()
+    await user.click(
+      screen.getByRole("button", {
+        name: heMessages.TrainerDashboard.planDetail.title,
+      })
+    )
     const pd = heMessages.TrainerDashboard.planDetail
     expect(
       screen.getByRole("heading", { level: 2, name: pd.title })
@@ -171,8 +189,14 @@ describe("ClientDashboard plan detail", () => {
     expect(screen.getAllByText(pd.sets).length).toBeGreaterThan(0)
   })
 
-  it("shows the empty state and hides the PDF button with no active plan", () => {
+  it("shows the empty state and hides the PDF button with no active plan", async () => {
     renderDashboard("en", { planWorkouts: null, pdfHref: null })
+    const user = userEvent.setup()
+    await user.click(
+      screen.getByRole("button", {
+        name: enMessages.TrainerDashboard.planDetail.title,
+      })
+    )
     expect(
       screen.getByText(enMessages.TrainerDashboard.planDetail.empty)
     ).toBeInTheDocument()

@@ -52,6 +52,9 @@ test.describe("trainer dashboard (admin)", () => {
       new RegExp(`/en/trainer/clients/${clientId}`)
     )
 
+    // The notes section starts collapsed; expand it before interacting.
+    await page.getByTestId("section-private-notes").click()
+
     // The private-notes panel is present.
     const noteText = `e2e note ${Date.now()}`
     const textarea = page.getByPlaceholder(/add a private note/i)
@@ -80,8 +83,9 @@ test.describe("trainer dashboard (admin)", () => {
       new RegExp(`/en/trainer/clients/${clientId}`)
     )
 
-    // The plan-detail section renders (the seeded client has an active plan, so
-    // at least one workout block is present).
+    // Plan detail starts collapsed; expand it to reveal the workout blocks.
+    await page.getByTestId("section-plan-detail").click()
+
     await expect(
       page.getByTestId("plan-detail-workout").first()
     ).toBeVisible({ timeout: 15_000 })
