@@ -32,6 +32,15 @@ export interface CollapsibleSectionProps {
    * clickable (no nested interactive elements).
    */
   headerAction?: ReactNode
+  /**
+   * Visual treatment:
+   * - `"card"` (default): a standalone `<section>` card with the shared
+   *   `rounded-lg border bg-card` shell and an `<h2>` title.
+   * - `"bare"`: no card shell, rendered as a plain `<div>` with an `<h3>`
+   *   title and a top divider, for embedding as a collapsible sub-region INSIDE
+   *   an existing card (e.g. the workout breakdown under "Current plan").
+   */
+  variant?: "card" | "bare"
   /** Forwarded to the trigger button for e2e/unit selection. */
   "data-testid"?: string
 }
@@ -64,6 +73,10 @@ function readOpen(storageKey: string): boolean {
  *
  * The header is a flex row (title at the start, chevron/action at the end), so
  * it mirrors correctly under RTL with no extra work.
+ *
+ * Pass `variant="bare"` to drop the card shell and embed the collapsible as a
+ * sub-region inside another card (see the workout breakdown under the trainer
+ * "Current plan" card).
  */
 export function CollapsibleSection({
   title,
@@ -71,6 +84,7 @@ export function CollapsibleSection({
   children,
   subtitle,
   headerAction,
+  variant = "card",
   "data-testid": dataTestId,
 }: CollapsibleSectionProps) {
   // Subscribe to same-key storage changes so toggles (and other instances or
@@ -114,17 +128,28 @@ export function CollapsibleSection({
     [storageKey]
   )
 
+  const bare = variant === "bare"
+  const Heading = bare ? "h3" : "h2"
+
   return (
     <Collapsible
       open={open}
       onOpenChange={handleOpenChange}
-      // Render the Root as a <section> so the header (with its action) and the
-      // panel (subtitle + body) share one semantic region. Base UI uses the
-      // `render` prop (not `asChild`) to override the host element.
-      render={<section />}
-      className="rounded-lg border bg-card text-card-foreground"
+      // Card variant renders the Root as a <section> so the header (with its
+      // action) and the panel (subtitle + body) share one semantic region. The
+      // bare variant is a plain <div> sub-region inside an existing card. Base
+      // UI uses the `render` prop (not `asChild`) to override the host element.
+      render={bare ? undefined : <section />}
+      className={cn(
+        !bare && "rounded-lg border bg-card text-card-foreground"
+      )}
     >
-      <div className="flex items-center gap-2 p-4">
+      <div
+        className={cn(
+          "flex items-center gap-2",
+          bare ? "py-2" : "p-4"
+        )}
+      >
         <CollapsibleTrigger
           data-testid={dataTestId}
           className={cn(
@@ -132,7 +157,11 @@ export function CollapsibleSection({
             "rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
           )}
         >
-          <h2 className="text-lg font-medium">{title}</h2>
+          <Heading
+            className={cn("font-medium", bare ? "text-sm" : "text-lg")}
+          >
+            {title}
+          </Heading>
           <ChevronDown
             aria-hidden="true"
             className="size-5 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-180"
@@ -141,7 +170,7 @@ export function CollapsibleSection({
         {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
       </div>
       <CollapsibleContent>
-        <div className="px-4 pb-4">
+        <div className={cn(bare ? "pb-2" : "px-4 pb-4")}>
           {subtitle ? (
             <p className="mb-3 text-sm text-muted-foreground">{subtitle}</p>
           ) : null}

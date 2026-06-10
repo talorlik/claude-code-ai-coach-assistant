@@ -172,11 +172,10 @@ export function ClientDashboard({ data }: { data: ClientDashboardData }) {
         title={data.planTitle}
         completionPercent={data.completionPercent}
         pdfHref={data.pdfHref}
+        workouts={data.planWorkouts}
       />
 
       <PushStatus status={data.pushStatus} />
-
-      <PlanDetail workouts={data.planWorkouts} />
 
       {data.editor ? <PlanEditor data={data.editor} /> : null}
 
@@ -218,22 +217,27 @@ function ProfileSummary({ fields }: { fields: ProfileField[] }) {
 }
 
 /**
- * Current-plan card with title, a completion progress bar, plan regeneration,
- * and (only when an active plan exists) a localized PDF export link. The PDF
- * link is gated on `pdfHref`: the page passes `null` when there is no active
- * plan, because the export route 404s without one, so the control never appears
- * in a dead state.
+ * Current-plan card: always-visible summary (title badge, gated PDF export link,
+ * plan regeneration, completion progress bar) plus a collapsible "Plan detail"
+ * sub-section holding the full workout/exercise breakdown. The summary part
+ * always shows; only the breakdown collapses (collapsed by default, persisted
+ * per `trainer-section:plan-detail`). The PDF link is gated on `pdfHref`: the
+ * page passes `null` when there is no active plan (the export route 404s without
+ * one), so the control never appears in a dead state.
  */
 function PlanSummary({
   clientId,
   title,
   completionPercent,
   pdfHref,
+  workouts,
 }: {
   clientId: string
   title: string | null
   completionPercent: number
   pdfHref: string | null
+  /** The active plan's workouts for the collapsible breakdown, or `null`. */
+  workouts: PlanDetailWorkout[] | null
 }) {
   const t = useTranslations("TrainerDashboard.plan")
   if (!title) {
@@ -277,6 +281,12 @@ function PlanSummary({
           </span>
         </div>
         <Progress value={completionPercent} />
+      </div>
+
+      {/* The full workout breakdown collapses below the always-visible summary,
+          separated by a divider so the card reads as one "Current plan" unit. */}
+      <div className="mt-4 border-t pt-1">
+        <PlanDetail workouts={workouts} />
       </div>
     </section>
   )
@@ -322,11 +332,13 @@ function PushStatus({ status }: { status: PushStatus }) {
 }
 
 /**
- * Full active-plan detail: every workout (with its localized day label, focus,
- * and notes) and every exercise's sets, reps, duration, rest, instructions, and
- * safety notes, in stored order. Rest days render an explicit rest indicator
- * instead of an exercise list. Inherits the page direction, so it reads
- * right-to-left under Hebrew. When there is no active plan, renders the localized
+ * The collapsible "Plan detail" breakdown rendered as a sub-section INSIDE the
+ * "Current plan" card (bare variant, no card shell of its own): every workout
+ * (with its localized day label, focus, and notes) and every exercise's sets,
+ * reps, duration, rest, instructions, and safety notes, in stored order. Rest
+ * days render an explicit rest indicator instead of an exercise list. Inherits
+ * the page direction, so it reads right-to-left under Hebrew. Collapsed by
+ * default; when there is no active plan, the collapsed body is the localized
  * empty state. Copy comes from `TrainerDashboard.planDetail`.
  */
 function PlanDetail({ workouts }: { workouts: PlanDetailWorkout[] | null }) {
@@ -337,6 +349,7 @@ function PlanDetail({ workouts }: { workouts: PlanDetailWorkout[] | null }) {
         title={t("title")}
         storageKey="trainer-section:plan-detail"
         data-testid="section-plan-detail"
+        variant="bare"
       >
         <p className="text-sm text-muted-foreground">{t("empty")}</p>
       </CollapsibleSection>
@@ -347,6 +360,7 @@ function PlanDetail({ workouts }: { workouts: PlanDetailWorkout[] | null }) {
       title={t("title")}
       storageKey="trainer-section:plan-detail"
       data-testid="section-plan-detail"
+      variant="bare"
     >
       <ol className="flex flex-col gap-4">
         {workouts.map((workout) => (

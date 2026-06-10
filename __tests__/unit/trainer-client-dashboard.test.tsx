@@ -142,9 +142,11 @@ describe("ClientDashboard plan detail", () => {
     )
 
     const pd = enMessages.TrainerDashboard.planDetail
-    // Section header and the full-session workout.
+    // The plan-detail breakdown is a collapsible sub-section (h3) inside the
+    // always-visible "Current plan" card; the full-session workout shows once
+    // expanded.
     expect(
-      screen.getByRole("heading", { level: 2, name: pd.title })
+      screen.getByRole("heading", { level: 3, name: pd.title })
     ).toBeInTheDocument()
     expect(screen.getByText("Upper body")).toBeInTheDocument()
     expect(screen.getByText("Bench press")).toBeInTheDocument()
@@ -181,7 +183,7 @@ describe("ClientDashboard plan detail", () => {
     )
     const pd = heMessages.TrainerDashboard.planDetail
     expect(
-      screen.getByRole("heading", { level: 2, name: pd.title })
+      screen.getByRole("heading", { level: 3, name: pd.title })
     ).toBeInTheDocument()
     expect(screen.getByText("Bench press")).toBeInTheDocument()
     expect(screen.getByText(pd.restDay)).toBeInTheDocument()
