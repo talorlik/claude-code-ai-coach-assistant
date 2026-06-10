@@ -1567,3 +1567,33 @@ the e2e `injectSession` admin-session bypass (captcha blocks the form login) to
 screenshot the real authenticated `/en/trainer`, `/he/trainer`, and a 390px
 mobile viewport, confirming the actions column placement, no horizontal
 overflow, and correct RTL mirroring. Temp spec removed after the check.
+
+### 2026-06-10 - Ad-hoc - Collapsible Trainer Client-Detail Sections
+
+Seven heavy sections of `/[locale]/trainer/clients/[clientId]` (Plan detail,
+Edit live plan, Activity = weekly+monthly merged, AI trainer chat, Private
+notes, Training details, History) are now collapsible and collapsed by default
+via a route-local `CollapsibleSection` wrapper; Profile, Current plan, Workout
+reminders, and Workout log stay always-expanded.
+
+**Why:** the page was very long; the user wanted the heavy sections collapsed by
+default with an obvious expand/collapse chevron. Per-section open state persists
+in `localStorage` (keys `trainer-section:*`) so a trainer's layout preference
+carries across clients.
+
+**Base UI gotcha:** the spec assumed the Base UI Collapsible Root renders a
+`<section>`; this build renders a `<div>`. Use the `render={<section />}` prop
+(Base UI convention - `render`, not `asChild`) to make the region a real
+`<section>`. The collapse-state read must NOT be `useEffect`+`setState`
+(`react-hooks/set-state-in-effect` is an ERROR in this repo's lint, fails the
+gate). Use `useSyncExternalStore`: server snapshot always `false` (collapsed, no
+hydration mismatch), client snapshot reads localStorage, same-tab toggles
+propagate via a custom `collapsible-section:${key}` event since the native
+`storage` event only fires cross-tab.
+
+**Worktree gotcha:** `__tests__/unit/single-service-worker.test.ts` and eslint
+scan from the project root and do NOT exclude `.worktrees/`. While a per-branch
+worktree still exists under `.worktrees/`, running the gate in the PRIMARY
+checkout fails (the worktree's own `public/sw.js` and `node_modules` get
+scanned/linted). This is expected; it clears the moment the worktree is removed
+after squash-merge. Always remove the worktree before re-verifying `main`.
