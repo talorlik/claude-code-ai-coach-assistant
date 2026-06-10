@@ -140,38 +140,46 @@ export function CollapsibleSection({
       // bare variant is a plain <div> sub-region inside an existing card. Base
       // UI uses the `render` prop (not `asChild`) to override the host element.
       render={bare ? undefined : <section />}
-      // `group` on the Root (which carries `data-open` when expanded) lets the
-      // chevron - rendered as the LAST item in the header row, outside the
-      // trigger - rotate on open. This keeps the chevron flush at the section's
-      // end and consistent across sections even when a headerAction is present.
+      // `group` on the Root (which carries `data-open` when expanded) drives the
+      // chevron rotation; the chevron lives inside the full-width trigger so the
+      // whole header row is the click target, with the chevron flush at the end.
       className={cn(
         "group",
         !bare && "rounded-lg border bg-card text-card-foreground"
       )}
     >
-      <div
-        className={cn(
-          "flex items-center gap-2",
-          bare ? "py-2" : "p-4"
-        )}
-      >
+      {/* The header row is a positioning context. The trigger is an absolute
+          overlay filling the WHOLE row, so clicking anywhere toggles (matching
+          the no-action sections). The visible title, optional action, and
+          chevron render on top in normal flow: the title and chevron are
+          non-interactive (clicks fall through to the trigger), while the action
+          sits above the trigger so it stays independently clickable. The chevron
+          is always the last item, flush at the row's end. */}
+      <div className={cn("relative flex items-center gap-2", bare ? "py-2" : "p-4")}>
         <CollapsibleTrigger
           data-testid={dataTestId}
+          aria-label={title}
           className={cn(
-            "flex flex-1 items-center gap-2 text-start",
-            "rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            "absolute inset-0 rounded-md outline-none",
+            "focus-visible:ring-2 focus-visible:ring-ring"
+          )}
+        />
+        <Heading
+          className={cn(
+            "pointer-events-none flex-1 font-medium",
+            bare ? "text-sm" : "text-lg"
           )}
         >
-          <Heading
-            className={cn("font-medium", bare ? "text-sm" : "text-lg")}
-          >
-            {title}
-          </Heading>
-        </CollapsibleTrigger>
-        {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
+          {title}
+        </Heading>
+        {headerAction ? (
+          // Above the trigger overlay so its own clicks are not captured by the
+          // toggle; sits just before the chevron at the row's end.
+          <div className="relative shrink-0">{headerAction}</div>
+        ) : null}
         <ChevronDown
           aria-hidden="true"
-          className="size-5 shrink-0 text-muted-foreground transition-transform group-data-[open]:rotate-180"
+          className="pointer-events-none size-5 shrink-0 text-muted-foreground transition-transform group-data-[open]:rotate-180"
         />
       </div>
       <CollapsibleContent>
