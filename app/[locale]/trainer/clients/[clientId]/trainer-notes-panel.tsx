@@ -28,13 +28,32 @@ export interface TrainerNoteItem {
   updatedAtLabel: string
 }
 
+/** A key in the panel's `TrainerDashboard.notes` translation namespace. */
+type NotesMessageKey = Parameters<
+  ReturnType<typeof useTranslations<"TrainerDashboard.notes">>
+>[0]
+
 /** Validator field-error codes the notes form knows how to localize. */
 const ERROR_KEYS = ["required", "tooLong"] as const
 type NoteErrorKey = (typeof ERROR_KEYS)[number]
 
+/** Operation-level error keys the actions return (under `errors.*`). */
+const GENERIC_ERROR_KEYS = [
+  "errors.generic",
+  "errors.saveError",
+  "errors.updateError",
+  "errors.deleteError",
+] as const
+type GenericErrorKey = (typeof GENERIC_ERROR_KEYS)[number]
+
 /** Narrows an arbitrary field-error code to a known, localizable note error. */
 function isNoteErrorKey(code: string | undefined): code is NoteErrorKey {
   return code != null && (ERROR_KEYS as readonly string[]).includes(code)
+}
+
+/** Narrows a returned action error to a known operation-level message key. */
+function isGenericErrorKey(code: string | undefined): code is GenericErrorKey {
+  return code != null && (GENERIC_ERROR_KEYS as readonly string[]).includes(code)
 }
 
 /**
@@ -67,13 +86,19 @@ export function TrainerNotesPanel({
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [editingBody, setEditingBody] = React.useState("")
 
-  /** Translates a server failure (field code or generic) to display copy. */
+  /** Translates a server failure (field code or operation key) to display copy. */
   function messageFor(result: {
     error: string
     fieldErrors?: Record<string, string>
   }): string {
     const code = result.fieldErrors?.body
     if (isNoteErrorKey(code)) return t(`errors.${code}`)
+    // Operation failures now carry a localizable `errors.*` key (e.g.
+    // errors.saveError); resolve it under this panel's namespace, falling back
+    // to the generic message for any unrecognized code.
+    if (isGenericErrorKey(result.error)) {
+      return t(result.error as NotesMessageKey)
+    }
     return t("errors.generic")
   }
 

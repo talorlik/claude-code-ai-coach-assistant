@@ -1597,3 +1597,47 @@ worktree still exists under `.worktrees/`, running the gate in the PRIMARY
 checkout fails (the worktree's own `public/sw.js` and `node_modules` get
 scanned/linted). This is expected; it clears the moment the worktree is removed
 after squash-merge. Always remove the worktree before re-verifying `main`.
+
+### 2026-06-10 - Batch tech-debt - One-Active-Plan Invariant Is Now DB-Enforced
+
+Migration `0007_one_active_plan_invariant.sql` replaces the non-unique
+`workout_plans_active_idx` with a partial UNIQUE index
+(`unique (client_id) where status = 'active'`) and adds a `security definer` RPC
+`set_plan_active(uuid, boolean)` that archives-then-activates in one transaction.
+`setPlanActiveAction` now calls the RPC instead of three separate writes.
+
+**Why:** the old three-statement activate path could strand a client with zero
+active plans on a mid-sequence failure, and two concurrent activates could leave
+two active rows (the index was non-unique). The transaction makes the swap
+atomic; the UNIQUE index makes the DB reject any second active plan, so the
+invariant holds even under concurrency. The RPC re-checks `is_trainer_admin()`
+as its first statement because `security definer` bypasses RLS - authorization
+is role-based (is the caller the admin), so the `target_client` argument is not
+a bypass vector.
+
+### 2026-06-10 - Batch tech-debt - set_plan_active Advisor WARN Is Expected
+
+`get_advisors(security)` flags `set_plan_active` with
+`authenticated_security_definer_function_executable` (signed-in users can call a
+SECURITY DEFINER function over `/rest/v1/rpc/`). This is the SAME accepted
+posture as the existing `is_trainer_admin()` function and is intended.
+
+**Why:** the trainer admin is an authenticated user, so the RPC must be callable
+by the `authenticated` role; it self-authorizes by raising
+`insufficient_privilege` for any non-admin caller before any write. The WARN
+cannot be cleared without making the function uncallable by its only legitimate
+caller, so it is left as-is, mirroring `is_trainer_admin`.
+
+### 2026-06-10 - Batch tech-debt - Underscore-Prefix Unused Vars Now Honored
+
+`eslint.config.mjs` adds a `@typescript-eslint/no-unused-vars` override with
+`^_` ignore patterns (args/vars/caughtErrors), and `.worktrees/**` to its
+`globalIgnores`. `single-service-worker.test.ts` adds `.worktrees` to
+`IGNORED_DIRS`.
+
+**Why:** the test mocks already used the `_id`/`_input` prefix to mean
+"intentionally unused", but Next's TS preset enabled the rule without an ignore
+pattern, so the convention was flagged as 7 warnings. Honoring the prefix is the
+root fix (cleared all 7 to `0 problems`) and is robust to future `_`-prefixed
+params, rather than deleting individual bindings. The `.worktrees/` exclusions
+make a primary-checkout verify robust to a live worktree under that path.

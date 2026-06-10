@@ -21,9 +21,12 @@ import { validateTrainerNote } from "@/lib/trainer/notes-validation"
  * the RLS-scoped data layer. On success the client's dashboard path is
  * revalidated so the rendered notes list reflects the change.
  *
- * Errors are returned as `ActionResult` failures with user-safe messages and
- * per-field error codes (which the form localizes) rather than thrown, so the
- * form can present them inline.
+ * Errors are returned as `ActionResult` failures carrying localizable message
+ * keys (resolved by the panel under its `TrainerDashboard.notes` namespace)
+ * rather than raw strings, matching the key-based convention in
+ * `lib/db/trainer-clients-actions.ts`, so failure copy localizes under `/he`.
+ * Validation failures additionally carry per-field error codes the form maps
+ * inline.
  */
 
 /** Revalidates a client's dashboard page for both locales after a note change. */
@@ -55,7 +58,7 @@ export async function createTrainerNoteAction(
     revalidateDashboard(clientId)
     return ok(note)
   } catch {
-    return fail("Could not save the note. Please try again.")
+    return fail("errors.saveError")
   }
 }
 
@@ -82,7 +85,7 @@ export async function updateTrainerNoteAction(
     revalidateDashboard(clientId)
     return ok(note)
   } catch {
-    return fail("Could not update the note. Please try again.")
+    return fail("errors.updateError")
   }
 }
 
@@ -104,6 +107,6 @@ export async function deleteTrainerNoteAction(
     revalidateDashboard(clientId)
     return ok(null)
   } catch {
-    return fail("Could not delete the note. Please try again.")
+    return fail("errors.deleteError")
   }
 }

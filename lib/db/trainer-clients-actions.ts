@@ -30,13 +30,15 @@ function revalidateTrainerList(): void {
  *
  * Deactivating archives the client's current active plan. Activating restores
  * their most-recently-archived plan (by `archived_at`), first archiving any
- * other active plan to keep a single active plan in the normal single-actor
- * (trainer-admin) path. The writes are non-transactional and the supporting DB
- * index is non-unique, so this is best-effort under the single admin actor, not
- * a hard concurrency guarantee. When the client has no plan to activate, the
- * action returns the localizable `plan.noPlanToActivate` code; the list normally
- * disables the toggle in that state, so this is a backstop rather than an
- * expected path.
+ * other active plan to keep a single active plan. The archive-then-activate is
+ * performed atomically by the `set_plan_active` Postgres RPC (migration 0007):
+ * its body is one transaction, so a mid-sequence failure rolls back and cannot
+ * strand the client with zero active plans, and the partial UNIQUE index on
+ * `(client_id) where status = 'active'` makes the database reject any second
+ * active plan, so concurrent activates cannot produce two active rows. When the
+ * client has no plan to activate, the RPC raises `no_data_found`, surfaced as
+ * the localizable `plan.noPlanToActivate` code; the list normally disables the
+ * toggle in that state, so this is a backstop rather than an expected path.
  *
  * @param clientId - The client's user id (their `clients.user_id`).
  * @param active - The desired plan state: `true` to activate, `false` to archive.
@@ -52,53 +54,23 @@ export async function setPlanActiveAction(
   const supabase = await createClient()
 
   try {
-    if (!active) {
-      const { error } = await supabase
-        .from("workout_plans")
-        .update({ status: "archived", archived_at: new Date().toISOString() })
-        .eq("client_id", clientId)
-        .eq("status", "active")
-      // A zero-row match (the client has no active plan) is an intentional
-      // successful no-op, not an error: the desired end state is already met.
-      if (error) return fail("plan.updateError")
-      revalidateTrainerList()
-      return ok({ hasActivePlan: false })
+    // One atomic round-trip: the RPC archives any active plan and (when
+    // activating) restores the latest archived plan inside a single transaction.
+    const { data, error } = await supabase.rpc("set_plan_active", {
+      target_client: clientId,
+      make_active: active,
+    })
+
+    if (error) {
+      // The RPC raises no_data_found (P0002) when activating a client with no
+      // archived plan to restore; map it to the dedicated code, everything else
+      // to the generic update failure.
+      if (error.code === "P0002") return fail("plan.noPlanToActivate")
+      return fail("plan.updateError")
     }
 
-    // Activate: find the most-recently-archived plan for this client.
-    const { data: candidate, error: findError } = await supabase
-      .from("workout_plans")
-      .select("id")
-      .eq("client_id", clientId)
-      .eq("status", "archived")
-      .order("archived_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (findError) return fail("plan.updateError")
-    if (!candidate) return fail("plan.noPlanToActivate")
-
-    // Archive any currently-active plan first to keep a single active plan.
-    // These two writes (archive-active, then activate-candidate) are not in a
-    // single transaction. A failure between them leaves the client with no active
-    // plan; the caller surfaces plan.updateError and a retry recovers. Acceptable
-    // for this single-actor trainer-admin action. See TECH_DEBT for the durable
-    // (transactional RPC / partial-unique-index) fix.
-    const { error: archiveError } = await supabase
-      .from("workout_plans")
-      .update({ status: "archived", archived_at: new Date().toISOString() })
-      .eq("client_id", clientId)
-      .eq("status", "active")
-    if (archiveError) return fail("plan.updateError")
-
-    const { error: activateError } = await supabase
-      .from("workout_plans")
-      .update({ status: "active", archived_at: null })
-      .eq("id", (candidate as { id: string }).id)
-    if (activateError) return fail("plan.updateError")
-
     revalidateTrainerList()
-    return ok({ hasActivePlan: true })
+    return ok({ hasActivePlan: data === true })
   } catch {
     return fail("plan.updateError")
   }

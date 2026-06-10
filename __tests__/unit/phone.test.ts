@@ -18,6 +18,14 @@ describe("combineE164", () => {
   it("returns an empty string when the national part has no digits", () => {
     expect(combineE164("+972", "")).toBe("")
   })
+
+  it("drops a single leading trunk-0 for the common case", () => {
+    expect(combineE164("+972", "0541234567")).toBe("+972541234567")
+  })
+
+  it("preserves the leading 0 for keep-the-zero dial codes (Italy)", () => {
+    expect(combineE164("+39", "0612345678")).toBe("+390612345678")
+  })
 })
 
 describe("splitE164", () => {
@@ -43,6 +51,16 @@ describe("splitE164", () => {
 
   it("ignores a stored iso2 whose dial code does not prefix the number", () => {
     expect(splitE164("+972541234567", "US").country.iso2).toBe("IL")
+  })
+
+  it("round-trips a keep-the-zero Italian number through split -> combine", () => {
+    // Acceptance for the combineE164 trunk-0 tech-debt item: a stored Italian
+    // E.164 whose national part keeps the leading 0 must survive an edit cycle.
+    const stored = "+390612345678"
+    const { country, national } = splitE164(stored, "IT")
+    expect(country.iso2).toBe("IT")
+    expect(national).toBe("0612345678")
+    expect(combineE164(country.dialCode, national)).toBe(stored)
   })
 })
 

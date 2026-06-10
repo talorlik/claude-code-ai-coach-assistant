@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react"
-import { NextIntlClientProvider } from "next-intl"
+import { NextIntlClientProvider, useTranslations } from "next-intl"
 import { describe, expect, it, vi } from "vitest"
 
 import enMessages from "../../messages/en-US.json"
@@ -27,6 +27,7 @@ vi.mock("@/lib/onboarding/onboarding-actions", () => ({
 
 import {
   OnboardingForm,
+  StepTraining,
   EMPTY_DEFAULTS,
 } from "@/app/[locale]/join/onboarding-form"
 
@@ -34,6 +35,27 @@ function renderForm() {
   return render(
     <NextIntlClientProvider locale="en" messages={enMessages}>
       <OnboardingForm defaults={EMPTY_DEFAULTS} />
+    </NextIntlClientProvider>
+  )
+}
+
+/** Renders the training step in isolation with live next-intl translations. */
+function StepTrainingHarness() {
+  const t = useTranslations("Onboarding")
+  return (
+    <StepTraining
+      t={t}
+      values={EMPTY_DEFAULTS}
+      set={() => {}}
+      fieldError={() => null}
+    />
+  )
+}
+
+function renderTrainingStep() {
+  return render(
+    <NextIntlClientProvider locale="en" messages={enMessages}>
+      <StepTrainingHarness />
     </NextIntlClientProvider>
   )
 }
@@ -55,6 +77,17 @@ describe("OnboardingForm field label association", () => {
     expect(byLabel(enMessages.Onboarding.fields.phone)).toBeInTheDocument()
     expect(byLabel(enMessages.Onboarding.fields.age)).toBeInTheDocument()
     expect(byLabel(enMessages.Onboarding.fields.ageRange)).toBeInTheDocument()
+  })
+
+  it("associates the goal field label with the Popover trigger", () => {
+    // The goal control is a Popover trigger nested in a positioning wrapper, so
+    // the Field label must target the trigger via an explicit id (controlId),
+    // not the wrapper div. getByLabelText resolves to the trigger button.
+    renderTrainingStep()
+    const trigger = screen.getByLabelText(
+      new RegExp(`^${enMessages.Onboarding.fields.goal}`)
+    )
+    expect(trigger).toHaveAttribute("data-testid", "goal-trigger")
   })
 
   it("exposes the advancing control as a real submit button", () => {

@@ -5,9 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
  *
  * - Auth gating: both actions require the trainer-admin role; when the guard
  *   throws (as Next's redirect does), no write runs.
- * - setPlanActiveAction: deactivate archives the active plan; activate restores
- *   the most-recently-archived plan; activate with no plan returns the
- *   localizable `plan.noPlanToActivate` code without throwing.
+ * - setPlanActiveAction: delegates to the atomic `set_plan_active` RPC (migration
+ *   0007). Deactivate archives the active plan; activate restores the
+ *   most-recently-archived plan; activate with no plan surfaces the RPC's
+ *   no_data_found (P0002) as the localizable `plan.noPlanToActivate` code without
+ *   throwing. The RPC is mocked over the in-memory plans to mirror its
+ *   archive-then-activate transaction.
  * - deleteClientAction: deletes the clients row then the auth user, and reports
  *   a partial failure if the auth-user delete fails after the data delete.
  *
@@ -32,13 +35,63 @@ interface PlanRow {
 
 let plans: PlanRow[]
 let updateCalls: Array<{ patch: Record<string, unknown>; id: string }>
+let rpcCalls: Array<{ fn: string; args: Record<string, unknown> }>
 let deletedClientIds: string[]
 let deletedUserIds: string[]
 let authDeleteError: { message: string } | null
 let dataDeleteError: { message: string } | null
 
+/**
+ * In-memory stand-in for the `set_plan_active` Postgres RPC: archives any active
+ * plan for the client and, when activating, restores the most-recently-archived
+ * plan. Mirrors the migration's transaction so the action's mapping of the RPC
+ * result/error to ActionResult codes is what is under test.
+ */
+function setPlanActiveRpc(
+  targetClient: string,
+  makeActive: boolean
+): { data: boolean | null; error: { code: string } | null } {
+  const archiveActive = () => {
+    for (const p of plans) {
+      if (p.client_id === targetClient && p.status === "active") {
+        p.status = "archived"
+        p.archived_at = "2026-06-09T00:00:00Z"
+        updateCalls.push({ patch: { status: "archived" }, id: p.id })
+      }
+    }
+  }
+
+  if (!makeActive) {
+    archiveActive()
+    return { data: false, error: null }
+  }
+
+  const candidate = plans
+    .filter((p) => p.client_id === targetClient && p.status === "archived")
+    .sort((a, b) => (b.archived_at ?? "").localeCompare(a.archived_at ?? ""))[0]
+  if (!candidate) return { data: null, error: { code: "P0002" } }
+
+  archiveActive()
+  candidate.status = "active"
+  candidate.archived_at = null
+  updateCalls.push({ patch: { status: "active" }, id: candidate.id })
+  return { data: true, error: null }
+}
+
 function rlsClient() {
   return {
+    rpc(fn: string, args: Record<string, unknown>) {
+      rpcCalls.push({ fn, args })
+      if (fn !== "set_plan_active") {
+        throw new Error(`unexpected rpc ${fn}`)
+      }
+      return Promise.resolve(
+        setPlanActiveRpc(
+          String(args.target_client),
+          Boolean(args.make_active)
+        )
+      )
+    },
     from(table: string) {
       if (table !== "workout_plans" && table !== "clients") {
         throw new Error(`unexpected table ${table}`)
@@ -137,6 +190,7 @@ beforeEach(() => {
   requireTrainerAdmin.mockResolvedValue("admin-1")
   plans = []
   updateCalls = []
+  rpcCalls = []
   deletedClientIds = []
   deletedUserIds = []
   authDeleteError = null
@@ -200,6 +254,7 @@ describe("setPlanActiveAction", () => {
     requireTrainerAdmin.mockRejectedValue(new Error("redirect"))
 
     await expect(setPlanActiveAction("c1", false)).rejects.toThrow("redirect")
+    expect(rpcCalls).toHaveLength(0)
     expect(updateCalls).toHaveLength(0)
   })
 })

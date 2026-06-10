@@ -577,12 +577,18 @@ export function StepTraining({ t, values, set, fieldError }: StepProps) {
   const fitnessError = fieldError("fitnessLevel")
   const locationError = fieldError("preferredLocation")
   const hasGoals = values.goals.length > 0
+  // The goal control is the Popover trigger nested inside a positioning wrapper,
+  // so its id is named explicitly and handed to both the Field label (via
+  // `controlId`) and the trigger Button, associating the visible "Main goal"
+  // label directly with the trigger rather than the wrapper div.
+  const goalTriggerId = React.useId()
   return (
     <div className="flex flex-col gap-5">
       <Field
         label={t("fields.goal")}
         error={goalError}
         required
+        controlId={goalTriggerId}
         labelAdornment={
           <TooltipProvider>
             <Tooltip>
@@ -614,6 +620,7 @@ export function StepTraining({ t, values, set, fieldError }: StepProps) {
                 <Button
                   type="button"
                   variant="outline"
+                  id={goalTriggerId}
                   data-testid="goal-trigger"
                   className={cn(
                     "w-full justify-start font-normal",
@@ -899,6 +906,12 @@ export function StepSchedule({ t, values, set, fieldError }: StepProps) {
  * single child element. This makes the visible label a click target for the
  * control and announces them as a pair to assistive tech, satisfying the
  * project's form-accessibility standard.
+ *
+ * When the labelable control is not the single direct child (e.g. the goal
+ * field wraps its trigger, a clear button, and a chevron in a positioning
+ * `<div>`), pass `controlId`: the label then points its `htmlFor` at that id
+ * and no id is injected into the wrapper, so the association lands on the real
+ * control rather than the non-labelable wrapper.
  */
 function Field({
   label,
@@ -906,6 +919,7 @@ function Field({
   error,
   required,
   labelAdornment,
+  controlId,
   children,
 }: {
   label: string
@@ -913,21 +927,28 @@ function Field({
   error?: string | null
   required?: boolean
   labelAdornment?: React.ReactNode
+  controlId?: string
   children: React.ReactNode
 }) {
-  const fieldId = React.useId()
+  const generatedId = React.useId()
+  // When the caller names the control explicitly, target it and leave the
+  // children untouched (the control carries `controlId` itself). Otherwise fall
+  // back to associating the label with the single direct child.
+  const fieldId = controlId ?? generatedId
   // Associate the label with the control. Inject the generated id into the
-  // single child element unless it already carries one (so an explicit id wins).
-  const control = React.isValidElement(children)
-    ? React.cloneElement(
-        children as React.ReactElement<{ id?: string }>,
-        {
-          id:
-            (children as React.ReactElement<{ id?: string }>).props.id ??
-            fieldId,
-        }
-      )
-    : children
+  // single child element unless it already carries one (so an explicit id wins)
+  // or the caller supplied `controlId` (the control is then a nested element).
+  const control =
+    controlId === undefined && React.isValidElement(children)
+      ? React.cloneElement(
+          children as React.ReactElement<{ id?: string }>,
+          {
+            id:
+              (children as React.ReactElement<{ id?: string }>).props.id ??
+              fieldId,
+          }
+        )
+      : children
   return (
     <div className="grid gap-2">
       <div className="flex items-center gap-1.5">

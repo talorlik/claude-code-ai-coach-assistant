@@ -25,120 +25,89 @@ below, fixes each, checks it off, and squash-merges the result into local
 
 ## Open Items
 
-- [ ] **`combineE164` drops the trunk-0 for keep-the-zero countries** - In
-  `lib/phone/phone.ts`, `combineE164` strips a single leading national trunk-0
-  before prepending the dial code (correct for Israel and most countries). A few
-  countries retain the leading 0 in their E.164 form (e.g. Italian fixed-line:
-  `+39 06 ...` stays `+390612345678`). For those, editing a saved number is
-  non-idempotent: `splitE164` returns a national part starting with `0`, and
-  re-saving recombines to a corrupted `+3961...`. This is a deliberate trade-off
-  of not adding a phone library (see `docs/DECISIONS.md`, the phone selector
-  entry). Fix only if the user base broadens beyond IL-primary: either special-
-  case keep-the-zero dial codes, or adopt `libphonenumber-js` for per-country
-  national-number rules. Acceptance: a stored `+390612345678` / `IT` round-trips
-  through split -> display -> combine unchanged. Added: 2026-06-07. Source:
-  phone country-code selector feature, final holistic review.
-
-- [ ] **Remove unused `_id` lint warnings** - 6 `@typescript-eslint/no-unused-vars`
-  warnings for an unused `_id` binding in test files. Locations:
-  `__tests__/integration/confirm-route.test.ts:15` and `:16`;
-  `__tests__/integration/login-actions.test.ts:70`;
-  `__tests__/unit/post-auth-redirect.test.ts:14`, `:15`, `:16`. Fix by removing
-  or properly omitting the unused destructured `_id` parameter (match how other
-  tests in the file ignore unused params). Acceptance: `npm run lint` reports
-  `0 problems` (0 errors, 0 warnings). Added: 2026-06-07. Source: pre-existing,
-  noted during the multi-select-goals feature.
-
-- [ ] **Goal Popover trigger lacks a direct label association** - In the
-  onboarding wizard `app/[locale]/join/onboarding-form.tsx`, the goal field's
-  child is a `<div className="relative">` wrapper (it nests a Popover trigger and
-  a clear-all button), so the `Field`-generated `htmlFor`/`id` association lands
-  on the wrapper `<div>`, not on the trigger `<Button>` itself. The trigger is
-  therefore not directly labelled for assistive tech (the surrounding label is
-  present but points at the wrapper). Fix by giving the Popover trigger an
-  explicit `id` and pointing the field `Label` at it via `aria-labelledby`, or
-  refactor the goal `Field` so its single labelable child is the trigger.
-  Acceptance: `getByLabelText(/Main goal/)` (or the goal field label) resolves to
-  the trigger button. Added: 2026-06-07. Source: forms progressive-enhancement
-  pass (native `Field` controls were fixed in the same pass; this wrapper case is
-  the residue).
-
-- [ ] **Authenticated site header overflows on mobile** -
-  `components/site-header.tsx` lays the nav links and the controls cluster
-  (install/language/theme/sign-out) in two non-wrapping flex rows with no mobile
-  collapse. When signed in (My Plan/Chat/Account, plus Clients/Admin for the
-  trainer) the header is ~547px wide and overflows horizontally at the 390px
-  reference viewport, so every authenticated page scrolls sideways on a phone.
-  Fix by collapsing the nav into a hamburger/menu below the `sm` breakpoint (or
-  wrapping + condensing the controls). Acceptance: at 390px width, an
-  authenticated page (e.g. `/en/join`) has `documentElement.scrollWidth -
-  clientWidth <= 1` (extend `e2e/responsive.spec.ts` with an authenticated
-  viewport check). Added: 2026-06-07. Source: onboarding UX branch (the
-  onboarding form itself does not overflow; the shared header does).
-
-- [ ] **`my-plan` view-switch e2e is state-dependent / flaky** -
-  `e2e/my-plan.spec.ts:57` ("a client views the plan and can switch views")
-  fails against the seeded customer account depending on that account's current
-  plan state (observed failing on clean `main`, independent of any branch): it
-  either does not reach `/en/my-plan` or lands in an in-between state where
-  neither the "list" tab nor the "no active plan/onboarding" empty-state text is
-  present. Make the test deterministic by seeding/resetting the account's plan
-  state in a fixture or `beforeEach`, or by asserting on a stable post-load
-  landmark rather than branching on tab visibility. Acceptance: the test passes
-  reliably in isolation and in-suite regardless of prior plan state. Added:
-  2026-06-07. Source: onboarding UX branch verification (pre-existing failure).
-
-- [ ] **`setPlanActiveAction` activate path is non-atomic; one-active-plan
-  invariant is not DB-enforced** - In `lib/db/trainer-clients-actions.ts`, the
-  activate branch of `setPlanActiveAction` issues three independently-committed
-  statements (find candidate, archive any active plan, activate candidate) with
-  no transaction. A failure between the archive and activate writes leaves the
-  client with zero active plans (caller gets `plan.updateError`; a retry
-  recovers). Concurrent activate calls can also race and leave two
-  `status='active'` rows, because `supabase/migrations/0002_app_schema.sql`'s
-  `workout_plans_active_idx` is a non-unique partial index, so the DB does not
-  reject a second active row. Tolerable today because this is a single-actor
-  trainer-admin action and the toggle is normally disabled client-side. Durable
-  fix: move the archive-then-activate into one atomic step - either a
-  `security definer` Postgres RPC, or convert the partial index to a partial
-  UNIQUE index (`unique (client_id) where status = 'active'`) so the DB enforces
-  the invariant. Acceptance: two concurrent `setPlanActiveAction(c, true)` calls
-  can never leave two active plans for the same client (DB rejects or the RPC
-  serializes), and a mid-sequence failure cannot strand the client with zero
-  active plans. Added: 2026-06-10. Source: trainer client-row-actions feature,
-  Task 3 code review.
-
-- [ ] **`notes-actions.ts` returns raw English strings instead of i18n keys** -
-  `lib/trainer/notes-actions.ts` returns full human-readable English in its
-  `fail(...)` calls (e.g. `"Could not save the note. Please try again."`),
-  unlike the newer `lib/db/trainer-clients-actions.ts` which returns localizable
-  message keys (`"plan.updateError"`) that the client toasts via
-  `t(result.error)`. Reconcile notes-actions to the key-based pattern so its
-  error toasts localize under `/he`. Acceptance: every `fail(...)` in
-  notes-actions returns a `TrainerNotes`/`TrainerClients`-namespace message key
-  that resolves in both `en-US.json` and `he-IL.json`, and the notes panel
-  toasts the localized string. Added: 2026-06-10. Source: trainer
-  client-row-actions feature, Task 3 code review.
-
-- [ ] **Root-scanning lint + service-worker test don't exclude `.worktrees/`** -
-  `__tests__/unit/single-service-worker.test.ts` walks from the repo root and its
-  `IGNORED_DIRS` set (`node_modules`, `.next`, `.git`, `playwright-report`,
-  `test-results`) omits `.worktrees`, so while a per-branch worktree exists under
-  `.worktrees/`, running the gate in the PRIMARY checkout finds the worktree's own
-  `public/sw.js` as a second service-worker file and fails ("expected 2 to equal
-  1"). eslint has the same blind spot (it lints files under
-  `.worktrees/.../node_modules` and build output, surfacing `no-this-alias` /
-  `no-require-imports` / `ban-ts-comment` errors). The gate passes inside the
-  worktree and after the worktree is removed; the failure only appears in the
-  window between squash-merge and worktree cleanup. Fix by adding `.worktrees` to
-  the test's `IGNORED_DIRS` and to the eslint ignores (`eslint.config.mjs`
-  `ignores`), so a verify in the primary checkout is robust to a live worktree.
-  Acceptance: with a worktree present under `.worktrees/`, `npm run lint` reports
-  0 errors and `single-service-worker.test.ts` passes from the primary checkout.
-  Added: 2026-06-10. Source: collapsible-trainer-sections feature, post-merge gate
-  (see `docs/DECISIONS.md`). Related to the `_id` lint Open Item above.
+_None. All tracked items were cleared in the 2026-06-10 tech-debt batch (see
+Done below)._
 
 ## Done
+
+- [x] **`combineE164` drops the trunk-0 for keep-the-zero countries** -
+  `lib/phone/phone.ts` now special-cases keep-the-zero dial codes via the
+  `KEEP_LEADING_ZERO_DIAL_CODES` set (currently `+39`/Italy): `combineE164`
+  preserves the leading 0 for those and still strips it for the common case. No
+  phone library added (the documented IL-primary trade-off is respected; the set
+  is the minimal, dial-code-keyed fix). Verified by
+  `__tests__/unit/phone.test.ts`: a stored `+390612345678` / `IT` round-trips
+  through split -> display -> combine unchanged, plus a common-case strip test.
+  Done: 2026-06-10. Source: phone country-code selector feature.
+
+- [x] **Remove unused `_id` lint warnings** - Fixed at the root by honoring the
+  underscore-prefix convention the tests already use: `eslint.config.mjs` adds a
+  `@typescript-eslint/no-unused-vars` override with `argsIgnorePattern` /
+  `varsIgnorePattern` / `caughtErrorsIgnorePattern` of `^_`. This cleared the 6
+  `_id` warnings and a 7th `_input` warning in
+  `onboarding-contact-dedup.test.tsx`. `npm run lint` reports `0 problems`. Done:
+  2026-06-10. Source: pre-existing, multi-select-goals feature.
+
+- [x] **Goal Popover trigger lacks a direct label association** - The `Field`
+  component in `app/[locale]/join/onboarding-form.tsx` gained an optional
+  `controlId` prop: when set, the `<Label htmlFor>` targets that id and no id is
+  cloned onto the wrapper. The goal field passes a `React.useId()` value as both
+  `controlId` and the trigger `Button`'s `id`, so the "Main goal" label resolves
+  directly to the trigger. Verified by `onboarding-form-labels.test.tsx`
+  (`getByLabelText(/Main goal/)` resolves to the `goal-trigger` button). Done:
+  2026-06-10. Source: forms progressive-enhancement pass.
+
+- [x] **Authenticated site header overflows on mobile** - The header already
+  collapses its nav into a hamburger `Sheet` below the `md` breakpoint (landed in
+  `fix(nav): collapse mobile menu after tapping a nav link`), so the code fix was
+  in place; the residual work was the missing regression guard. Added an
+  authenticated 390px no-horizontal-overflow check to `e2e/responsive.spec.ts`
+  using the `injectSession` helper (skips when customer credentials are unset).
+  Done: 2026-06-10. Source: onboarding UX branch.
+
+- [x] **`my-plan` view-switch e2e is state-dependent / flaky** - `e2e/my-plan.spec.ts`
+  now signs the customer in via `injectSession` (the captcha-bypassing helper)
+  instead of the Turnstile-blocked login form - the root cause of not reaching
+  `/my-plan` - and asserts the stable `getByRole("main")` landmark and the
+  `/en/my-plan` URL rather than branching on the `list` tab. The list/calendar
+  switch is now opportunistic, so the test is deterministic regardless of plan
+  state. Done: 2026-06-10. Source: onboarding UX branch verification.
+
+- [x] **`setPlanActiveAction` activate path is non-atomic; one-active-plan
+  invariant is not DB-enforced** - Migration `0007_one_active_plan_invariant.sql`
+  replaces the non-unique `workout_plans_active_idx` with a partial UNIQUE index
+  `workout_plans_one_active_idx` (`unique (client_id) where status = 'active'`),
+  so the DB rejects a second active plan, and adds a `security definer` RPC
+  `set_plan_active(uuid, boolean)` that does archive-then-activate in one
+  transaction (re-checking `is_trainer_admin()` first). `setPlanActiveAction` now
+  calls the RPC and maps its `no_data_found` (P0002) raise to
+  `plan.noPlanToActivate`. Applied to the remote DB; no pre-existing
+  duplicate-active rows blocked the unique index. Verified by
+  `__tests__/integration/trainer-clients-actions.test.ts` (RPC mocked over
+  in-memory plans). Done: 2026-06-10. Source: trainer client-row-actions feature,
+  Task 3 code review.
+
+- [x] **`notes-actions.ts` returns raw English strings instead of i18n keys** -
+  The three operation `fail(...)` calls in `lib/trainer/notes-actions.ts` now
+  return `errors.saveError` / `errors.updateError` / `errors.deleteError`, added
+  under `TrainerDashboard.notes.errors` in both `en-US.json` and `he-IL.json`.
+  The notes panel's `messageFor` resolves a returned `errors.*` key through its
+  `TrainerDashboard.notes` translator (falling back to `errors.generic`), so the
+  failure copy localizes under `/he`. The validator's generic summary string was
+  also switched to `errors.generic` for consistency. Verified by
+  `__tests__/integration/trainer-notes-actions.test.ts`. Done: 2026-06-10.
+  Source: trainer client-row-actions feature, Task 3 code review.
+
+- [x] **Root-scanning lint + service-worker test don't exclude `.worktrees/`** -
+  `__tests__/unit/single-service-worker.test.ts` adds `.worktrees` to
+  `IGNORED_DIRS`, and `eslint.config.mjs` adds `.worktrees/**` to its
+  `globalIgnores`. A verify in the primary checkout is now robust to a live
+  worktree under `.worktrees/`. (This project uses the `../itai-*` sibling
+  worktree convention, so the failure window did not recur here, but the guard is
+  in place for any `.worktrees/`-based worktree.) Done: 2026-06-10. Source:
+  collapsible-trainer-sections feature, post-merge gate.
+
+## Previously Done
 
 - [x] **Associate form labels with their controls (onboarding native fields)** -
   The `Field` component in `app/[locale]/join/onboarding-form.tsx` now generates a

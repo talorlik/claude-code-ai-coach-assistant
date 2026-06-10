@@ -1,5 +1,7 @@
 import { test, expect, type Page } from "@playwright/test"
 
+import { customerCredentials, injectSession } from "./helpers/auth"
+
 /**
  * Responsive, theme, and RTL polish E2E. These assert the guest-reachable
  * shell (homepage + login) holds up at the three reference viewports the polish
@@ -7,6 +9,13 @@ import { test, expect, type Page } from "@playwright/test"
  * toggle round-trips in both directions, and that the Hebrew shell renders RTL
  * at every viewport. No credentials are needed, so the suite runs in CI without
  * seeded accounts.
+ *
+ * The authenticated block additionally guards the signed-in header: when signed
+ * in the nav carries extra links (My Plan/Chat/Account, plus Clients/Admin for
+ * a trainer) and a wider controls cluster. It must collapse into the hamburger
+ * Sheet below the `md` breakpoint rather than overflow the 390px phone viewport.
+ * It is skipped when customer credentials are not seeded, matching the rest of
+ * the auth-dependent suite.
  */
 
 /** The three reference widths the polish batch verifies: mobile, tablet, desktop. */
@@ -58,6 +67,26 @@ test.describe("responsive layouts", () => {
     // Exactly one top-level heading; the hero CTA is reachable.
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
     await expect(page.getByRole("main")).toBeVisible()
+    await expectNoHorizontalOverflow(page)
+  })
+})
+
+test.describe("authenticated header at mobile width", () => {
+  test("an authenticated page has no horizontal overflow at 390px", async ({
+    page,
+    context,
+  }) => {
+    const { email, password } = customerCredentials
+    test.skip(
+      !email || !password,
+      "E2E_CUSTOMER_EMAIL / E2E_CUSTOMER_PASSWORD not set"
+    )
+    await injectSession(context, email!, password!)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto("/en/join")
+    // The signed-in header (banner) is present, and the page does not scroll
+    // sideways: the extra authenticated nav links collapse into the hamburger.
+    await expect(page.getByRole("banner")).toBeVisible()
     await expectNoHorizontalOverflow(page)
   })
 })

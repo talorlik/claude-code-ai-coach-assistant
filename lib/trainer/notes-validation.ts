@@ -31,12 +31,12 @@ export function validateTrainerNote(
   const body = rawBody.trim()
 
   if (body === "") {
-    return fail("Please correct the highlighted fields.", {
+    return fail("errors.generic", {
       body: "required",
     })
   }
   if (body.length > TRAINER_NOTE_MAX_LENGTH) {
-    return fail("Please correct the highlighted fields.", {
+    return fail("errors.generic", {
       body: "tooLong",
     })
   }

@@ -546,7 +546,10 @@
       "errors": {
         "required": "A note can't be empty.",
         "tooLong": "Keep notes under 2000 characters.",
-        "generic": "Something went wrong. Please try again."
+        "generic": "Something went wrong. Please try again.",
+        "saveError": "Could not save the note. Please try again.",
+        "updateError": "Could not update the note. Please try again.",
+        "deleteError": "Could not delete the note. Please try again."
       }
     },
     "push": {
