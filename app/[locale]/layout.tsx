@@ -125,7 +125,10 @@ export default async function LocaleLayout({
           <ThemeProvider>
             <ServiceWorkerRegister />
             <SiteHeader />
-            {children}
+            {/* Content flows in a growing column so the footer sits at the
+                viewport bottom on short pages; the bottom padding guarantees a
+                gap above the footer on tall pages so content never touches it. */}
+            <div className="flex flex-1 flex-col pb-16">{children}</div>
             <SiteFooter />
             <Toaster />
           </ThemeProvider>

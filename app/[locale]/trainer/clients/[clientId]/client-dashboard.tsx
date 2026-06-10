@@ -138,7 +138,7 @@ export function ClientDashboard({ data }: { data: ClientDashboardData }) {
   const t = useTranslations("TrainerDashboard")
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-12">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pt-12">
       <div className="flex flex-col gap-4">
         <Link
           href="/trainer"

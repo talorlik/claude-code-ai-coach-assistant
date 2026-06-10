@@ -336,7 +336,7 @@ export default async function TrainerClientDashboardPage({
   }
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-8">
       <ClientDashboard data={data} />
 
       <div className="mx-auto w-full max-w-5xl px-4">
