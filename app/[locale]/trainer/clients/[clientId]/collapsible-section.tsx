@@ -140,7 +140,12 @@ export function CollapsibleSection({
       // bare variant is a plain <div> sub-region inside an existing card. Base
       // UI uses the `render` prop (not `asChild`) to override the host element.
       render={bare ? undefined : <section />}
+      // `group` on the Root (which carries `data-open` when expanded) lets the
+      // chevron - rendered as the LAST item in the header row, outside the
+      // trigger - rotate on open. This keeps the chevron flush at the section's
+      // end and consistent across sections even when a headerAction is present.
       className={cn(
+        "group",
         !bare && "rounded-lg border bg-card text-card-foreground"
       )}
     >
@@ -153,7 +158,7 @@ export function CollapsibleSection({
         <CollapsibleTrigger
           data-testid={dataTestId}
           className={cn(
-            "group flex flex-1 items-center justify-between gap-2 text-start",
+            "flex flex-1 items-center gap-2 text-start",
             "rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
           )}
         >
@@ -162,12 +167,12 @@ export function CollapsibleSection({
           >
             {title}
           </Heading>
-          <ChevronDown
-            aria-hidden="true"
-            className="size-5 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-180"
-          />
         </CollapsibleTrigger>
         {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
+        <ChevronDown
+          aria-hidden="true"
+          className="size-5 shrink-0 text-muted-foreground transition-transform group-data-[open]:rotate-180"
+        />
       </div>
       <CollapsibleContent>
         <div className={cn(bare ? "pb-2" : "px-4 pb-4")}>
