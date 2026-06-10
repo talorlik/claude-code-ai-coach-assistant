@@ -120,6 +120,24 @@ below, fixes each, checks it off, and squash-merges the result into local
   toasts the localized string. Added: 2026-06-10. Source: trainer
   client-row-actions feature, Task 3 code review.
 
+- [ ] **Root-scanning lint + service-worker test don't exclude `.worktrees/`** -
+  `__tests__/unit/single-service-worker.test.ts` walks from the repo root and its
+  `IGNORED_DIRS` set (`node_modules`, `.next`, `.git`, `playwright-report`,
+  `test-results`) omits `.worktrees`, so while a per-branch worktree exists under
+  `.worktrees/`, running the gate in the PRIMARY checkout finds the worktree's own
+  `public/sw.js` as a second service-worker file and fails ("expected 2 to equal
+  1"). eslint has the same blind spot (it lints files under
+  `.worktrees/.../node_modules` and build output, surfacing `no-this-alias` /
+  `no-require-imports` / `ban-ts-comment` errors). The gate passes inside the
+  worktree and after the worktree is removed; the failure only appears in the
+  window between squash-merge and worktree cleanup. Fix by adding `.worktrees` to
+  the test's `IGNORED_DIRS` and to the eslint ignores (`eslint.config.mjs`
+  `ignores`), so a verify in the primary checkout is robust to a live worktree.
+  Acceptance: with a worktree present under `.worktrees/`, `npm run lint` reports
+  0 errors and `single-service-worker.test.ts` passes from the primary checkout.
+  Added: 2026-06-10. Source: collapsible-trainer-sections feature, post-merge gate
+  (see `docs/DECISIONS.md`). Related to the `_id` lint Open Item above.
+
 ## Done
 
 - [x] **Associate form labels with their controls (onboarding native fields)** -
