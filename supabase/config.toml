@@ -1,97 +1,155 @@
 # Supabase CLI project configuration. `project_id` is the project ref used by
 # `supabase link` / `supabase functions deploy`. Only the Edge Functions section
-# is required by Batch 28; the rest of the stack is managed remotely.
+# is required at runtime; the auth block below is a disaster-recovery mirror.
 project_id = "vgluuhbztwzrekkexkqk"
 
 # Contact-form email sender. `verify_jwt = true` requires a valid bearer on
 # invoke; the server action calls it through the secret-key admin client, which
 # satisfies that. SMTP credentials are function secrets, never committed - set
-# them with `supabase secrets set` (see docs/DECISIONS.md).
+# them with `supabase secrets set` (see docs/DECISIONS.md). The function reads
+# SMTP_HOST / SMTP_PORT (default 465) / SMTP_USERNAME / SMTP_PASSWORD /
+# SMTP_FROM / CONTACT_TO from its own secrets - these are distinct from the
+# [auth.email.smtp] settings further down (that is Supabase Auth's mailer, a
+# separate system).
 [functions.contact]
 verify_jwt = true
 
 # ---------------------------------------------------------------------------
-# Auth configuration.
+# Auth configuration (disaster-recovery mirror).
 #
-# Disaster-recovery template for the dashboard-managed auth settings, which are
-# otherwise invisible to the repo. Values interpolated with env() are read at
-# `supabase` CLI invocation; literals are the intended state. Every line tagged
-# `# VERIFY` is a value only the live dashboard knows for certain - reconcile it
-# against Authentication -> ... in the Supabase dashboard before treating this
-# file as authoritative, then drop the tag.
+# This block exists so the dashboard-managed auth settings, otherwise invisible
+# to the repo, can be reconstructed. It is NOT yet a verified mirror: the values
+# below the structural lines are reconstructed from the application code, not
+# read back from the live project, because this CLI version's `supabase config
+# push` has no non-destructive dry-run/diff and the project is not reachable
+# through the read-only management API from this workspace.
 #
-# Secrets (SMTP password, Turnstile secret) are NEVER committed. They live in
-# .env / .env.local locally and as project secrets remotely (`supabase secrets
-# set`). The env() references below pull them in without inlining the values.
+# Provenance tags:
+#   (verified)  - confirmed from repo code / linked-project.json; trustworthy.
+#   (code)      - inferred from application code; very likely correct, but the
+#                 live auth layer could differ - confirm opportunistically.
+#   (dashboard) - only the Supabase dashboard knows this for certain; treat as a
+#                 placeholder until reconciled (see the CHECKLIST at the bottom).
+#
+# Secrets (SMTP password, Turnstile secret) are NEVER committed. The env()
+# references pull them in at `supabase` CLI invocation without inlining.
+#
+# WARNING: do not run `supabase config push` to "sync" this file - in this CLI
+# version that WRITES these values to the live project and can break production
+# sign-in. Only push after every (dashboard) line has been reconciled.
 # ---------------------------------------------------------------------------
 [auth]
 # Base URL of the deployed site; emailed links and OAuth callbacks resolve
-# against it. Prod is the Vercel domain; the app reads NEXT_PUBLIC_SITE_URL for
-# the same value at runtime.
-site_url = "env(NEXT_PUBLIC_SITE_URL)"
+# against it. The app's canonical URL variable is NEXT_PUBLIC_APP_URL
+# (.env.example) - the earlier NEXT_PUBLIC_SITE_URL reference was wrong and did
+# not match any variable the app defines. (code)
+site_url = "env(NEXT_PUBLIC_APP_URL)"
 
 # Post-auth redirect allowlist. Supabase rejects redirect_to / emailRedirectTo
-# targets not matched here. These mirror the routes the app actually requests:
-#   * /auth/confirm                     - email confirmation + magic-link landing
-#   * /auth/confirm?next=/reset-password - password-recovery landing (forgot-password)
-# Wildcards cover localhost dev and Vercel preview deploys.
+# targets not matched here. These mirror the routes the app requests:
+#   * /auth/confirm                      - email confirmation + magic-link landing
+#   * /auth/confirm?next=/reset-password - password-recovery landing
+# Wildcards cover localhost dev and Vercel preview deploys. (code - confirm the
+# exact production domain and wildcard form against the dashboard.)
 additional_redirect_urls = [
   "http://localhost:3000/auth/confirm",
   "http://localhost:3000/auth/confirm?next=/reset-password",
-  "https://*.vercel.app/auth/confirm",                       # VERIFY - preview deploys
-  "https://*.vercel.app/auth/confirm?next=/reset-password",  # VERIFY
+  "https://*.vercel.app/auth/confirm",                       # (dashboard)
+  "https://*.vercel.app/auth/confirm?next=/reset-password",  # (dashboard)
 ]
 
 # JWT lifetime (seconds). 3600 is the Supabase default; the app's "remember me"
-# logic strips cookie expiry client-side, it does not change this.
-jwt_expiry = 3600                # VERIFY
+# logic strips cookie expiry client-side, it does not change this. (dashboard)
+jwt_expiry = 3600
 
-# Refresh-token rotation. Defaults: rotation on, 10s reuse grace window.
+# Refresh-token rotation. Supabase defaults: rotation on, 10s reuse grace. (dashboard)
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 
-# Email/password signups. The app uses email+password (login/signup tabs), so
-# this must stay enabled.
-enable_signup = true             # VERIFY
-enable_anonymous_sign_ins = false
+# Email/password signups. The app ships login/signup tabs, so signup is on. (code)
+enable_signup = true
+enable_anonymous_sign_ins = false   # (dashboard)
 
 [auth.email]
-# Email/password is the only first-party provider in use.
-enable_signup = true             # VERIFY
-# Whether a new email must be confirmed before the session is usable. The
-# /auth/confirm route exists to handle the confirmation link, which implies
-# confirmations are ON. Confirm against the dashboard.
-enable_confirmations = true      # VERIFY
-double_confirm_changes = true    # VERIFY
-secure_password_change = false   # VERIFY
-# Minimum password length / strength. Defaults shown.
-# minimum_password_length = 6    # VERIFY
-# password_requirements = ""     # VERIFY
+# Email/password is the only first-party provider in use. (code)
+enable_signup = true
+# A /auth/confirm route exists to consume the confirmation link, which implies
+# confirmations are ON. (code)
+enable_confirmations = true
+double_confirm_changes = true    # (dashboard)
+secure_password_change = false   # (dashboard)
+# Password length / strength - Supabase defaults; uncomment once confirmed.
+# minimum_password_length = 6    # (dashboard)
+# password_requirements = ""     # (dashboard)
 
-# Custom SMTP. If unset, Supabase's built-in (rate-limited) mailer is used.
-# Credentials are secrets - host/port/sender may be committed, the password may
-# NOT. Reconcile every field against Authentication -> Emails -> SMTP Settings.
+# Custom SMTP for Supabase Auth's own mailer (confirmation / recovery emails).
+# This is SEPARATE from the `contact` edge function's SMTP secrets above.
+#
+# IMPORTANT: the env var names below are PLACEHOLDERS - this repo does not
+# define any SUPABASE_SMTP_* variables (the only SMTP that exists is the edge
+# function's SMTP_* function secrets). If custom auth SMTP is enabled on the
+# dashboard, set real secrets and point these env() refs at them; if auth uses
+# Supabase's built-in mailer, delete this whole block. (dashboard)
 [auth.email.smtp]
-enabled = true                   # VERIFY - is custom SMTP configured at all?
-host = "env(SUPABASE_SMTP_HOST)"         # VERIFY
-port = 587                                # VERIFY
-user = "env(SUPABASE_SMTP_USER)"         # VERIFY
-pass = "env(SUPABASE_SMTP_PASS)"         # secret - never inline
-admin_email = "env(SUPABASE_SMTP_ADMIN_EMAIL)"   # VERIFY
-sender_name = "Studio Itai"      # VERIFY
+enabled = true                            # (dashboard) - is custom SMTP on at all?
+host = "env(SUPABASE_SMTP_HOST)"          # (dashboard)
+port = 465                                # (dashboard) - 465 implicit TLS, like the contact fn
+user = "env(SUPABASE_SMTP_USER)"          # (dashboard)
+pass = "env(SUPABASE_SMTP_PASS)"          # secret - never inline
+admin_email = "env(SUPABASE_SMTP_ADMIN_EMAIL)"   # (dashboard)
+sender_name = "Studio Itai"               # (code) - matches the contact email subject
 
-# Bot protection on auth endpoints. The app ships Turnstile (CAPTCHA) on its
-# login/signup forms; if Supabase-side captcha is also enabled it must match the
-# same Cloudflare Turnstile keys the frontend uses
-# (NEXT_PUBLIC_TURNSTILE_SITE_KEY + the server secret).
+# Bot protection on auth endpoints. The app ships Cloudflare Turnstile on its
+# login/signup forms (NEXT_PUBLIC_TURNSTILE_SITE_KEY is in .env.example). If
+# Supabase-side captcha is also enabled it must use the SAME Turnstile keys.
+# Note: TURNSTILE_SECRET_KEY is not in .env.example - confirm the secret's real
+# env name before relying on this. (code for the site key; dashboard otherwise)
 [auth.captcha]
-enabled = true                   # VERIFY - is captcha enforced at the Supabase auth layer?
+enabled = true                   # (dashboard) - is captcha enforced at the auth layer?
 provider = "turnstile"
-secret = "env(TURNSTILE_SECRET_KEY)"     # secret - never inline; VERIFY the env name
+secret = "env(TURNSTILE_SECRET_KEY)"     # secret - never inline; (dashboard) verify env name
 
-# Auth-endpoint rate limits. Defaults shown; raise/lower only to match the
-# dashboard's current values.
+# Auth-endpoint rate limits. Supabase defaults shown; adjust only to match the
+# dashboard's current values. (dashboard)
 [auth.rate_limit]
-email_sent = 30                  # VERIFY - emails per hour
-sign_in_sign_ups = 30            # VERIFY - per IP per 5 min
-token_refresh = 150              # VERIFY - per IP per 5 min
+email_sent = 30                  # (dashboard) - emails per hour
+sign_in_sign_ups = 30            # (dashboard) - per IP per 5 min
+token_refresh = 150              # (dashboard) - per IP per 5 min
+
+# ===========================================================================
+# RECONCILIATION CHECKLIST
+#
+# Read each value from the Supabase dashboard for project vgluuhbztwzrekkexkqk,
+# replace the placeholder above, then change its tag to (verified). When every
+# (dashboard) line is reconciled, this file is an authoritative DR mirror and a
+# `supabase config push` becomes safe.
+#
+# Authentication -> URL Configuration:
+#   - Site URL                  -> [auth].site_url (confirm NEXT_PUBLIC_APP_URL value)
+#   - Redirect URLs             -> [auth].additional_redirect_urls (exact prod domain)
+#
+# Authentication -> Sign In / Providers -> Email:
+#   - Enable signup             -> [auth].enable_signup / [auth.email].enable_signup
+#   - Confirm email             -> [auth.email].enable_confirmations
+#   - Secure email change       -> [auth.email].double_confirm_changes
+#   - Secure password change    -> [auth.email].secure_password_change
+#   - Minimum password length / requirements -> [auth.email] (uncomment if set)
+#   - Allow anonymous sign-ins  -> [auth].enable_anonymous_sign_ins
+#
+# Authentication -> Emails -> SMTP Settings:
+#   - Enable custom SMTP?       -> [auth.email.smtp].enabled (if OFF, delete the block)
+#   - Host / Port / Username    -> [auth.email.smtp].host/port/user
+#   - Sender email / name       -> [auth.email.smtp].admin_email/sender_name
+#   (password stays a secret - never inline)
+#
+# Authentication -> Attack Protection:
+#   - Enable Captcha protection -> [auth.captcha].enabled
+#   - Provider / secret         -> [auth.captcha].provider/secret (verify env name)
+#
+# Authentication -> Rate Limits:
+#   - Emails / Sign in+ups / Token refresh -> [auth.rate_limit].*
+#
+# Sessions / JWT (Project Settings or Auth):
+#   - JWT expiry                -> [auth].jwt_expiry
+#   - Refresh token rotation / reuse interval -> [auth].enable_refresh_token_rotation / refresh_token_reuse_interval
+# ===========================================================================
