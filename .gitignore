@@ -56,3 +56,7 @@ context-practice-files/
 
 # Project-local git worktrees (per-batch isolated workspaces)
 .worktrees/
+
+# Database backups - contain PII, auth user records, and password hashes.
+# Never commit; store the long-term copy in an encrypted, access-controlled location.
+/backups/

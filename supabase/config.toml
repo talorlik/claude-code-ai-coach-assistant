@@ -9,3 +9,89 @@ project_id = "vgluuhbztwzrekkexkqk"
 # them with `supabase secrets set` (see docs/DECISIONS.md).
 [functions.contact]
 verify_jwt = true
+
+# ---------------------------------------------------------------------------
+# Auth configuration.
+#
+# Disaster-recovery template for the dashboard-managed auth settings, which are
+# otherwise invisible to the repo. Values interpolated with env() are read at
+# `supabase` CLI invocation; literals are the intended state. Every line tagged
+# `# VERIFY` is a value only the live dashboard knows for certain - reconcile it
+# against Authentication -> ... in the Supabase dashboard before treating this
+# file as authoritative, then drop the tag.
+#
+# Secrets (SMTP password, Turnstile secret) are NEVER committed. They live in
+# .env / .env.local locally and as project secrets remotely (`supabase secrets
+# set`). The env() references below pull them in without inlining the values.
+# ---------------------------------------------------------------------------
+[auth]
+# Base URL of the deployed site; emailed links and OAuth callbacks resolve
+# against it. Prod is the Vercel domain; the app reads NEXT_PUBLIC_SITE_URL for
+# the same value at runtime.
+site_url = "env(NEXT_PUBLIC_SITE_URL)"
+
+# Post-auth redirect allowlist. Supabase rejects redirect_to / emailRedirectTo
+# targets not matched here. These mirror the routes the app actually requests:
+#   * /auth/confirm                     - email confirmation + magic-link landing
+#   * /auth/confirm?next=/reset-password - password-recovery landing (forgot-password)
+# Wildcards cover localhost dev and Vercel preview deploys.
+additional_redirect_urls = [
+  "http://localhost:3000/auth/confirm",
+  "http://localhost:3000/auth/confirm?next=/reset-password",
+  "https://*.vercel.app/auth/confirm",                       # VERIFY - preview deploys
+  "https://*.vercel.app/auth/confirm?next=/reset-password",  # VERIFY
+]
+
+# JWT lifetime (seconds). 3600 is the Supabase default; the app's "remember me"
+# logic strips cookie expiry client-side, it does not change this.
+jwt_expiry = 3600                # VERIFY
+
+# Refresh-token rotation. Defaults: rotation on, 10s reuse grace window.
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+
+# Email/password signups. The app uses email+password (login/signup tabs), so
+# this must stay enabled.
+enable_signup = true             # VERIFY
+enable_anonymous_sign_ins = false
+
+[auth.email]
+# Email/password is the only first-party provider in use.
+enable_signup = true             # VERIFY
+# Whether a new email must be confirmed before the session is usable. The
+# /auth/confirm route exists to handle the confirmation link, which implies
+# confirmations are ON. Confirm against the dashboard.
+enable_confirmations = true      # VERIFY
+double_confirm_changes = true    # VERIFY
+secure_password_change = false   # VERIFY
+# Minimum password length / strength. Defaults shown.
+# minimum_password_length = 6    # VERIFY
+# password_requirements = ""     # VERIFY
+
+# Custom SMTP. If unset, Supabase's built-in (rate-limited) mailer is used.
+# Credentials are secrets - host/port/sender may be committed, the password may
+# NOT. Reconcile every field against Authentication -> Emails -> SMTP Settings.
+[auth.email.smtp]
+enabled = true                   # VERIFY - is custom SMTP configured at all?
+host = "env(SUPABASE_SMTP_HOST)"         # VERIFY
+port = 587                                # VERIFY
+user = "env(SUPABASE_SMTP_USER)"         # VERIFY
+pass = "env(SUPABASE_SMTP_PASS)"         # secret - never inline
+admin_email = "env(SUPABASE_SMTP_ADMIN_EMAIL)"   # VERIFY
+sender_name = "Studio Itai"      # VERIFY
+
+# Bot protection on auth endpoints. The app ships Turnstile (CAPTCHA) on its
+# login/signup forms; if Supabase-side captcha is also enabled it must match the
+# same Cloudflare Turnstile keys the frontend uses
+# (NEXT_PUBLIC_TURNSTILE_SITE_KEY + the server secret).
+[auth.captcha]
+enabled = true                   # VERIFY - is captcha enforced at the Supabase auth layer?
+provider = "turnstile"
+secret = "env(TURNSTILE_SECRET_KEY)"     # secret - never inline; VERIFY the env name
+
+# Auth-endpoint rate limits. Defaults shown; raise/lower only to match the
+# dashboard's current values.
+[auth.rate_limit]
+email_sent = 30                  # VERIFY - emails per hour
+sign_in_sign_ups = 30            # VERIFY - per IP per 5 min
+token_refresh = 150              # VERIFY - per IP per 5 min
